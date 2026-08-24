@@ -1,0 +1,300 @@
+
+Running 23 tests using 1 worker
+
+  ✓   1 [chromium] › tests/admin/admin-smoke.spec.ts:5:3 › Admin Smoke Tests › AS-01: Admin dashboard loads with key performance indicators (6.5s)
+  ✘   2 [chromium] › tests/admin/admin-smoke.spec.ts:15:3 › Admin Smoke Tests › AS-02: Products tab - Search, Add, Edit and Delete a sneaker (8.6s)
+  ✘   3 [chromium] › tests/admin/admin-smoke.spec.ts:41:3 › Admin Smoke Tests › AS-03: Orders tab - Filter orders and update order status (15.4s)
+  ✓   4 [chromium] › tests/admin/admin-smoke.spec.ts:57:3 › Admin Smoke Tests › AS-04: Inventory tab - Adjust stock levels for specific shoe sizes (10.6s)
+  ✘   5 [chromium] › tests/admin/admin-smoke.spec.ts:67:3 › Admin Smoke Tests › AS-05: Promos tab - Create a new promo discount code and toggle active status (10.7s)
+  ✘   6 [chromium] › tests/admin/admin-smoke.spec.ts:90:3 › Admin Smoke Tests › AS-06: Analytics tab and return to storefront (10.7s)
+  ✘   7 [chromium] › tests/customer/customer-smoke.spec.ts:5:3 › Customer Smoke Tests › CS-01: Application loads with brand navigation and Hero showcase (8.0s)
+  ✓   8 [chromium] › tests/customer/customer-smoke.spec.ts:19:3 › Customer Smoke Tests › CS-02: Header navigation routes between views seamlessly (7.8s)
+  ✓   9 [chromium] › tests/customer/customer-smoke.spec.ts:33:3 › Customer Smoke Tests › CS-03: Catalog filtering by brand, search, and price slider (5.6s)
+  ✓  10 [chromium] › tests/customer/customer-smoke.spec.ts:56:3 › Customer Smoke Tests › CS-04: Product inspection modal, angle switching and size selection (6.2s)
+  ✓  11 [chromium] › tests/customer/customer-smoke.spec.ts:78:3 › Customer Smoke Tests › CS-05: Add product to cart, quantity adjustment and promo code application (10.1s)
+  ✘  12 [chromium] › tests/customer/customer-smoke.spec.ts:113:3 › Customer Smoke Tests › CS-06: Complete full checkout flow and generate tracked order (18.9s)
+  ✓  13 [chromium] › tests/customer/customer-smoke.spec.ts:154:3 › Customer Smoke Tests › CS-07: 3D Bespoke Lab customization and Add to Vault Cart (10.3s)
+  ✓  14 [chromium] › tests/customer/customer-smoke.spec.ts:178:3 › Customer Smoke Tests › CS-08: Drops Calendar raffle interaction (8.7s)
+  ✘  15 [chromium] › tests/regression/regression-matrix.spec.ts:6:3 › Phase 1 Regression Matrix Tests › REG-C01: [Manual C-01] Header navigation returns to home storefront on logo click (30.9s)
+  ✓  16 [chromium] › tests/regression/regression-matrix.spec.ts:17:3 › Phase 1 Regression Matrix Tests › REG-C15: [Manual C-15] Brand filter isolates specific manufacturer catalog (7.5s)
+  ✓  17 [chromium] › tests/regression/regression-matrix.spec.ts:27:3 › Phase 1 Regression Matrix Tests › REG-C20: [Manual C-20] In-stock filter hides zero-inventory silhouettes (6.2s)
+  ✓  18 [chromium] › tests/regression/regression-matrix.spec.ts:37:3 › Phase 1 Regression Matrix Tests › REG-C24: [Manual C-24] Product card wishlist toggle saves item to wishlist modal (5.4s)
+  ✓  19 [chromium] › tests/regression/regression-matrix.spec.ts:53:3 › Phase 1 Regression Matrix Tests › REG-C27: [Manual C-27] Adding item with selected size opens cart drawer with correct unit price (6.4s)
+  ✓  20 [chromium] › tests/regression/regression-matrix.spec.ts:66:3 › Phase 1 Regression Matrix Tests › REG-C29-30: [Manual C-29, C-30] Promo code calculates 10% discount and enforces minimum spend threshold (6.6s)
+  ✓  21 [chromium] › tests/regression/regression-matrix.spec.ts:85:3 › Phase 1 Regression Matrix Tests › REG-C31-32: [Manual C-31, C-32] Multi-step checkout creates order, generates tracking ID, and clears cart (12.0s)
+  ✘  22 [chromium] › tests/regression/regression-matrix.spec.ts:111:3 › Phase 1 Regression Matrix Tests › REG-A04-07: [Manual A-04, A-07] Admin adds new sneaker and subsequently deletes it from catalog (6.0s)
+  ✓  23 [chromium] › tests/regression/regression-matrix.spec.ts:132:3 › Phase 1 Regression Matrix Tests › REG-A12: [Manual A-12] Admin increments size stock level in real-time matrix (5.8s)
+
+
+  1) [chromium] › tests/admin/admin-smoke.spec.ts:15:3 › Admin Smoke Tests › AS-02: Products tab - Search, Add, Edit and Delete a sneaker 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Air Jordan 4 Retro White Cement')
+    Expected: visible
+    Error: strict mode violation: getByText('Air Jordan 4 Retro White Cement') resolved to 2 elements:
+        1) <div class="font-bold text-white text-xs">Air Jordan 4 Retro White Cement</div> aka getByText('Air Jordan 4 Retro White Cement', { exact: true })
+        2) <p class="text-[11px] text-[#AAAAAA] mt-0.5 font-sans leading-tight">Air Jordan 4 Retro White Cement added to vault ca…</p> aka getByText('Air Jordan 4 Retro White Cement added to vault catalog.')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Air Jordan 4 Retro White Cement')
+
+
+      27 |
+      28 |     // Verify new sneaker is present in table
+    > 29 |     await expect(page.getByText('Air Jordan 4 Retro White Cement')).toBeVisible();
+         |                                                                     ^
+      30 |
+      31 |     // 3. Search for the sneaker
+      32 |     const searchInput = page.getByPlaceholder(/search catalog by name, brand, sku/i);
+        at /app/applet/tests/admin/admin-smoke.spec.ts:29:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-e4d64-d-Edit-and-Delete-a-sneaker-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-e4d64-d-Edit-and-Delete-a-sneaker-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-admin-smoke-Admin-Sm-e4d64-d-Edit-and-Delete-a-sneaker-chromium/error-context.md
+
+  2) [chromium] › tests/admin/admin-smoke.spec.ts:41:3 › Admin Smoke Tests › AS-03: Orders tab - Filter orders and update order status 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/order management/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/order management/i)
+
+
+      42 |     // Switch to Orders tab
+      43 |     await page.locator('#admin-nav-orders').click();
+    > 44 |     await expect(page.getByText(/order management/i)).toBeVisible();
+         |                                                       ^
+      45 |
+      46 |     // Filter by 'Processing' status
+      47 |     const processingBtn = page.getByRole('button', { name: 'Processing', exact: true });
+        at /app/applet/tests/admin/admin-smoke.spec.ts:44:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-14012-ers-and-update-order-status-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-14012-ers-and-update-order-status-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-admin-smoke-Admin-Sm-14012-ers-and-update-order-status-chromium/error-context.md
+
+  3) [chromium] › tests/admin/admin-smoke.spec.ts:67:3 › Admin Smoke Tests › AS-05: Promos tab - Create a new promo discount code and toggle active status 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('TESTVIP50')
+    Expected: visible
+    Error: strict mode violation: getByText('TESTVIP50') resolved to 2 elements:
+        1) <span class="font-mono font-black text-base text-[#FF7A00] tracking-wider">TESTVIP50</span> aka getByText('TESTVIP50', { exact: true })
+        2) <p class="text-[11px] text-[#AAAAAA] mt-0.5 font-sans leading-tight">Code TESTVIP50 created.</p> aka getByText('Code TESTVIP50 created.')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('TESTVIP50')
+
+
+      79 |
+      80 |     // Verify promo card appears
+    > 81 |     await expect(page.getByText('TESTVIP50')).toBeVisible();
+         |                                               ^
+      82 |
+      83 |     // Toggle active status
+      84 |     const toggleBtn = page.locator('text=TESTVIP50').locator('..').locator('..').getByRole('button').first();
+        at /app/applet/tests/admin/admin-smoke.spec.ts:81:47
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-ebe38-de-and-toggle-active-status-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-ebe38-de-and-toggle-active-status-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-admin-smoke-Admin-Sm-ebe38-de-and-toggle-active-status-chromium/error-context.md
+
+  4) [chromium] › tests/admin/admin-smoke.spec.ts:90:3 › Admin Smoke Tests › AS-06: Analytics tab and return to storefront 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/analytics & performance intelligence/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/analytics & performance intelligence/i)
+
+
+      91 |     // Switch to Analytics tab
+      92 |     await page.locator('#admin-nav-analytics').click();
+    > 93 |     await expect(page.getByText(/analytics & performance intelligence/i)).toBeVisible();
+         |                                                                           ^
+      94 |
+      95 |     // Click return to store button
+      96 |     const backBtn = page.locator('button[title="Return to Customer Store"]');
+        at /app/applet/tests/admin/admin-smoke.spec.ts:93:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-6467f-ab-and-return-to-storefront-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/admin-admin-smoke-Admin-Sm-6467f-ab-and-return-to-storefront-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/admin-admin-smoke-Admin-Sm-6467f-ab-and-return-to-storefront-chromium/error-context.md
+
+  5) [chromium] › tests/customer/customer-smoke.spec.ts:5:3 › Customer Smoke Tests › CS-01: Application loads with brand navigation and Hero showcase 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /kixora/i }).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('button', { name: /kixora/i }).first()
+
+
+       6 |     // 1. Verify Brand logo is visible
+       7 |     const brand = page.getByRole('button', { name: /kixora/i }).first();
+    >  8 |     await expect(brand).toBeVisible();
+         |                         ^
+       9 |
+      10 |     // 2. Verify Hero title
+      11 |     const heroTitle = page.getByText(/built for the culture/i);
+        at /app/applet/tests/customer/customer-smoke.spec.ts:8:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/customer-customer-smoke-Cu-e17c4-avigation-and-Hero-showcase-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/customer-customer-smoke-Cu-e17c4-avigation-and-Hero-showcase-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/customer-customer-smoke-Cu-e17c4-avigation-and-Hero-showcase-chromium/error-context.md
+
+  6) [chromium] › tests/customer/customer-smoke.spec.ts:113:3 › Customer Smoke Tests › CS-06: Complete full checkout flow and generate tracked order 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/2\. SECURE PAYMENT METHOD/i)
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/2\. SECURE PAYMENT METHOD/i)
+
+
+      135 |
+      136 |     // 4. Step 2: Payment method and continue to review
+    > 137 |     await expect(page.getByText(/2\. SECURE PAYMENT METHOD/i)).toBeVisible();
+          |                                                                ^
+      138 |     await page.locator('#checkout-step2-continue-btn').click();
+      139 |
+      140 |     // 5. Step 3: Review and Confirm Order
+        at /app/applet/tests/customer/customer-smoke.spec.ts:137:64
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/customer-customer-smoke-Cu-337f9--and-generate-tracked-order-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/customer-customer-smoke-Cu-337f9--and-generate-tracked-order-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/customer-customer-smoke-Cu-337f9--and-generate-tracked-order-chromium/error-context.md
+
+  7) [chromium] › tests/regression/regression-matrix.spec.ts:6:3 › Phase 1 Regression Matrix Tests › REG-C01: [Manual C-01] Header navigation returns to home storefront on logo click 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('button', { name: /kixora/i }).first()
+
+
+      10 |
+      11 |     // Click logo
+    > 12 |     await page.getByRole('button', { name: /kixora/i }).first().click();
+         |                                                                 ^
+      13 |     await expect(page.getByText(/built for the culture/i)).toBeVisible();
+      14 |   });
+      15 |
+        at /app/applet/tests/regression/regression-matrix.spec.ts:12:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/regression-regression-matr-37774-me-storefront-on-logo-click-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/regression-regression-matr-37774-me-storefront-on-logo-click-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/regression-regression-matr-37774-me-storefront-on-logo-click-chromium/error-context.md
+
+  8) [chromium] › tests/regression/regression-matrix.spec.ts:111:3 › Phase 1 Regression Matrix Tests › REG-A04-07: [Manual A-04, A-07] Admin adds new sneaker and subsequently deletes it from catalog 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText('Test Jordan Regression Pair')
+    Expected: visible
+    Error: strict mode violation: getByText('Test Jordan Regression Pair') resolved to 2 elements:
+        1) <div class="font-bold text-white text-xs">Test Jordan Regression Pair</div> aka getByText('Test Jordan Regression Pair', { exact: true })
+        2) <p class="text-[11px] text-[#AAAAAA] mt-0.5 font-sans leading-tight">Test Jordan Regression Pair added to vault catalo…</p> aka getByText('Test Jordan Regression Pair added to vault catalog.')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText('Test Jordan Regression Pair')
+
+
+      119 |
+      120 |     // Verify added
+    > 121 |     await expect(page.getByText('Test Jordan Regression Pair')).toBeVisible();
+          |                                                                 ^
+      122 |
+      123 |     // Delete
+      124 |     const deleteBtn = page.locator('tr:has-text("Test Jordan Regression Pair") button[title="Delete from Catalog"]');
+        at /app/applet/tests/regression/regression-matrix.spec.ts:121:65
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/regression-regression-matr-55fd2-tly-deletes-it-from-catalog-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/regression-regression-matr-55fd2-tly-deletes-it-from-catalog-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/regression-regression-matr-55fd2-tly-deletes-it-from-catalog-chromium/error-context.md
+
+  8 failed
+    [chromium] › tests/admin/admin-smoke.spec.ts:15:3 › Admin Smoke Tests › AS-02: Products tab - Search, Add, Edit and Delete a sneaker 
+    [chromium] › tests/admin/admin-smoke.spec.ts:41:3 › Admin Smoke Tests › AS-03: Orders tab - Filter orders and update order status 
+    [chromium] › tests/admin/admin-smoke.spec.ts:67:3 › Admin Smoke Tests › AS-05: Promos tab - Create a new promo discount code and toggle active status 
+    [chromium] › tests/admin/admin-smoke.spec.ts:90:3 › Admin Smoke Tests › AS-06: Analytics tab and return to storefront 
+    [chromium] › tests/customer/customer-smoke.spec.ts:5:3 › Customer Smoke Tests › CS-01: Application loads with brand navigation and Hero showcase 
+    [chromium] › tests/customer/customer-smoke.spec.ts:113:3 › Customer Smoke Tests › CS-06: Complete full checkout flow and generate tracked order 
+    [chromium] › tests/regression/regression-matrix.spec.ts:6:3 › Phase 1 Regression Matrix Tests › REG-C01: [Manual C-01] Header navigation returns to home storefront on logo click 
+    [chromium] › tests/regression/regression-matrix.spec.ts:111:3 › Phase 1 Regression Matrix Tests › REG-A04-07: [Manual A-04, A-07] Admin adds new sneaker and subsequently deletes it from catalog 
+  15 passed (4.1m)

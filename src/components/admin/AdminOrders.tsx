@@ -1,0 +1,138 @@
+import React, { useState } from 'react';
+import { useStore, formatPrice } from '../../context/StoreContext';
+import { OrderStatus } from '../../types';
+import { ShoppingBag, Search, ChevronDown, CheckCircle2, Clock, Truck, Eye } from 'lucide-react';
+
+export const AdminOrders: React.FC = () => {
+  const { orders, updateOrderStatus, setTrackingOrder, setCurrentView } = useStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  const filteredOrders = orders.filter(o => {
+    const matchSearch =
+      o.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.customer.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = statusFilter === 'All' || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  const getStatusBadge = (status: OrderStatus) => {
+    switch (status) {
+      case 'Delivered':
+        return 'bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30';
+      case 'Shipped':
+        return 'bg-[#3B82F6]/15 text-[#3B82F6] border-[#3B82F6]/30';
+      case 'Processing':
+        return 'bg-[#FF7A00]/15 text-[#FF7A00] border-[#FF7A00]/30';
+      default:
+        return 'bg-[#666666]/15 text-[#888888] border-[#666666]/30';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display font-bold text-lg text-white mb-4">Order Management</h2>
+      </div>
+      {/* Top Filter Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3 relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Search orders by ID, tracking # or customer..."
+            className="w-full bg-[#161616] text-xs text-white placeholder-[#666666] pl-10 pr-4 py-2.5 rounded-xl border border-[#282828] focus:outline-none focus:border-[#FF7A00]"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          {['All', 'Processing', 'Shipped', 'Delivered'].map(st => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all ${
+                statusFilter === st
+                  ? 'bg-[#FF7A00] text-black'
+                  : 'bg-[#161616] text-[#888888] hover:text-white border border-[#282828]'
+              }`}
+            >
+              {st}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Orders Table */}
+      <div className="rounded-2xl bg-[#161616] border border-[#262626] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-sans">
+            <thead className="bg-[#1A1A1A] border-b border-[#282828] text-[10px] font-mono uppercase tracking-wider text-[#888888]">
+              <tr>
+                <th className="p-4">Order ID</th>
+                <th className="p-4">Date</th>
+                <th className="p-4">Customer</th>
+                <th className="p-4">Items</th>
+                <th className="p-4">Total</th>
+                <th className="p-4">Status</th>
+                <th className="p-4 text-right">Quick Update</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#242424]">
+              {filteredOrders.map(order => (
+                <tr key={order.id} className="hover:bg-[#1D1D1D] transition-colors">
+                  <td className="p-4 font-mono font-bold text-white">
+                    <button
+                      onClick={() => {
+                        setTrackingOrder(order);
+                        setCurrentView('tracking');
+                      }}
+                      className="hover:text-[#FF7A00] flex items-center gap-1.5"
+                    >
+                      <span>#{order.id}</span>
+                      <Eye className="w-3 h-3 text-[#777777]" />
+                    </button>
+                  </td>
+                  <td className="p-4 font-mono text-[11px] text-[#888888]">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="p-4">
+                    <div className="font-bold text-white">{order.customer.fullName}</div>
+                    <div className="text-[10px] text-[#888888] font-mono">{order.customer.city}</div>
+                  </td>
+                  <td className="p-4 font-mono text-[11px] text-[#AAAAAA]">
+                    {order.items.length} items ({order.items[0]?.sneaker.name.slice(0, 18)}...)
+                  </td>
+                  <td className="p-4 font-mono font-black text-white">
+                    {formatPrice(order.total)}
+                  </td>
+                  <td className="p-4 font-mono">
+                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold border ${getStatusBadge(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <select
+                      value={order.status}
+                      onChange={e => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                      className="bg-[#1F1F1F] border border-[#2D2D2D] text-xs text-white rounded-lg px-2 py-1 font-mono focus:outline-none focus:border-[#FF7A00]"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Authenticated">Authenticated</option>
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
