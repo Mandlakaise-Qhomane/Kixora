@@ -1,8 +1,6 @@
 {
   "name": "Kixora",
-  "description": "Premium sneaker e-commerce web application featuring high-res storefront, interactive 3D color customizer, release drops calendar, real-time cart/checkout, and full-featured admin management dashboard.",
+  "description": "Exclusive sneaker vault, bespoke 3D customizer, and drops platform.",
   "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

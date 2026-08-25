@@ -52,13 +52,17 @@ export const CustomizerStudio: React.FC = () => {
       price: baseCustomPrice,
       sku: `BESPOKE-${Math.floor(1000 + Math.random() * 9000)}`,
       colorway: `${config.accentColor} / ${config.baseColor}`,
-      releaseDate: new Date().toISOString().split('T')[0],
-      description: `Hand-crafted 1-of-1 bespoke sneaker built in Kixora 3D Lab with engraved heel text "${config.customText}".`,
+      releaseYear: new Date().getFullYear(),
+      story: 'Bespoke custom creation',
+      description: `Hand-crafted 1-of-1 bespoke sneaker built in Kixora 3D Lab with engraved heel text "${config.customText || 'Bespoke'}".`,
       details: ['Hand-dyed Italian full-grain leather', 'Bespoke hand-stitched sole', 'Laser engraved heel signature'],
+      image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85',
       images: ['https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85'],
+      gallery: ['https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85'],
       sizes: [{ size: selectedSize, stock: 1 }],
       rating: 5.0,
       reviewsCount: 1,
+      salesCount: 1,
       tags: ['Bespoke 1-of-1', 'Handcrafted']
     };
 
@@ -149,7 +153,7 @@ export const CustomizerStudio: React.FC = () => {
                 letterSpacing="1"
                 transform="rotate(-15 110 160)"
               >
-                {config.customText.toUpperCase()}
+                {(config.customText || '').toUpperCase()}
               </text>
             </svg>
           </div>

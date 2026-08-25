@@ -100,12 +100,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 12280,
+                      "duration": 4939,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:46:13.788Z",
+                      "startTime": "2026-08-25T03:41:05.563Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -134,12 +134,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 14884,
+                      "duration": 6776,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:46:26.737Z",
+                      "startTime": "2026-08-25T03:41:10.776Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -168,12 +168,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 13570,
+                      "duration": 5467,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:46:41.644Z",
+                      "startTime": "2026-08-25T03:41:17.571Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -202,12 +202,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 13363,
+                      "duration": 5894,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:46:55.239Z",
+                      "startTime": "2026-08-25T03:41:23.100Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -236,12 +236,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 14382,
+                      "duration": 6163,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:47:08.627Z",
+                      "startTime": "2026-08-25T03:41:29.099Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -270,12 +270,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 15086,
+                      "duration": 6897,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:47:23.034Z",
+                      "startTime": "2026-08-25T03:41:35.370Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -286,6 +286,227 @@
               "id": "5fba33e9e3b6d347c3e0-e9613058ee40b0d17f6a",
               "file": "admin/admin-smoke.spec.ts",
               "line": 90,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "admin/phase2c-data-access.spec.ts",
+      "file": "admin/phase2c-data-access.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Phase 2C: Admin Data Access Layer",
+          "file": "admin/phase2c-data-access.spec.ts",
+          "line": 36,
+          "column": 6,
+          "specs": [
+            {
+              "title": "DAL2C-01: Admin feature flags exist with safe fallback defaults",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 12,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.474Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-8cbf65a8b2e4adbf89ff",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 38,
+              "column": 3
+            },
+            {
+              "title": "DAL2C-02: ProductAdminMapper converts forms and hydrated rows correctly",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 13,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.497Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-ded3323004a2e07a36e9",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 56,
+              "column": 3
+            },
+            {
+              "title": "DAL2C-03: PromoAdminMapper & OrderAdminMapper transform models accurately",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.520Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-51133df1fe82aa799789",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 124,
+              "column": 3
+            },
+            {
+              "title": "DAL2C-04: AuditAdminMapper transforms database rows to domain models",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.542Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-cdc5ab065885944ca08c",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 163,
+              "column": 3
+            },
+            {
+              "title": "DAL2C-05: Repositories expose all required administrative interfaces",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.558Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-1bee1c23f3f9bfed1f8f",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "DAL2C-06: Centralized auditService logs mutations safely",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:41:42.592Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "1e26ace821fcd2e719fe-41f42e5387eb57c19370",
+              "file": "admin/phase2c-data-access.spec.ts",
+              "line": 230,
               "column": 3
             }
           ]
@@ -321,12 +542,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 10494,
+                      "duration": 3901,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:47:38.239Z",
+                      "startTime": "2026-08-25T03:41:42.614Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -355,12 +576,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 16293,
+                      "duration": 7294,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:47:48.825Z",
+                      "startTime": "2026-08-25T03:41:46.556Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -389,12 +610,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 11287,
+                      "duration": 4762,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:48:05.213Z",
+                      "startTime": "2026-08-25T03:41:53.876Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -423,12 +644,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 12627,
+                      "duration": 4894,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:48:16.552Z",
+                      "startTime": "2026-08-25T03:41:58.658Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -457,12 +678,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 12389,
+                      "duration": 6008,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:48:29.259Z",
+                      "startTime": "2026-08-25T03:42:03.573Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -491,12 +712,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 19472,
+                      "duration": 11369,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:48:41.732Z",
+                      "startTime": "2026-08-25T03:42:09.605Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -525,12 +746,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 12596,
+                      "duration": 5808,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:01.225Z",
+                      "startTime": "2026-08-25T03:42:20.989Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -559,12 +780,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 10785,
+                      "duration": 5067,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:13.838Z",
+                      "startTime": "2026-08-25T03:42:26.818Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -575,6 +796,414 @@
               "id": "987ccf99bd0ec4fe8d66-44082638662980970f50",
               "file": "customer/customer-smoke.spec.ts",
               "line": 178,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "customer/phase2b-data-access.spec.ts",
+      "file": "customer/phase2b-data-access.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Phase 2B: Cart, Wishlist & Order Data Access Layer",
+          "file": "customer/phase2b-data-access.spec.ts",
+          "line": 29,
+          "column": 6,
+          "specs": [
+            {
+              "title": "DAL2B-01: Feature flags exist with safe fallback defaults",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 11,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:31.960Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-85738382efa2b0cdc60a",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 31,
+              "column": 3
+            },
+            {
+              "title": "DAL2B-02: CartMapper transforms hydrated database rows to domain CartItem models",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 8,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:31.981Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-5880f57b4d743c2d8ec9",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 48,
+              "column": 3
+            },
+            {
+              "title": "DAL2B-03: WishlistMapper transforms hydrated database rows into domain Sneaker models",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:31.999Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-923cc235a28a063571cb",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 133,
+              "column": 3
+            },
+            {
+              "title": "DAL2B-04: OrderMapper transforms hydrated database order into domain Order model",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 30,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.024Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-d2af79087f15c20a162b",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 184,
+              "column": 3
+            },
+            {
+              "title": "DAL2B-05: Repositories expose all required customer methods",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.065Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-b0788016915c2756a570",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 294,
+              "column": 3
+            },
+            {
+              "title": "DAL2B-06: CheckoutService validates input and handles atomic flow safely",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 7,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.082Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "79bd0f61c1e2e22bfbfe-073611729859fc10c6b0",
+              "file": "customer/phase2b-data-access.spec.ts",
+              "line": 316,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "customer/supabase-data-access.spec.ts",
+      "file": "customer/supabase-data-access.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Supabase Data Access Layer & Catalog Mapping (Phase 2A)",
+          "file": "customer/supabase-data-access.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "DAL-01: Supabase client singleton initializes cleanly with safe defaults",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 3,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.107Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad9f3a8d11be60ac15c0-fe8a42eb67ea936020ab",
+              "file": "customer/supabase-data-access.spec.ts",
+              "line": 11,
+              "column": 3
+            },
+            {
+              "title": "DAL-02: Feature flag toggles exist with expected default safety values",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.120Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad9f3a8d11be60ac15c0-0dbe3e6d5bbbd405d767",
+              "file": "customer/supabase-data-access.spec.ts",
+              "line": 20,
+              "column": 3
+            },
+            {
+              "title": "DAL-03: ProductMapper correctly transforms database rows into Sneaker domain models",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 9,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.133Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad9f3a8d11be60ac15c0-4b264521604a65bca07c",
+              "file": "customer/supabase-data-access.spec.ts",
+              "line": 30,
+              "column": 3
+            },
+            {
+              "title": "DAL-04: DropsMapper correctly transforms database rows into Drop domain models",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.151Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad9f3a8d11be60ac15c0-60d27d4812bdbfc2178a",
+              "file": "customer/supabase-data-access.spec.ts",
+              "line": 145,
+              "column": 3
+            },
+            {
+              "title": "DAL-05: ProductRepository and DropsRepository expose all required read-only methods",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 5,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-25T03:42:32.167Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad9f3a8d11be60ac15c0-f3de3a2a193df2689f2c",
+              "file": "customer/supabase-data-access.spec.ts",
+              "line": 181,
               "column": 3
             }
           ]
@@ -610,12 +1239,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 13785,
+                      "duration": 5535,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:24.742Z",
+                      "startTime": "2026-08-25T03:42:32.189Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -644,12 +1273,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 9717,
+                      "duration": 4298,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:38.640Z",
+                      "startTime": "2026-08-25T03:42:37.739Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -678,12 +1307,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 10993,
+                      "duration": 4217,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:48.525Z",
+                      "startTime": "2026-08-25T03:42:42.076Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -712,12 +1341,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 10888,
+                      "duration": 4805,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:49:59.635Z",
+                      "startTime": "2026-08-25T03:42:46.314Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -746,12 +1375,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 10960,
+                      "duration": 5159,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:50:10.618Z",
+                      "startTime": "2026-08-25T03:42:51.197Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -780,12 +1409,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 15587,
+                      "duration": 6598,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:50:21.722Z",
+                      "startTime": "2026-08-25T03:42:56.461Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -814,12 +1443,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 18501,
+                      "duration": 10466,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:50:37.427Z",
+                      "startTime": "2026-08-25T03:43:03.085Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -848,12 +1477,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 14974,
+                      "duration": 5984,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:50:56.024Z",
+                      "startTime": "2026-08-25T03:43:13.574Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -882,12 +1511,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 8943,
+                      "duration": 5103,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-08-23T15:51:11.030Z",
+                      "startTime": "2026-08-25T03:43:19.582Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -907,9 +1536,9 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-08-23T15:46:10.944Z",
-    "duration": 309222.586,
-    "expected": 23,
+    "startTime": "2026-08-25T03:41:04.569Z",
+    "duration": 140227.159,
+    "expected": 40,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

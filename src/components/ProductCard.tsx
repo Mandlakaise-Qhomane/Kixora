@@ -51,7 +51,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
               SALE
             </span>
           )}
-          {sneaker.tags.includes('Vault Grail') && (
+          {(sneaker.tags || []).includes('Vault Grail') && (
             <span className="px-2 py-0.5 rounded-md bg-[#252525] text-[#FF7A00] border border-[#FF7A00]/40 text-[10px] font-bold uppercase tracking-wider font-mono">
               LIMITED
             </span>

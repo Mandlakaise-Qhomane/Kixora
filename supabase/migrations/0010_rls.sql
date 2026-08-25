@@ -1,43 +1,10 @@
 -- ==============================================================================
--- KIXORA DATABASE MIGRATION: 002 - ROW LEVEL SECURITY POLICIES
--- Description: Enables RLS across all tables with granular RBAC rules.
--- Architecture: PostgreSQL 15+ / Supabase
+-- KIXORA DATABASE MIGRATION: 0010 - ROW LEVEL SECURITY POLICIES
+-- Description: Enables RLS across all tables with granular RBAC rules for
+--              customer, admin, and super_admin access tiers.
 -- ==============================================================================
 
--- ==============================================================================
--- 1. SECURITY HELPER FUNCTIONS (DEFINER CONTEXT)
--- ==============================================================================
-CREATE OR REPLACE FUNCTION public.get_auth_role()
-RETURNS TEXT AS $$
-BEGIN
-  -- Extract role from JWT app_metadata or fallback to profile lookup
-  RETURN COALESCE(
-    (NULLIF(current_setting('request.jwt.claims', true), '')::jsonb -> 'app_metadata' ->> 'role'),
-    (SELECT role FROM public.profiles WHERE id = auth.uid()),
-    'anon'
-  );
-EXCEPTION WHEN OTHERS THEN
-  RETURN 'anon';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN public.get_auth_role() IN ('admin', 'super_admin');
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
-CREATE OR REPLACE FUNCTION public.is_super_admin()
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN public.get_auth_role() = 'super_admin';
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
-
--- ==============================================================================
--- 2. ENABLE RLS ON ALL TABLES
--- ==============================================================================
+-- 1. ENABLE RLS ON ALL TABLES
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.brands ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -60,9 +27,7 @@ ALTER TABLE public.drops ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.raffle_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- ==============================================================================
--- 3. PROFILES POLICIES
--- ==============================================================================
+-- 2. PROFILES POLICIES
 CREATE POLICY "Public profiles are viewable by owner or admin"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id OR public.is_admin());
@@ -79,9 +44,7 @@ CREATE POLICY "Users can update their own personal info (excluding role)"
     OR public.is_super_admin()
   );
 
--- ==============================================================================
--- 4. BRANDS & CATEGORIES POLICIES
--- ==============================================================================
+-- 3. BRANDS & CATEGORIES POLICIES
 CREATE POLICY "Brands are publicly readable"
   ON public.brands FOR SELECT
   USING (is_active = true OR public.is_admin());
@@ -100,9 +63,7 @@ CREATE POLICY "Admins can manage categories"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ==============================================================================
--- 5. PRODUCTS & CATALOG POLICIES
--- ==============================================================================
+-- 4. PRODUCTS & CATALOG POLICIES
 CREATE POLICY "Active products are publicly readable"
   ON public.products FOR SELECT
   USING (is_active = true OR public.is_admin());
@@ -130,9 +91,7 @@ CREATE POLICY "Admins can manage product sizes"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ==============================================================================
--- 6. INVENTORY POLICIES
--- ==============================================================================
+-- 5. INVENTORY POLICIES
 CREATE POLICY "Inventory is publicly viewable"
   ON public.inventory FOR SELECT
   USING (true);
@@ -151,9 +110,7 @@ CREATE POLICY "Reservations managed by RPC or Admin only"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ==============================================================================
--- 7. WISHLISTS & BESPOKE POLICIES
--- ==============================================================================
+-- 6. WISHLISTS & BESPOKE POLICIES
 CREATE POLICY "Users can manage own wishlist"
   ON public.wishlists FOR ALL
   USING (auth.uid() = user_id)
@@ -172,9 +129,7 @@ CREATE POLICY "Users can update own bespoke designs"
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
--- ==============================================================================
--- 8. CARTS & CART ITEMS POLICIES
--- ==============================================================================
+-- 7. CARTS & CART ITEMS POLICIES
 CREATE POLICY "Users can manage own authenticated cart"
   ON public.carts FOR ALL
   USING (auth.uid() = user_id)
@@ -199,9 +154,7 @@ CREATE POLICY "Cart items accessible via authorized cart"
     OR public.is_admin()
   );
 
--- ==============================================================================
--- 9. PROMO CODES POLICIES
--- ==============================================================================
+-- 8. PROMO CODES POLICIES
 CREATE POLICY "Active promo codes are viewable"
   ON public.promo_codes FOR SELECT
   USING (is_active = true OR public.is_admin());
@@ -215,9 +168,7 @@ CREATE POLICY "Promo redemptions viewable by owner or admin"
   ON public.promo_redemptions FOR SELECT
   USING (auth.uid() = user_id OR public.is_admin());
 
--- ==============================================================================
--- 10. ORDERS & HISTORICAL ARTIFACTS POLICIES
--- ==============================================================================
+-- 9. ORDERS & HISTORICAL ARTIFACTS POLICIES
 CREATE POLICY "Users view own orders or Admin views all"
   ON public.orders FOR SELECT
   USING (auth.uid() = user_id OR public.is_admin());
@@ -267,9 +218,7 @@ CREATE POLICY "Admins can manage shipments"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ==============================================================================
--- 11. DROPS & RAFFLES POLICIES
--- ==============================================================================
+-- 10. DROPS & RAFFLES POLICIES
 CREATE POLICY "Active drops are publicly viewable"
   ON public.drops FOR SELECT
   USING (is_active = true OR public.is_admin());
@@ -292,9 +241,7 @@ CREATE POLICY "Admins can manage raffle winners"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
--- ==============================================================================
--- 12. ADMIN AUDIT LOGS POLICIES
--- ==============================================================================
+-- 11. ADMIN AUDIT LOGS POLICIES
 CREATE POLICY "Admins can view audit logs"
   ON public.admin_audit_logs FOR SELECT
   USING (public.is_admin());

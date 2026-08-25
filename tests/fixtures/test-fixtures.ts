@@ -29,9 +29,28 @@ export const test = base.extend<KixoraFixtures>({
   },
 
   adminPage: async ({ page }, use) => {
-    await page.goto('/');
+    await page.goto('/?domain=admin');
+    await page.evaluate(() => {
+      const mockAdminSession = {
+        user: {
+          id: 'admin-001',
+          email: 'admin@kixora.com',
+          role: 'admin',
+          fullName: 'Vault Administrator',
+          appMetadata: { role: 'admin' },
+          userMetadata: { full_name: 'Vault Administrator' },
+          createdAt: new Date().toISOString(),
+        },
+        accessToken: 'mock_jwt_admin_test',
+        expiresAt: Math.floor(Date.now() / 1000) + 86400,
+      };
+      localStorage.setItem('kixora_auth_session', JSON.stringify(mockAdminSession));
+    });
+    await page.reload();
     const adminBtn = page.locator('#header-admin-profile-button');
-    await adminBtn.click();
+    if (await adminBtn.isVisible()) {
+      await adminBtn.click();
+    }
     await page.waitForSelector('#admin-nav-dashboard', { state: 'visible' });
     await use(page);
   },

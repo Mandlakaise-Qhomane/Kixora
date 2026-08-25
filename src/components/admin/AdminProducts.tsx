@@ -74,12 +74,12 @@ export const AdminProducts: React.FC = () => {
       originalPrice: sneaker.originalPrice || sneaker.price,
       sku: sneaker.sku,
       colorway: sneaker.colorway,
-      releaseDate: sneaker.releaseDate,
+      releaseDate: sneaker.releaseDate || String(sneaker.releaseYear || 2024),
       description: sneaker.description,
-      imageUrl: sneaker.images[0] || '',
+      imageUrl: sneaker.image || (sneaker.images && sneaker.images[0]) || '',
       isFeatured: !!sneaker.isFeatured,
       isNewRelease: !!sneaker.isNewRelease,
-      tags: sneaker.tags.join(', ')
+      tags: (sneaker.tags || []).join(', ')
     });
     setIsModalOpen(true);
   };
@@ -98,9 +98,10 @@ export const AdminProducts: React.FC = () => {
         originalPrice: Number(formData.originalPrice),
         sku: formData.sku,
         colorway: formData.colorway,
-        releaseDate: formData.releaseDate,
+        releaseYear: Number(formData.releaseDate) || 2024,
         description: formData.description,
-        images: [formData.imageUrl, ...editingSneaker.images.slice(1)],
+        image: formData.imageUrl,
+        gallery: [formData.imageUrl, ...(editingSneaker.gallery || []).slice(1)],
         isFeatured: formData.isFeatured,
         isNewRelease: formData.isNewRelease,
         tags: formData.tags.split(',').map(t => t.trim())
@@ -115,10 +116,14 @@ export const AdminProducts: React.FC = () => {
         originalPrice: Number(formData.originalPrice),
         sku: formData.sku || `KXO-${Math.floor(1000 + Math.random() * 9000)}`,
         colorway: formData.colorway,
-        releaseDate: formData.releaseDate,
+        releaseYear: Number(formData.releaseDate) || 2024,
         description: formData.description,
+        story: '',
         details: ['Verified authentic Deadstock pair', 'Box with original laces & accessories'],
+        image: formData.imageUrl,
         images: [formData.imageUrl],
+        gallery: [formData.imageUrl],
+        salesCount: 0,
         sizes: [
           { size: 8, stock: 5 },
           { size: 8.5, stock: 8 },

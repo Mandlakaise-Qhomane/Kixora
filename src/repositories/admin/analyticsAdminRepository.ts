@@ -1,0 +1,135 @@
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+
+export interface DashboardMetrics {
+  totalRevenue: number;
+  totalOrders: number;
+  activeSilhouettes: number;
+  lowStockCount: number;
+  totalCustomers: number;
+}
+
+export interface BrandSalesMetric {
+  brand: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface LowStockAlert {
+  productId: string;
+  productName: string;
+  brand: string;
+  sizeUs: number;
+  stock: number;
+  productSizeId: string;
+}
+
+export const analyticsAdminRepository = {
+  /**
+   * Calculates overall dashboard key performance indicators.
+   */
+  async getDashboardMetrics(): Promise<DashboardMetrics> {
+    if (!isSupabaseConfigured()) {
+      return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        activeSilhouettes: 0,
+        lowStockCount: 0,
+        totalCustomers: 0,
+      };
+    }
+
+    try {
+      // 1. Orders & Revenue
+      const { data: orders, count: orderCount } = await supabase
+        .from('orders')
+        .select('total, current_status', { count: 'exact' });
+
+      let revenue = 0;
+      (orders || []).forEach((o) => {
+        if (o.current_status !== 'Cancelled') {
+          revenue += Number(o.total) || 0;
+        }
+      });
+
+      // 2. Active Silhouettes
+      const { count: activeProductCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+
+      // 3. Customers
+      const { count: customerCount } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+
+      // 4. Low stock count
+      const { data: inventoryData } = await supabase
+        .from('inventory')
+        .select('stock')
+        .lte('stock', 3);
+
+      return {
+        totalRevenue: revenue,
+        totalOrders: orderCount || 0,
+        activeSilhouettes: activeProductCount || 0,
+        lowStockCount: (inventoryData || []).length,
+        totalCustomers: customerCount || 0,
+      };
+    } catch (err) {
+      console.error('[analyticsAdminRepository.getDashboardMetrics] Error:', err);
+      return {
+        totalRevenue: 0,
+        totalOrders: 0,
+        activeSilhouettes: 0,
+        lowStockCount: 0,
+        totalCustomers: 0,
+      };
+    }
+  },
+
+  /**
+   * Retrieves low stock alerts for inventory warning badges.
+   */
+  async getLowStockAlerts(threshold: number = 3): Promise<LowStockAlert[]> {
+    if (!isSupabaseConfigured()) {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('product_sizes')
+      .select(`
+        id,
+        product_id,
+        size_us,
+        products (
+          name,
+          brands (name)
+        ),
+        inventory (
+          stock
+        )
+      `);
+
+    if (error) {
+      console.error('[analyticsAdminRepository.getLowStockAlerts] Error:', error);
+      throw error;
+    }
+
+    const alerts: LowStockAlert[] = [];
+    (data || []).forEach((row: any) => {
+      const stock = Number(row.inventory?.[0]?.stock) || 0;
+      if (stock <= threshold) {
+        alerts.push({
+          productSizeId: row.id,
+          productId: row.product_id,
+          productName: row.products?.name || 'Vault Sneaker',
+          brand: row.products?.brands?.name || 'Nike',
+          sizeUs: Number(row.size_us),
+          stock,
+        });
+      }
+    });
+
+    return alerts;
+  },
+};

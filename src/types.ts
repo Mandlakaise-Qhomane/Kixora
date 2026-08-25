@@ -1,52 +1,63 @@
-export type Brand = 
-  | 'Nike' 
-  | 'Jordan' 
-  | 'Adidas' 
-  | 'Puma'
-  | 'New Balance' 
-  | 'Vans'
-  | 'Converse'
-  | 'Travis Scott'
-  | 'Asics' 
-  | 'Off-White';
+export type ViewMode = 'store' | 'shop' | 'drops' | 'bespoke' | 'customizer' | 'admin' | 'tracking';
 
-export type Category = 
-  | 'All'
-  | 'Lifestyle' 
-  | 'High-Top' 
-  | 'Low-Top'
-  | 'Basketball' 
-  | 'Running' 
-  | 'Limited Edition' 
-  | 'Retro';
+export type Brand = 'Nike' | 'Jordan' | 'Adidas' | 'New Balance' | 'Asics' | 'Travis Scott' | 'Yeezy' | 'Puma' | 'Vans' | 'Converse' | string;
+export type Category = 'High-Top' | 'Low-Top' | 'Mid-Top' | 'Retro' | 'Running' | 'Lifestyle' | 'Limited Edition' | string;
+
+export type OrderStatus =
+  | 'Pending'
+  | 'Processing'
+  | 'Authenticated'
+  | 'Vault Packed'
+  | 'Dispatched'
+  | 'Shipped'
+  | 'Delivered'
+  | 'Cancelled';
 
 export interface SneakerSize {
-  size: number; // US sizing e.g. 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 12, 13
+  size: number;
   stock: number;
 }
 
 export interface Sneaker {
   id: string;
   name: string;
-  brand: Brand;
-  category: Category;
+  brand: string;
+  category: string;
   gender: 'Men' | 'Women' | 'Unisex';
-  price: number; // Stored as standard value, formatted with R prefix (e.g. R2,999.00)
+  price: number;
   originalPrice?: number;
-  sku: string;
-  colorway: string;
-  releaseDate: string;
   description: string;
-  details: string[];
+  image: string;
   images: string[];
+  gallery: string[];
   sizes: SneakerSize[];
+  colorway: string;
+  releaseYear: number;
+  releaseDate?: string;
+  sku: string;
+  story: string;
+  details?: string[];
+  tags?: string[];
   rating: number;
   reviewsCount: number;
-  isNewRelease?: boolean;
+  salesCount: number;
+  isVaultExclusive?: boolean;
+  featured?: boolean;
   isFeatured?: boolean;
+  isNewRelease?: boolean;
   isBestSeller?: boolean;
-  tags: string[];
-  salesCount?: number;
+}
+
+export interface CustomSneakerConfig {
+  baseColor?: string;
+  swooshColor?: string;
+  accentColor?: string;
+  soleColor?: string;
+  lacesColor?: string;
+  liningColor?: string;
+  material?: 'Leather' | 'Suede' | 'Patent' | 'Canvas';
+  customText?: string;
+  baseModel?: string;
 }
 
 export interface CartItem {
@@ -57,45 +68,46 @@ export interface CartItem {
   customization?: CustomSneakerConfig;
 }
 
-export interface CustomSneakerConfig {
-  baseModel: string;
-  baseColor: string;
-  accentColor: string;
-  soleColor: string;
-  lacesColor: string;
-  liningColor: string;
-  customText: string;
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountPercent: number;
+  minSpend?: number;
+  maxUses?: number;
+  currentUses?: number;
+  isActive: boolean;
+  startsAt?: string;
+  expiresAt?: string | null;
+  createdAt?: string;
+  description?: string;
 }
 
-export type OrderStatus = 
-  | 'Pending' 
-  | 'Authenticated' 
-  | 'Processing' 
-  | 'Shipped' 
-  | 'Delivered' 
-  | 'Cancelled';
-
-export interface OrderMilestone {
+export interface OrderTimelineEvent {
+  id?: string;
   title: string;
   timestamp: string;
   description: string;
   completed: boolean;
+  status?: string;
+}
+
+export interface OrderCustomer {
+  fullName: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
 }
 
 export interface Order {
   id: string;
+  orderCode?: string;
   trackingNumber: string;
   createdAt: string;
-  customer: {
-    fullName: string;
-    email: string;
-    phone: string;
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-  };
+  customer: OrderCustomer;
   items: CartItem[];
   subtotal: number;
   discount: number;
@@ -105,50 +117,48 @@ export interface Order {
   status: OrderStatus;
   paymentMethod: string;
   shippingMethod: string;
-  timeline: OrderMilestone[];
+  timeline: OrderTimelineEvent[];
 }
 
 export interface Drop {
   id: string;
   sneakerName: string;
-  brand: Brand;
+  brand: string;
   price: number;
   releaseTime: string;
   image: string;
-  hypeLevel: 'EXTREME' | 'HIGH' | 'GRAIL' | 'LIMITED';
-  type: 'Shock Drop' | 'Raffle Draw' | 'Vault Exclusive' | 'General Release';
   description: string;
+  isNotified: boolean;
   subscribersCount: number;
-  isNotified?: boolean;
-}
-
-export interface PromoCode {
-  id: string;
-  code: string;
-  discountPercent: number;
-  minSpend?: number;
-  description: string;
-  isActive: boolean;
+  raffleOpen: boolean;
+  editionSize: number;
+  hypeLevel?: string;
+  type?: string;
+  dropType?: string;
 }
 
 export interface FilterState {
-  brand: Brand | 'All';
-  category: Category;
-  gender: 'All' | 'Men' | 'Women' | 'Unisex';
+  brand: string;
+  category: string;
+  gender: string;
   maxPrice: number;
   selectedSize: number | null;
   inStockOnly: boolean;
-  sortBy: 'featured' | 'price-asc' | 'price-desc' | 'rating' | 'newest';
+  sortBy: 'featured' | 'newest' | 'price-asc' | 'price-desc' | 'rating' | string;
   search: string;
 }
 
-export type ViewMode = 
-  | 'store' 
-  | 'shop'
-  | 'new-releases'
-  | 'brands'
-  | 'about'
-  | 'drops' 
-  | 'customizer' 
-  | 'tracking' 
-  | 'admin';
+export interface AdminAuditLog {
+  id: string;
+  createdAt: string;
+  adminEmail?: string;
+  adminId?: string;
+  action?: string;
+  actionType?: string;
+  entityType: string;
+  entityId: string;
+  changes?: Record<string, unknown>;
+  details?: Record<string, unknown>;
+}
+
+export * from './types/auth';

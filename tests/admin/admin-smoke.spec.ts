@@ -26,12 +26,12 @@ test.describe('Admin Smoke Tests', () => {
     await page.getByRole('button', { name: /save to vault catalog/i }).click();
 
     // Verify new sneaker is present in table
-    await expect(page.getByText('Air Jordan 4 Retro White Cement')).toBeVisible();
+    await expect(page.locator('tbody').getByText('Air Jordan 4 Retro White Cement')).toBeVisible();
 
     // 3. Search for the sneaker
     const searchInput = page.getByPlaceholder(/search catalog by name, brand, sku/i);
     await searchInput.fill('White Cement');
-    await expect(page.getByText('Air Jordan 4 Retro White Cement')).toBeVisible();
+    await expect(page.locator('tbody').getByText('Air Jordan 4 Retro White Cement')).toBeVisible();
 
     // 4. Delete the sneaker
     const deleteBtn = page.locator('button[title="Delete from Catalog"]').first();

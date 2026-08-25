@@ -11,6 +11,8 @@ import { WishlistModal } from './components/WishlistModal';
 import { DropsCalendar } from './components/DropsCalendar';
 import { CustomizerStudio } from './components/CustomizerStudio';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
+import { DomainGuard } from './routes/DomainGuard';
+import { AdminRoute } from './routes/AdminRoute';
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
@@ -45,8 +47,13 @@ const MainStorefront: React.FC<{ onOpenMobileFilters: () => void }> = ({ onOpenM
         }
 
         // Brand
-        if (filters.brand !== 'All' && sneaker.brand !== filters.brand) {
-          return false;
+        if (filters.brand !== 'All') {
+          const brandMatch = 
+            sneaker.brand.toLowerCase() === filters.brand.toLowerCase() ||
+            (filters.brand === 'Travis Scott' && (sneaker.name.toLowerCase().includes('travis scott') || sneaker.tags?.some(t => t.toLowerCase().includes('travis') || t.toLowerCase().includes('collab'))));
+          if (!brandMatch) {
+            return false;
+          }
         }
 
         // Category
@@ -82,7 +89,7 @@ const MainStorefront: React.FC<{ onOpenMobileFilters: () => void }> = ({ onOpenM
         if (filters.sortBy === 'price-asc') return a.price - b.price;
         if (filters.sortBy === 'price-desc') return b.price - a.price;
         if (filters.sortBy === 'rating') return b.rating - a.rating;
-        if (filters.sortBy === 'newest') return new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime();
+        if (filters.sortBy === 'newest') return (b.releaseYear || 2024) - (a.releaseYear || 2024);
         return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
       });
   }, [sneakers, filters]);
@@ -225,7 +232,7 @@ const MainStorefront: React.FC<{ onOpenMobileFilters: () => void }> = ({ onOpenM
 };
 
 const StoreAppContent: React.FC = () => {
-  const { currentView } = useStore();
+  const { currentView, setCurrentView } = useStore();
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   return (
@@ -292,9 +299,13 @@ const StoreAppContent: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <React.Suspense fallback={<div className="p-8 text-center text-[#888888]">Loading Admin Hub...</div>}>
-                <AdminDashboard />
-              </React.Suspense>
+              <DomainGuard onReturnToStore={() => setCurrentView('store')}>
+                <AdminRoute onReturnToStore={() => setCurrentView('store')}>
+                  <React.Suspense fallback={<div className="p-8 text-center text-[#888888]">Loading Admin Hub...</div>}>
+                    <AdminDashboard />
+                  </React.Suspense>
+                </AdminRoute>
+              </DomainGuard>
             </motion.div>
           )}
         </AnimatePresence>
