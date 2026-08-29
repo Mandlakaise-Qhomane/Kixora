@@ -86,7 +86,7 @@ interface StoreContextType {
   toggleDropNotify: (dropId: string) => void;
 
   // Order & Checkout Actions
-  placeOrder: (customerData: Order['customer'], paymentMethod: string, shippingMethod: string) => Promise<Order>;
+  placeOrder: (customerData: Order['customer'], paymentMethod: string, shippingMethod: string, paymentReference?: string) => Promise<Order>;
 
   // Admin Actions
   addSneaker: (sneaker: Omit<Sneaker, 'id' | 'rating' | 'reviewsCount'>) => void;
@@ -512,7 +512,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const placeOrder = async (
     customerData: Order['customer'],
     paymentMethod: string,
-    shippingMethod: string
+    shippingMethod: string,
+    paymentReference?: string
   ): Promise<Order> => {
     const subtotal = cart.reduce((sum, item) => sum + item.sneaker.price * item.quantity, 0);
     const discount = appliedPromo ? (subtotal * appliedPromo.discountPercent) / 100 : 0;
@@ -537,6 +538,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       },
       paymentMethod,
       shippingMethod,
+      paymentReference,
     });
 
     if (!checkoutRes.success) {

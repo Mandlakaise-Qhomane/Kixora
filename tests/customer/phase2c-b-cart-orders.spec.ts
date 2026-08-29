@@ -67,27 +67,22 @@ test.describe('Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History
     });
     await page.reload();
 
-    // 1. Add first product to cart
-    const addBtn = page.locator('button[id^="add-to-cart-quick-btn-"]').first();
+    // 1. Add first product to cart (automatically opens cart drawer)
+    const addBtn = page.locator('button[id^="add-to-cart-btn-"]').first();
     await expect(addBtn).toBeVisible();
     await addBtn.click();
 
-    // 2. Open cart drawer
-    const cartBtn = page.locator('#header-cart-button');
-    await expect(cartBtn).toBeVisible();
-    await cartBtn.click();
-
-    // 3. Verify cart drawer content
+    // 2. Verify cart drawer content
     const cartDrawer = page.locator('#cart-drawer-container');
     await expect(cartDrawer).toBeVisible();
     await expect(cartDrawer.getByText(/subtotal/i)).toBeVisible();
 
-    // 4. Apply promo code KIXORA10
+    // 3. Apply promo code KIXORA10
     const promoInput = page.locator('#cart-promo-input');
     await promoInput.fill('KIXORA10');
     await page.locator('#cart-apply-promo-btn').click();
 
-    // 5. Verify promo applied feedback
+    // 4. Verify promo applied feedback
     await expect(page.getByText(/promo code applied/i).first()).toBeVisible();
   });
 
@@ -108,14 +103,12 @@ test.describe('Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History
     await expect(page.locator('#customer-auth-modal-content')).not.toBeVisible();
     await expect(userBtn).toContainText(/thabo/i);
 
-    // 2. Add product to cart
-    const addBtn = page.locator('button[id^="add-to-cart-quick-btn-"]').first();
+    // 2. Add product to cart (automatically opens cart drawer)
+    const addBtn = page.locator('button[id^="add-to-cart-btn-"]').first();
     await addBtn.click();
 
-    // 3. Open cart and proceed to checkout
-    const cartBtn = page.locator('#header-cart-button');
-    await cartBtn.click();
-    const checkoutBtn = page.locator('#cart-checkout-button');
+    // 3. Proceed to checkout from cart drawer
+    const checkoutBtn = page.locator('#cart-proceed-checkout-btn');
     await expect(checkoutBtn).toBeVisible();
     await checkoutBtn.click();
 

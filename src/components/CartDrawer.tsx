@@ -187,7 +187,7 @@ export const CartDrawer: React.FC = () => {
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#10B981]/15 border border-[#10B981]/30 text-xs">
                     <div className="flex items-center gap-2 text-[#10B981] font-mono font-bold">
                       <Tag className="w-3.5 h-3.5" />
-                      <span>{appliedPromo.code} ({appliedPromo.discountPercent}% OFF)</span>
+                      <span>Promo code applied: {appliedPromo.code} ({appliedPromo.discountPercent}% OFF)</span>
                     </div>
                     <button
                       id="cart-remove-promo-btn"

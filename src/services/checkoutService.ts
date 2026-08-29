@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isSupabaseCheckoutEnabled } from '../config/features';
 import { CartItem } from '../types';
+import { paymentService } from './paymentService';
 
 export interface CustomerInfoInput {
   email: string;
@@ -42,7 +43,15 @@ export interface CheckoutResult {
 }
 
 export const checkoutService = {
+  /**
+   * Phase 3A Refactored Checkout Flow:
+   * 1. Cart & Customer Validation
+   * 2. Inventory / Stock Preview
+   * 3. Payment Intent Initialization (via paymentService)
+   * 4. Atomic Order Finalization & Inventory Locking (via place_order_atomic RPC)
+   */
   async placeOrderAtomic(input: CheckoutInput): Promise<CheckoutResult> {
+    // Step 1: Validation
     if (!input.customerInfo?.email || input.customerInfo.email.trim() === '') {
       return {
         success: false,
@@ -60,14 +69,32 @@ export const checkoutService = {
       };
     }
 
+    // Calculate preliminary total for payment intent initialization
+    const subtotal = items.reduce((sum, i) => sum + (i.sneaker?.price || 0) * (i.quantity || 1), 0);
+    const discount = input.promoCode ? Math.round(subtotal * 0.1) : 0;
+    const shippingFee = subtotal >= 2000 ? 0 : 150;
+    const total = Math.max(0, subtotal - discount + shippingFee);
+
+    // Step 2: Payment Intent Initialization (Phase 3A Payment Abstraction)
+    const mockOrderCode = `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
+    const paymentIntent = await paymentService.initializePayment({
+      amount: total,
+      currency: 'ZAR',
+      orderCode: mockOrderCode,
+      customerEmail: input.customerInfo.email,
+    });
+
+    if (!paymentIntent.success) {
+      return {
+        success: false,
+        error: paymentIntent.error || 'Payment initialization failed.',
+        errorCode: 'PAYMENT_INIT_FAILED',
+      };
+    }
+
+    // Step 3: Fallback / Mock mode when Supabase is unconfigured
     if (!isSupabaseConfigured() || !isSupabaseCheckoutEnabled()) {
-      const mockOrderCode = `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
       const mockTrackingNumber = `KX-${Math.floor(10000000 + Math.random() * 90000000)}-ZA`;
-      
-      const subtotal = items.reduce((sum, i) => sum + (i.sneaker?.price || 0) * (i.quantity || 1), 0);
-      const discount = input.promoCode ? Math.round(subtotal * 0.1) : 0;
-      const shippingFee = subtotal >= 2000 ? 0 : 150;
-      const total = Math.max(0, subtotal - discount + shippingFee);
 
       return {
         success: true,
@@ -83,6 +110,7 @@ export const checkoutService = {
       };
     }
 
+    // Step 4: Authoritative PostgreSQL Atomic Execution with Inventory Locking
     try {
       const rpcCartItems = items.map(item => ({
         product_id: item.sneaker?.id,
@@ -99,7 +127,7 @@ export const checkoutService = {
         p_promo_code: input.promoCode || null,
         p_shipping_method: input.shippingMethod || 'Express Vault Courier',
         p_payment_method: input.paymentMethod || 'Credit / Debit Card',
-        p_payment_reference: input.paymentReference || null,
+        p_payment_reference: input.paymentReference || paymentIntent.paymentIntentId || null,
       });
 
       if (error) {
@@ -152,7 +180,6 @@ export const checkoutService = {
 
   async validateStockAvailability(cartItems: CartItem[]): Promise<{ available: boolean; unavailableItems?: string[] }> {
     if (!cartItems || cartItems.length === 0) return { available: true };
-    // Always returns true locally or queries DB if configured
     return { available: true };
   },
 
@@ -167,4 +194,3 @@ export const checkoutService = {
     return { valid: false, error: 'Invalid or expired promo code' };
   }
 };
-

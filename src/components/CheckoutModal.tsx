@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { useAuth } from '../hooks/useAuth';
+import { paymentService } from '../services/paymentService';
 import { 
   X, 
   ShieldCheck, 
@@ -10,7 +11,8 @@ import {
   Lock, 
   ArrowRight, 
   ArrowLeft,
-  ShoppingBag
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -29,7 +31,9 @@ export const CheckoutModal: React.FC = () => {
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
+  const [activePaymentIntentId, setActivePaymentIntentId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -72,14 +76,41 @@ export const CheckoutModal: React.FC = () => {
 
   const handleCompleteOrder = async () => {
     setIsSubmitting(true);
+    setPaymentError(null);
+
     try {
-      const newOrder = await placeOrder(formData, paymentMethod, shippingMethod);
+      // 1. Initialize or prepare payment intent via payment service
+      const tempOrderCode = `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
+      const paymentIntentRes = await paymentService.initializePayment({
+        amount: total,
+        currency: 'ZAR',
+        orderCode: tempOrderCode,
+        customerEmail: formData.email,
+        customerName: formData.fullName,
+        metadata: {
+          shippingMethod,
+          paymentMethod
+        }
+      });
+
+      if (!paymentIntentRes.success) {
+        setPaymentError(paymentIntentRes.error || 'Payment gateway initialization failed. Please retry.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const intentId = paymentIntentRes.paymentIntentId || `pi_kxo_${Date.now()}`;
+      setActivePaymentIntentId(intentId);
+
+      // 2. Finalize atomic order placement
+      const newOrder = await placeOrder(formData, paymentMethod, shippingMethod, intentId);
       if (newOrder) {
         setPlacedOrder(newOrder);
         setStep(4 as any);
       }
     } catch (err: any) {
       console.warn('[CheckoutModal.handleCompleteOrder] Order failed:', err);
+      setPaymentError(err.message || 'Payment authorization was unsuccessful. Please retry payment.');
     } finally {
       setIsSubmitting(false);
     }
@@ -243,7 +274,7 @@ export const CheckoutModal: React.FC = () => {
               <div className="space-y-3">
                 {[
                   { id: 'Credit / Debit Card (3D Secure)', desc: 'Visa, Mastercard, American Express with biometric authentication' },
-                  { id: 'Instant EFT / Ozow', desc: 'Instant zero-fee bank clearing from all major SA banks' },
+                  { id: 'Instant EFT / Ozow', desc: 'Instant zero-fee bank clearing from all major SA banks (PayFast)' },
                   { id: 'Apple Pay / Google Pay', desc: 'One-touch encrypted mobile checkout' }
                 ].map(opt => (
                   <div
@@ -264,7 +295,7 @@ export const CheckoutModal: React.FC = () => {
                 ))}
               </div>
 
-              {/* Card Form Mockup */}
+              {/* Card Form Mockup / Gateway Status */}
               <div className="p-4 rounded-xl bg-[#1A1A1A] border border-[#282828] space-y-3 text-xs">
                 <div className="flex items-center gap-2 text-xs font-bold text-[#888888] uppercase font-mono">
                   <Lock className="w-3.5 h-3.5 text-[#10B981]" />
@@ -306,6 +337,22 @@ export const CheckoutModal: React.FC = () => {
           {step === 3 && (
             <div className="space-y-6">
               <h3 className="font-display font-bold text-base text-white">3. REVIEW & AUTHORIZATION</h3>
+
+              {paymentError && (
+                <div className="p-4 bg-red-950/40 border border-red-800/60 rounded-xl flex items-start gap-3 text-xs text-red-200">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold">Payment Error</p>
+                    <p className="text-[11px] text-red-300/90 mt-0.5">{paymentError}</p>
+                  </div>
+                  <button
+                    onClick={() => setPaymentError(null)}
+                    className="text-red-400 hover:text-red-200 p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
 
               {/* Items List */}
               <div className="space-y-2 max-h-44 overflow-y-auto">
@@ -382,7 +429,10 @@ export const CheckoutModal: React.FC = () => {
           <div className="p-6 bg-[#161616] border-t border-[#262626] flex items-center justify-between">
             {step > 1 ? (
               <button
-                onClick={() => setStep((step - 1) as any)}
+                onClick={() => {
+                  setPaymentError(null);
+                  setStep((step - 1) as any);
+                }}
                 className="px-5 py-2.5 bg-[#222222] hover:bg-[#2A2A2A] text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center gap-2"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
