@@ -17,36 +17,49 @@ export const orderRepository = {
       return [];
     }
 
-    let query = supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
+    try {
+      let query = supabase
+        .from('orders')
+        .select(`
           *,
-          products (
+          order_items (
             *,
-            brands (*),
-            categories (*),
-            product_images (*)
-          )
-        ),
-        order_status_history (*),
-        order_events (*),
-        shipments (*)
-      `)
-      .order('created_at', { ascending: false });
+            products (
+              *,
+              brands (*),
+              categories (*),
+              product_images (*)
+            )
+          ),
+          order_status_history (*),
+          order_events (*),
+          shipments (*)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (userId) {
-      query = query.eq('user_id', userId);
+      if (userId) {
+        query = query.eq('user_id', userId);
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.warn('[orderRepository.getOrders] Error fetching orders:', error);
+        return [];
+      }
+
+      return (data || []).map(row => mapOrderRowToOrder(row as unknown as OrderHydratedRow));
+    } catch (err) {
+      console.warn('[orderRepository.getOrders] Exception:', err);
+      return [];
     }
+  },
 
-    const { data, error } = await query;
-    if (error) {
-      console.error('[orderRepository.getOrders] Error fetching orders:', error);
-      throw error;
-    }
+  async getMyOrders(userId?: string): Promise<Order[]> {
+    return this.getOrders(userId);
+  },
 
-    return (data || []).map(row => mapOrderRowToOrder(row as unknown as OrderHydratedRow));
+  async getOrderHistory(userId?: string): Promise<Order[]> {
+    return this.getOrders(userId);
   },
 
   async getCustomerOrders(userId: string): Promise<Order[]> {
@@ -54,87 +67,143 @@ export const orderRepository = {
   },
 
   async getOrderByCode(orderCodeOrId: string, guestAccessToken?: string): Promise<Order | null> {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !orderCodeOrId) {
       return null;
     }
 
-    let query = supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
+    try {
+      let query = supabase
+        .from('orders')
+        .select(`
           *,
-          products (
+          order_items (
             *,
-            brands (*),
-            categories (*),
-            product_images (*)
-          )
-        ),
-        order_status_history (*),
-        order_events (*),
-        shipments (*)
-      `);
+            products (
+              *,
+              brands (*),
+              categories (*),
+              product_images (*)
+            )
+          ),
+          order_status_history (*),
+          order_events (*),
+          shipments (*)
+        `);
 
-    if (guestAccessToken) {
-      query = query.eq('guest_access_token', guestAccessToken);
+      if (guestAccessToken) {
+        query = query.eq('guest_access_token', guestAccessToken);
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderCodeOrId);
+      const { data, error } = isUuid
+        ? await query.eq('id', orderCodeOrId).maybeSingle()
+        : await query.eq('order_code', orderCodeOrId).maybeSingle();
+
+      if (error) {
+        console.warn('[orderRepository.getOrderByCode] Error fetching order:', error);
+        return null;
+      }
+
+      if (!data) return null;
+      return mapOrderRowToOrder(data as unknown as OrderHydratedRow);
+    } catch (err) {
+      console.warn('[orderRepository.getOrderByCode] Exception:', err);
+      return null;
     }
+  },
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderCodeOrId);
-    const { data, error } = isUuid
-      ? await query.eq('id', orderCodeOrId).maybeSingle()
-      : await query.eq('order_code', orderCodeOrId).maybeSingle();
-
-    if (error) {
-      console.error('[orderRepository.getOrderByCode] Error fetching order:', error);
-      throw error;
-    }
-
-    if (!data) return null;
-    return mapOrderRowToOrder(data as unknown as OrderHydratedRow);
+  async getOrderById(orderId: string, guestAccessToken?: string): Promise<Order | null> {
+    return this.getOrderByCode(orderId, guestAccessToken);
   },
 
   async getOrderDetails(orderIdOrCode: string, guestAccessToken?: string): Promise<Order | null> {
     return this.getOrderByCode(orderIdOrCode, guestAccessToken);
   },
 
+  async getOrderStatusHistory(orderId: string): Promise<any[]> {
+    if (!isSupabaseConfigured() || !orderId) return [];
+
+    try {
+      const { data, error } = await supabase
+        .from('order_status_history')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.warn('[orderRepository.getOrderStatusHistory] Error:', error);
+        return [];
+      }
+      return data || [];
+    } catch (err) {
+      console.warn('[orderRepository.getOrderStatusHistory] Exception:', err);
+      return [];
+    }
+  },
+
+  async getShipmentTracking(trackingNumberOrCode: string): Promise<OrderTrackingResult | null> {
+    return this.getOrderTracking(trackingNumberOrCode);
+  },
+
+  async getShipmentDetails(orderId: string): Promise<any> {
+    if (!isSupabaseConfigured() || !orderId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('order_id', orderId)
+        .maybeSingle();
+
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  },
+
   async getOrderTracking(trackingNumberOrCode: string): Promise<OrderTrackingResult | null> {
-    if (!isSupabaseConfigured()) {
+    if (!isSupabaseConfigured() || !trackingNumberOrCode) {
       return null;
     }
 
-    // Try finding by shipment tracking number
-    const { data: shipmentData } = await supabase
-      .from('shipments')
-      .select('*, orders (*)')
-      .eq('tracking_number', trackingNumberOrCode)
-      .maybeSingle();
+    try {
+      // Try finding by shipment tracking number
+      const { data: shipmentData } = await supabase
+        .from('shipments')
+        .select('*, orders (*)')
+        .eq('tracking_number', trackingNumberOrCode)
+        .maybeSingle();
 
-    if (shipmentData?.order_id) {
-      const order = await this.getOrderByCode(shipmentData.order_id);
+      if (shipmentData?.order_id) {
+        const order = await this.getOrderByCode(shipmentData.order_id);
+        if (order) {
+          return {
+            order,
+            trackingNumber: shipmentData.tracking_number || order.trackingNumber,
+            carrier: shipmentData.carrier || 'RAM Hand-to-Hand',
+            status: order.status,
+            timeline: order.timeline,
+            shipment: shipmentData,
+          };
+        }
+      }
+
+      const order = await this.getOrderByCode(trackingNumberOrCode);
       if (order) {
         return {
           order,
-          trackingNumber: shipmentData.tracking_number || order.trackingNumber,
-          carrier: shipmentData.carrier || 'RAM Hand-to-Hand',
+          trackingNumber: order.trackingNumber,
+          carrier: 'RAM Hand-to-Hand',
           status: order.status,
           timeline: order.timeline,
-          shipment: shipmentData,
         };
       }
-    }
 
-    const order = await this.getOrderByCode(trackingNumberOrCode);
-    if (order) {
-      return {
-        order,
-        trackingNumber: order.trackingNumber,
-        carrier: 'RAM Hand-to-Hand',
-        status: order.status,
-        timeline: order.timeline,
-      };
+      return null;
+    } catch (err) {
+      console.warn('[orderRepository.getOrderTracking] Exception:', err);
+      return null;
     }
-
-    return null;
   }
 };

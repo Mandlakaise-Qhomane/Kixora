@@ -11,6 +11,38 @@ import { extractRoleFromUser, extractRoleFromAppMetadata } from '../utils/roleUt
 
 const MOCK_STORAGE_KEY = 'kixora_auth_session';
 let inMemorySession: AuthSession | null = null;
+const authListeners = new Set<(session: AuthSession | null) => void>();
+
+function notifyAuthListeners(session: AuthSession | null) {
+  authListeners.forEach(cb => {
+    try {
+      cb(session);
+    } catch (e) {
+      console.error('Error in auth listener:', e);
+    }
+  });
+}
+
+function sanitizeAuthError(errorMessage?: string): string {
+  if (!errorMessage) return 'Authentication failed. Please try again.';
+  const lower = errorMessage.toLowerCase();
+  if (lower.includes('invalid login credentials') || lower.includes('invalid credentials') || lower.includes('invalid_grant')) {
+    return 'Invalid email or password. Please verify your credentials.';
+  }
+  if (lower.includes('user already registered') || lower.includes('already exists') || lower.includes('unique constraint')) {
+    return 'An account with this email address already exists. Please sign in instead.';
+  }
+  if (lower.includes('password') && (lower.includes('least') || lower.includes('short') || lower.includes('length'))) {
+    return 'Password must be at least 6 characters long.';
+  }
+  if (lower.includes('email not confirmed')) {
+    return 'Please check your email to confirm your account before signing in.';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    return 'Too many attempts. Please wait a moment and try again.';
+  }
+  return errorMessage;
+}
 
 // Helper to map Supabase User to AuthUser
 function mapSupabaseUserToAuthUser(sbUser: any): AuthUser {
@@ -50,6 +82,10 @@ export const authService = {
       return { user: null, session: null, error: 'Email and password are required.' };
     }
 
+    if (password.length < 6) {
+      return { user: null, session: null, error: 'Password must be at least 6 characters long.' };
+    }
+
     if (isSupabaseAuthEnabled() && isSupabaseConfigured()) {
       try {
         const { data, error } = await supabase.auth.signUp({
@@ -66,7 +102,7 @@ export const authService = {
 
         if (error) {
           console.error('[authService.signUpCustomer] Supabase signup error:', error.message);
-          return { user: null, session: null, error: error.message };
+          return { user: null, session: null, error: sanitizeAuthError(error.message) };
         }
 
         const authUser = data.user ? mapSupabaseUserToAuthUser(data.user) : null;
@@ -74,7 +110,7 @@ export const authService = {
         return { user: authUser, session: authSession };
       } catch (err: any) {
         console.error('[authService.signUpCustomer] Unexpected signup error:', err);
-        return { user: null, session: null, error: err.message || 'Failed to sign up.' };
+        return { user: null, session: null, error: sanitizeAuthError(err.message) };
       }
     }
 
@@ -103,6 +139,7 @@ export const authService = {
       // Storage unavailable
     }
 
+    notifyAuthListeners(mockSession);
     return { user: mockUser, session: mockSession };
   },
 
@@ -125,7 +162,7 @@ export const authService = {
 
         if (error) {
           console.error('[authService.signIn] Supabase sign in error:', error.message);
-          return { user: null, session: null, error: error.message };
+          return { user: null, session: null, error: sanitizeAuthError(error.message) };
         }
 
         const authUser = data.user ? mapSupabaseUserToAuthUser(data.user) : null;
@@ -133,7 +170,7 @@ export const authService = {
         return { user: authUser, session: authSession };
       } catch (err: any) {
         console.error('[authService.signIn] Unexpected sign in error:', err);
-        return { user: null, session: null, error: err.message || 'Failed to sign in.' };
+        return { user: null, session: null, error: sanitizeAuthError(err.message) };
       }
     }
 
@@ -164,6 +201,7 @@ export const authService = {
       // Storage unavailable
     }
 
+    notifyAuthListeners(mockSession);
     return { user: mockUser, session: mockSession };
   },
 
@@ -177,11 +215,11 @@ export const authService = {
         const { error } = await supabase.auth.signOut();
         if (error) {
           console.error('[authService.signOut] Supabase signOut error:', error.message);
-          return { error: error.message };
+          return { error: sanitizeAuthError(error.message) };
         }
       } catch (err: any) {
         console.error('[authService.signOut] Unexpected error:', err);
-        return { error: err.message || 'Failed to sign out.' };
+        return { error: sanitizeAuthError(err.message) };
       }
     }
 
@@ -191,6 +229,7 @@ export const authService = {
       // Storage unavailable
     }
 
+    notifyAuthListeners(null);
     return {};
   },
 
@@ -227,6 +266,14 @@ export const authService = {
   },
 
   /**
+   * Retrieves current active user.
+   */
+  async getCurrentUser(): Promise<AuthUser | null> {
+    const session = await this.getSession();
+    return session?.user || null;
+  },
+
+  /**
    * Extracts user role using strict app_metadata validation.
    */
   getUserRole(userOrSession?: AuthUser | AuthSession | null): UserRole {
@@ -251,7 +298,9 @@ export const authService = {
       };
     }
 
-    // Polling / storage listener fallback for mock mode
+    // In-memory + storage listener fallback for mock mode
+    authListeners.add(callback);
+
     const handler = (e: StorageEvent) => {
       if (e.key === MOCK_STORAGE_KEY) {
         if (e.newValue) {
@@ -268,6 +317,7 @@ export const authService = {
 
     window.addEventListener('storage', handler);
     return () => {
+      authListeners.delete(callback);
       window.removeEventListener('storage', handler);
     };
   },

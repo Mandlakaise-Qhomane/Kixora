@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
+import { useAuth } from '../hooks/useAuth';
+import { inspectHostname } from '../routes/DomainGuard';
 import { ViewMode, Brand } from '../types';
 import { 
   Search, 
@@ -13,7 +15,9 @@ import {
   ShieldCheck,
   Package,
   Layers,
-  LayoutDashboard
+  LayoutDashboard,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -30,8 +34,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
     currentView, 
     setCurrentView,
     filters,
-    setFilters
+    setFilters,
+    openAuthModal
   } = useStore();
+
+  const { user, isAuthenticated, role, signOut } = useAuth();
+  const { isAdminDomain } = inspectHostname();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -158,10 +166,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
             </button>
           </nav>
 
-          {/* Right Header Controls matching Reference Image */}
-          <div className="flex items-center space-x-4">
+          {/* Right Header Controls */}
+          <div className="flex items-center space-x-3 sm:space-x-4">
             {/* Search Input matching reference image */}
-            <div className="hidden md:flex items-center relative w-64 lg:w-72">
+            <div className="hidden md:flex items-center relative w-60 lg:w-68">
               <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 id="header-search-input"
@@ -194,22 +202,59 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
               )}
             </button>
 
-            {/* Admin Switcher / Profile Icon */}
-            <button
-              id="header-admin-profile-button"
-              onClick={() => handleNavClick(currentView === 'admin' ? 'store' : 'admin')}
-              className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold ${
-                currentView === 'admin'
-                  ? 'bg-[#FF7A00] text-black'
-                  : 'text-[#888888] hover:text-white hover:bg-[#232323]'
-              }`}
-              title={currentView === 'admin' ? 'Exit Admin' : 'Admin Panel'}
-            >
-              <User className="w-5 h-5" />
-              <span className="hidden xl:inline text-[11px] font-mono">
-                {currentView === 'admin' ? 'Store' : 'Admin'}
-              </span>
-            </button>
+            {/* DOMAIN-AWARE AUTH / ADMIN CONTROLS */}
+            {isAdminDomain ? (
+              /* Admin Subdomain: Admin Hub Toggle */
+              <button
+                id="header-admin-profile-button"
+                onClick={() => handleNavClick(currentView === 'admin' ? 'store' : 'admin')}
+                className={`p-2 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold ${
+                  currentView === 'admin'
+                    ? 'bg-[#FF7A00] text-black'
+                    : 'text-[#888888] hover:text-white hover:bg-[#232323]'
+                }`}
+                title={currentView === 'admin' ? 'Exit Admin' : 'Admin Panel'}
+              >
+                <User className="w-5 h-5" />
+                <span className="hidden xl:inline text-[11px] font-mono">
+                  {currentView === 'admin' ? 'Store' : 'Admin'}
+                </span>
+              </button>
+            ) : (
+              /* Customer Domain: Customer Auth / Account Control */
+              <button
+                id="header-user-button"
+                data-testid="header-user-button"
+                onClick={() => openAuthModal(isAuthenticated ? 'profile' : 'signin')}
+                className={`p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-semibold ${
+                  isAuthenticated
+                    ? 'text-white hover:bg-[#232323] border border-[#2D2D2D]'
+                    : 'text-[#888888] hover:text-white hover:bg-[#232323]'
+                }`}
+                title={isAuthenticated ? `Collector: ${user?.fullName || user?.email}` : 'Sign In to Vault'}
+              >
+                {isAuthenticated ? (
+                  <>
+                    <div className="relative">
+                      <div className="w-6 h-6 rounded-full bg-[#FF7A00]/20 border border-[#FF7A00]/60 text-[#FF7A00] flex items-center justify-center font-mono font-bold text-[10px]">
+                        {(user?.fullName?.[0] || user?.email?.[0] || 'C').toUpperCase()}
+                      </div>
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#FF7A00] border border-[#111111]" />
+                    </div>
+                    <span className="hidden md:inline text-[11px] font-mono text-white max-w-[90px] truncate">
+                      {user?.fullName?.split(' ')[0] || 'Account'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-5 h-5" />
+                    <span className="hidden md:inline text-[11px] font-mono">
+                      Sign In
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
 
             {/* Cart Icon with Orange Badge counter matching reference image */}
             <button
@@ -257,6 +302,52 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
               />
             </div>
 
+            {/* Customer Account Strip on Mobile */}
+            {!isAdminDomain && (
+              <div className="p-3 rounded-xl bg-[#181818] border border-[#2B2B2B] flex items-center justify-between">
+                {isAuthenticated && user ? (
+                  <>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#FF7A00]/20 border border-[#FF7A00]/60 text-[#FF7A00] flex items-center justify-center font-mono font-bold text-xs">
+                        {(user.fullName?.[0] || 'C').toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xs font-bold text-white truncate max-w-[130px]">
+                          {user.fullName || 'Collector'}
+                        </div>
+                        <div className="text-[10px] text-[#888888] font-mono">Verified Member</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        openAuthModal('profile');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-[#242424] hover:bg-[#303030] text-xs text-white font-semibold"
+                    >
+                      Account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-left">
+                      <div className="text-xs font-bold text-white">Collector Vault</div>
+                      <div className="text-[10px] text-[#888888]">Sign in to access VIP grails</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        openAuthModal('signin');
+                      }}
+                      className="px-3.5 py-1.5 rounded-lg bg-[#FF7A00] text-black text-xs font-bold"
+                    >
+                      Sign In
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2 text-xs font-bold uppercase font-sans">
               <button
                 onClick={() => handleNavClick('store')}
@@ -292,12 +383,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
               >
                 Track Order 📦
               </button>
-              <button
-                onClick={() => handleNavClick('admin')}
-                className={`p-3 rounded-lg text-left ${currentView === 'admin' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#FF7A00]'}`}
-              >
-                Admin Panel ⚡
-              </button>
+              {isAdminDomain && (
+                <button
+                  onClick={() => handleNavClick('admin')}
+                  className={`p-3 rounded-lg text-left ${currentView === 'admin' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#FF7A00]'}`}
+                >
+                  Admin Panel ⚡
+                </button>
+              )}
             </div>
           </motion.div>
         )}

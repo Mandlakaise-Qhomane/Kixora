@@ -16,6 +16,12 @@ import {
   INITIAL_PROMOS, 
   INITIAL_ORDERS 
 } from '../data/sneakers';
+import { authService } from '../services/authService';
+import { wishlistRepository } from '../repositories/customer/wishlistRepository';
+import { cartRepository } from '../repositories/customer/cartRepository';
+import { orderRepository } from '../repositories/customer/orderRepository';
+import { checkoutService } from '../services/checkoutService';
+import { AuthUser } from '../types/auth';
 
 export const formatPrice = (amount: number): string => {
   return `R${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -40,6 +46,8 @@ interface StoreContextType {
   isCartOpen: boolean;
   isCheckoutOpen: boolean;
   isWishlistOpen: boolean;
+  isAuthModalOpen: boolean;
+  authModalMode: 'signin' | 'signup' | 'profile';
   selectedSneaker: Sneaker | null;
   trackingOrder: Order | null;
   appliedPromo: PromoCode | null;
@@ -52,6 +60,10 @@ interface StoreContextType {
   setIsCartOpen: (open: boolean) => void;
   setIsCheckoutOpen: (open: boolean) => void;
   setIsWishlistOpen: (open: boolean) => void;
+  setIsAuthModalOpen: (open: boolean) => void;
+  setAuthModalMode: (mode: 'signin' | 'signup' | 'profile') => void;
+  openAuthModal: (mode?: 'signin' | 'signup' | 'profile') => void;
+  closeAuthModal: () => void;
   setSelectedSneaker: (sneaker: Sneaker | null) => void;
   setTrackingOrder: (order: Order | null) => void;
   openSneakerModal: (sneaker: Sneaker) => void;
@@ -66,13 +78,15 @@ interface StoreContextType {
   removePromoCode: () => void;
 
   // Wishlist Actions
-  toggleWishlist: (sneakerId: string) => void;
+  toggleWishlist: (sneakerId: string) => void | Promise<void>;
+  addToWishlist?: (sneakerId: string) => void | Promise<void>;
+  removeFromWishlist?: (sneakerId: string) => void | Promise<void>;
 
   // Drops Actions
   toggleDropNotify: (dropId: string) => void;
 
   // Order & Checkout Actions
-  placeOrder: (customerData: Order['customer'], paymentMethod: string, shippingMethod: string) => Order;
+  placeOrder: (customerData: Order['customer'], paymentMethod: string, shippingMethod: string) => Promise<Order>;
 
   // Admin Actions
   addSneaker: (sneaker: Omit<Sneaker, 'id' | 'rating' | 'reviewsCount'>) => void;
@@ -145,15 +159,136 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : ['kixo-shattered-backboard-01', 'kixo-aj4-black-cat-04'];
   });
 
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+
+  // Subscribe to auth session to track active user
+  useEffect(() => {
+    let isMounted = true;
+    authService.getSession().then(session => {
+      if (isMounted) {
+        setCurrentUser(session?.user || null);
+      }
+    });
+
+    const unsubscribe = authService.onAuthStateChange(session => {
+      if (isMounted) {
+        setCurrentUser(session?.user || null);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Synchronize wishlist, cart, and orders from Supabase for authenticated customer, with safe guest merge
+  useEffect(() => {
+    let isMounted = true;
+
+    async function syncCustomerData() {
+      if (currentUser?.id) {
+        try {
+          // 1. Check for guest wishlist items to migrate
+          const guestWishlistRaw = localStorage.getItem('kixora_wishlist_v2');
+          if (guestWishlistRaw) {
+            try {
+              const guestIds: string[] = JSON.parse(guestWishlistRaw);
+              if (Array.isArray(guestIds) && guestIds.length > 0) {
+                await wishlistRepository.mergeGuestWishlist(currentUser.id, guestIds);
+                localStorage.removeItem('kixora_wishlist_v2');
+              }
+            } catch (e) {
+              console.warn('[StoreContext] Could not parse guest wishlist for merge:', e);
+            }
+          }
+
+          // Fetch fresh wishlist IDs from Supabase
+          const ids = await wishlistRepository.getWishlistProductIds(currentUser.id);
+          if (isMounted && Array.isArray(ids) && ids.length > 0) {
+            setWishlist(ids);
+          }
+
+          // 2. Check for guest cart items to migrate
+          const guestCartRaw = localStorage.getItem('kixora_cart_v2');
+          if (guestCartRaw) {
+            try {
+              const guestCartItems: CartItem[] = JSON.parse(guestCartRaw);
+              if (Array.isArray(guestCartItems) && guestCartItems.length > 0) {
+                await cartRepository.mergeGuestCart(currentUser.id, guestCartItems);
+                localStorage.removeItem('kixora_cart_v2');
+              }
+            } catch (e) {
+              console.warn('[StoreContext] Could not parse guest cart for merge:', e);
+            }
+          }
+
+          // Fetch customer cart items from Supabase
+          const serverCartItems = await cartRepository.getCart(currentUser.id);
+          if (isMounted && Array.isArray(serverCartItems) && serverCartItems.length > 0) {
+            setCart(serverCartItems);
+          }
+
+          // 3. Fetch customer orders from Supabase
+          const serverOrders = await orderRepository.getCustomerOrders(currentUser.id);
+          if (isMounted && Array.isArray(serverOrders) && serverOrders.length > 0) {
+            setOrders(prev => {
+              const combined = [...serverOrders];
+              for (const o of prev) {
+                if (!combined.some(c => c.id === o.id || c.orderCode === o.id || c.id === o.orderCode)) {
+                  combined.push(o);
+                }
+              }
+              return combined;
+            });
+          }
+        } catch (err) {
+          console.warn('[StoreContext] Supabase customer sync fallback:', err);
+        }
+      } else {
+        // Guest mode: load from localStorage
+        const savedWishlist = localStorage.getItem('kixora_wishlist_v2');
+        if (savedWishlist) {
+          try {
+            setWishlist(JSON.parse(savedWishlist));
+          } catch {}
+        }
+        const savedCart = localStorage.getItem('kixora_cart_v2');
+        if (savedCart) {
+          try {
+            setCart(JSON.parse(savedCart));
+          } catch {}
+        }
+      }
+    }
+
+    syncCustomerData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id]);
+
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [currentView, setCurrentView] = useState<ViewMode>('store');
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalMode, setAuthModalMode] = useState<'signin' | 'signup' | 'profile'>('signin');
   const [selectedSneaker, setSelectedSneaker] = useState<Sneaker | null>(null);
   const [trackingOrder, setTrackingOrder] = useState<Order | null>(null);
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+
+  const openAuthModal = (mode: 'signin' | 'signup' | 'profile' = 'signin') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -165,8 +300,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem('kixora_wishlist_v2', JSON.stringify(wishlist));
-  }, [wishlist]);
+    // Only persist to localStorage if guest user
+    if (!currentUser?.id) {
+      localStorage.setItem('kixora_wishlist_v2', JSON.stringify(wishlist));
+    }
+  }, [wishlist, currentUser?.id]);
 
   useEffect(() => {
     localStorage.setItem('kixora_orders_v2', JSON.stringify(orders));
@@ -220,11 +358,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       `${sneaker.name} (US ${size}) ready for checkout.`,
       'success'
     );
+
+    // Persist to Supabase if authenticated customer
+    if (currentUser?.id) {
+      cartRepository.addItem(currentUser.id, sneaker, size, quantity, customization).catch(err => {
+        console.warn('[StoreContext.addToCart] Background sync error:', err);
+      });
+    }
   };
 
   const removeFromCart = (cartItemId: string) => {
     setCart(prev => prev.filter(item => item.id !== cartItemId));
     showToast('Item Removed', 'Item removed from your cart', 'info');
+
+    if (currentUser?.id) {
+      cartRepository.removeItem(cartItemId).catch(err => {
+        console.warn('[StoreContext.removeFromCart] Background sync error:', err);
+      });
+    }
   };
 
   const updateCartQuantity = (cartItemId: string, quantity: number) => {
@@ -235,10 +386,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart(prev =>
       prev.map(item => (item.id === cartItemId ? { ...item, quantity } : item))
     );
+
+    if (currentUser?.id) {
+      cartRepository.updateItemQuantity(cartItemId, quantity).catch(err => {
+        console.warn('[StoreContext.updateCartQuantity] Background sync error:', err);
+      });
+    }
   };
 
   const clearCart = () => {
     setCart([]);
+    if (currentUser?.id) {
+      cartRepository.clearCart(currentUser.id).catch(err => {
+        console.warn('[StoreContext.clearCart] Background sync error:', err);
+      });
+    }
   };
 
   const applyPromoCode = (code: string) => {
@@ -268,17 +430,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Wishlist
-  const toggleWishlist = (sneakerId: string) => {
-    setWishlist(prev => {
-      const exists = prev.includes(sneakerId);
-      if (exists) {
-        showToast('Removed from Wishlist', 'Grail removed from your saved list.', 'info');
-        return prev.filter(id => id !== sneakerId);
-      } else {
-        showToast('Saved to Wishlist', 'Grail added to your personal collection.', 'success');
-        return [...prev, sneakerId];
+  const toggleWishlist = async (sneakerId: string) => {
+    if (!sneakerId) return;
+
+    const exists = wishlist.includes(sneakerId);
+    const previous = [...wishlist];
+    const next = exists ? previous.filter(id => id !== sneakerId) : [...previous, sneakerId];
+
+    // Optimistic UI update
+    setWishlist(next);
+
+    if (exists) {
+      showToast('Removed from Wishlist', 'Grail removed from your saved list.', 'info');
+    } else {
+      showToast('Saved to Wishlist', 'Grail added to your personal collection.', 'success');
+    }
+
+    // Persist to Supabase if authenticated customer
+    if (currentUser?.id) {
+      try {
+        if (exists) {
+          await wishlistRepository.removeFromWishlist(currentUser.id, sneakerId);
+        } else {
+          await wishlistRepository.addToWishlist(currentUser.id, sneakerId);
+        }
+      } catch (err: any) {
+        console.error('[StoreContext] Wishlist sync error:', err);
+        // Rollback optimistic state
+        setWishlist(previous);
+        showToast('Wishlist Error', 'Could not sync wishlist with server. Changes reverted.', 'error');
       }
-    });
+    }
+  };
+
+  const addToWishlist = async (sneakerId: string) => {
+    if (!sneakerId || wishlist.includes(sneakerId)) return;
+    await toggleWishlist(sneakerId);
+  };
+
+  const removeFromWishlist = async (sneakerId: string) => {
+    if (!sneakerId || !wishlist.includes(sneakerId)) return;
+    await toggleWishlist(sneakerId);
   };
 
   // Drops
@@ -317,19 +509,44 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Order creation
-  const placeOrder = (
+  const placeOrder = async (
     customerData: Order['customer'],
     paymentMethod: string,
     shippingMethod: string
-  ): Order => {
+  ): Promise<Order> => {
     const subtotal = cart.reduce((sum, item) => sum + item.sneaker.price * item.quantity, 0);
     const discount = appliedPromo ? (subtotal * appliedPromo.discountPercent) / 100 : 0;
-    const shippingFee = subtotal > 2000 ? 0 : 150;
+    const shippingFee = subtotal >= 2000 || cart.length === 0 ? 0 : 150;
     const tax = 0; // Inclusive VAT
-    const total = subtotal - discount + shippingFee + tax;
+    const calculatedTotal = Math.max(0, subtotal - discount + shippingFee + tax);
 
-    const orderId = `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
-    const trackingNumber = `KX-${Math.floor(10000000 + Math.random() * 90000000)}-ZA`;
+    // Call atomic checkout service
+    const checkoutRes = await checkoutService.placeOrderAtomic({
+      cartItems: [...cart],
+      userId: currentUser?.id,
+      promoCode: appliedPromo?.code,
+      customerInfo: {
+        email: customerData.email,
+        fullName: customerData.fullName,
+        phone: customerData.phone,
+        street: customerData.street,
+        city: customerData.city,
+        state: customerData.state,
+        zip: customerData.zip,
+        country: customerData.country,
+      },
+      paymentMethod,
+      shippingMethod,
+    });
+
+    if (!checkoutRes.success) {
+      showToast('Order Failed', checkoutRes.error || 'Could not place order. Please try again.', 'error');
+      throw new Error(checkoutRes.error || 'Checkout failed');
+    }
+
+    const orderId = checkoutRes.orderCode || `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
+    const trackingNumber = checkoutRes.trackingNumber || `KX-${Math.floor(10000000 + Math.random() * 90000000)}-ZA`;
+    const finalTotal = checkoutRes.total !== undefined ? checkoutRes.total : calculatedTotal;
 
     const newOrder: Order = {
       id: orderId,
@@ -337,12 +554,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString(),
       customer: customerData,
       items: [...cart],
-      subtotal,
-      discount,
-      shippingFee,
+      subtotal: checkoutRes.subtotal !== undefined ? checkoutRes.subtotal : subtotal,
+      discount: checkoutRes.discount !== undefined ? checkoutRes.discount : discount,
+      shippingFee: checkoutRes.shippingFee !== undefined ? checkoutRes.shippingFee : shippingFee,
       tax,
-      total,
-      status: 'Processing',
+      total: finalTotal,
+      status: (checkoutRes.currentStatus as OrderStatus) || 'Processing',
       paymentMethod,
       shippingMethod,
       timeline: [
@@ -373,7 +590,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ]
     };
 
-    // Deduct stock
+    // Deduct stock locally
     setSneakers(prevSneakers => {
       return prevSneakers.map(sneaker => {
         const matchingCartItems = cart.filter(item => item.sneaker.id === sneaker.id);
@@ -399,11 +616,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setOrders(prev => [newOrder, ...prev]);
     setCart([]);
+    if (currentUser?.id) {
+      cartRepository.clearCart(currentUser.id).catch(err => {
+        console.warn('[StoreContext.placeOrder] Clear cart error:', err);
+      });
+    }
     setAppliedPromo(null);
     setTrackingOrder(newOrder);
-    // setIsCheckoutOpen(false);
 
-    showToast('Vault Order Placed!', 'Order successfully created.', 'success');
+    showToast('Vault Order Placed!', `Order ${orderId} successfully created.`, 'success');
     return newOrder;
   };
 
@@ -495,6 +716,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isCartOpen,
         isCheckoutOpen,
         isWishlistOpen,
+        isAuthModalOpen,
+        authModalMode,
         selectedSneaker,
         trackingOrder,
         appliedPromo,
@@ -505,6 +728,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsCartOpen,
         setIsCheckoutOpen,
         setIsWishlistOpen,
+        setIsAuthModalOpen,
+        setAuthModalMode,
+        openAuthModal,
+        closeAuthModal,
         setSelectedSneaker,
         setTrackingOrder,
         openSneakerModal,
@@ -516,6 +743,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         applyPromoCode,
         removePromoCode,
         toggleWishlist,
+        addToWishlist,
+        removeFromWishlist,
         toggleDropNotify,
         placeOrder,
         addSneaker,

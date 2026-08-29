@@ -58,6 +58,7 @@ export interface CustomSneakerConfig {
   material?: 'Leather' | 'Suede' | 'Patent' | 'Canvas';
   customText?: string;
   baseModel?: string;
+  previewThumbnailUrl?: string;
 }
 
 export interface CartItem {

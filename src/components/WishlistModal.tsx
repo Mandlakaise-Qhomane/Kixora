@@ -36,6 +36,7 @@ export const WishlistModal: React.FC = () => {
           </div>
 
           <button
+            id="wishlist-close-btn"
             onClick={() => setIsWishlistOpen(false)}
             className="p-2 rounded-lg text-[#888888] hover:text-white hover:bg-[#202020] transition-colors"
           >

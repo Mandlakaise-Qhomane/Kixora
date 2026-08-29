@@ -8,6 +8,7 @@ import { ProductModal } from './components/ProductModal';
 import { CartDrawer } from './components/CartDrawer';
 import { CheckoutModal } from './components/CheckoutModal';
 import { WishlistModal } from './components/WishlistModal';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { DropsCalendar } from './components/DropsCalendar';
 import { CustomizerStudio } from './components/CustomizerStudio';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
@@ -342,6 +343,7 @@ const StoreAppContent: React.FC = () => {
       <CartDrawer />
       <CheckoutModal />
       <WishlistModal />
+      <CustomerAuthModal />
       <Toast />
 
       {/* Footer matching Kixora visual system */}

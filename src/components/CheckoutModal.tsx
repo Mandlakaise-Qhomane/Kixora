@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
+import { useAuth } from '../hooks/useAuth';
 import { 
   X, 
   ShieldCheck, 
@@ -24,6 +25,8 @@ export const CheckoutModal: React.FC = () => {
     setTrackingOrder
   } = useStore();
 
+  const { user, isAuthenticated } = useAuth();
+
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
@@ -40,6 +43,18 @@ export const CheckoutModal: React.FC = () => {
     country: 'South Africa'
   });
 
+  // Sync authenticated user details if present
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
+    }
+  }, [isAuthenticated, user, isCheckoutOpen]);
+
   const [shippingMethod, setShippingMethod] = useState('Express Vault Courier (1-2 Days)');
   const [paymentMethod, setPaymentMethod] = useState('Credit / Debit Card (3D Secure)');
 
@@ -55,14 +70,19 @@ export const CheckoutModal: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCompleteOrder = () => {
+  const handleCompleteOrder = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newOrder = placeOrder(formData, paymentMethod, shippingMethod);
-      setPlacedOrder(newOrder);
+    try {
+      const newOrder = await placeOrder(formData, paymentMethod, shippingMethod);
+      if (newOrder) {
+        setPlacedOrder(newOrder);
+        setStep(4 as any);
+      }
+    } catch (err: any) {
+      console.warn('[CheckoutModal.handleCompleteOrder] Order failed:', err);
+    } finally {
       setIsSubmitting(false);
-      setStep(4 as any);
-    }, 50);
+    }
   };
 
   return (
