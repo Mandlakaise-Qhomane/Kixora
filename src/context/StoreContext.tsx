@@ -96,6 +96,7 @@ interface StoreContextType {
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   addPromo: (promo: Omit<PromoCode, 'id'>) => void;
   togglePromoStatus: (promoId: string) => void;
+  refreshOrders: () => Promise<void>;
 
   // Feedback
   showToast: (title: string, message: string, type?: 'success' | 'info' | 'error') => void;
@@ -704,6 +705,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Promo Updated', 'Voucher status toggled.', 'info');
   };
 
+  const refreshOrders = async () => {
+    try {
+      const serverOrders = await orderRepository.getOrders();
+      if (serverOrders && serverOrders.length > 0) {
+        setOrders(serverOrders);
+      }
+    } catch (err) {
+      console.warn('[StoreContext.refreshOrders] Error:', err);
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -756,6 +768,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateOrderStatus,
         addPromo,
         togglePromoStatus,
+        refreshOrders,
         showToast,
         dismissToast
       }}

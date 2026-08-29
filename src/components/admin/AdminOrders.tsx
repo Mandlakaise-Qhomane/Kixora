@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../../context/StoreContext';
 import { OrderStatus } from '../../types';
-import { ShoppingBag, Search, ChevronDown, CheckCircle2, Clock, Truck, Eye } from 'lucide-react';
+import { ShoppingBag, Search, ChevronDown, CheckCircle2, Clock, Truck, Eye, RefreshCw, Trash2, FileOutput, ShieldCheck } from 'lucide-react';
+import { adminOrderService } from '../../services/adminOrderService';
+import { googleDriveService } from '../../services/googleDriveService';
+import { useGoogleAuth } from '../../hooks/useGoogleAuth';
+import { authService } from '../../services/authService';
 
 export const AdminOrders: React.FC = () => {
-  const { orders, updateOrderStatus, setTrackingOrder, setCurrentView } = useStore();
+  const { orders, updateOrderStatus, setTrackingOrder, setCurrentView, showToast, refreshOrders } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
+  const [isReconciling, setIsReconciling] = useState<string | null>(null);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const { token, requestToken, isAuthenticated } = useGoogleAuth([
+    'https://www.googleapis.com/auth/drive.file'
+  ]);
 
   const filteredOrders = orders.filter(o => {
     const matchSearch =
@@ -48,7 +60,78 @@ export const AdminOrders: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={async () => {
+              setIsRefreshing(true);
+              await refreshOrders();
+              setIsRefreshing(false);
+              showToast('Data Refreshed', 'Orders synchronized with vault.', 'info');
+            }}
+            disabled={isRefreshing}
+            className="p-2.5 rounded-xl bg-[#161616] text-[#888888] hover:text-white border border-[#282828] transition-all disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
+
+          <button
+            onClick={async () => {
+              setIsCleaning(true);
+              try {
+                const count = await adminOrderService.triggerExpiredCleanup(30);
+                showToast('Cleanup Complete', `Released ${count} expired pending orders.`, 'success');
+              } catch (err: any) {
+                showToast('Cleanup Failed', err.message, 'error');
+              } finally {
+                setIsCleaning(false);
+              }
+            }}
+            disabled={isCleaning}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-mono font-bold bg-[#FF7A00]/10 text-[#FF7A00] border border-[#FF7A00]/30 hover:bg-[#FF7A00]/20 disabled:opacity-50 transition-all"
+          >
+            <Clock className={`w-3 h-3 ${isCleaning ? 'animate-spin' : ''}`} />
+            EXPIRE STALE
+          </button>
+
+          {!isAuthenticated ? (
+            <button
+              onClick={requestToken}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-mono font-bold bg-white/5 text-white border border-white/10 hover:bg-white/10 transition-all"
+            >
+              <RefreshCw className="w-3 h-3" />
+              CONNECT DRIVE
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                if (!token) return;
+                setIsExporting(true);
+                try {
+                  const csv = googleDriveService.generateOrderCSV(orders);
+                  const fileName = `Kixora_Reconciliation_${new Date().toISOString().split('T')[0]}.csv`;
+                  const res = await googleDriveService.uploadReport(token, fileName, csv, 'text/csv');
+                  if (res.success) {
+                    showToast('Export Success', 'Report uploaded to Google Drive.', 'success');
+                    if (res.webViewLink) window.open(res.webViewLink, '_blank');
+                  } else {
+                    throw new Error(res.error);
+                  }
+                } catch (err: any) {
+                  showToast('Export Failed', err.message, 'error');
+                } finally {
+                  setIsExporting(false);
+                }
+              }}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-[10px] font-mono font-bold bg-[#3B82F6]/10 text-[#3B82F6] border border-[#3B82F6]/30 hover:bg-[#3B82F6]/20 disabled:opacity-50 transition-all"
+            >
+              <FileOutput className={`w-3 h-3 ${isExporting ? 'animate-spin' : ''}`} />
+              EXPORT TO DRIVE
+            </button>
+          )}
+
+          <div className="h-6 w-[1px] bg-[#282828] mx-1" />
+
           {['All', 'Processing', 'Shipped', 'Delivered'].map(st => (
             <button
               key={st}
@@ -113,7 +196,27 @@ export const AdminOrders: React.FC = () => {
                       {order.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex items-center justify-end gap-2">
+                    <button
+                      onClick={async () => {
+                        setIsReconciling(order.id);
+                        const user = await authService.getCurrentUser();
+                        const res = await adminOrderService.syncOrderWithGateway(order.id, user?.id || 'system');
+                        if (res.success) {
+                          showToast('Reconciliation Success', `Order #${order.id} status is ${res.status}.`, 'success');
+                          await refreshOrders();
+                        } else {
+                          showToast('Reconciliation Notice', res.error || 'Failed to sync with gateway.', 'info');
+                        }
+                        setIsReconciling(null);
+                      }}
+                      disabled={isReconciling === order.id}
+                      className="p-1.5 rounded-lg bg-[#282828] text-[#888888] hover:text-[#FF7A00] transition-colors disabled:opacity-50"
+                      title="Reconcile with Payment Gateway"
+                    >
+                      <ShieldCheck className={`w-3.5 h-3.5 ${isReconciling === order.id ? 'animate-pulse' : ''}`} />
+                    </button>
+
                     <select
                       value={order.status}
                       onChange={e => updateOrderStatus(order.id, e.target.value as OrderStatus)}
