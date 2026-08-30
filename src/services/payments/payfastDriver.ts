@@ -3,7 +3,7 @@
 // Production driver for PayFast (Instant EFT, Credit Cards, Masterpass, ZAR payments).
 // ==============================================================================
 
-import { getEnvConfig } from '../../config/env';
+import { getEnvConfig, getServerConfig } from '../../config/env';
 import { generatePayFastSignature, verifyPayFastSignature } from './crypto';
 import {
   PaymentGatewayDriver,
@@ -30,7 +30,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
   }
 
   getPassphrase(): string {
-    const config = getEnvConfig();
+    const config = getServerConfig();
     return config.payfastPassphrase || '';
   }
 

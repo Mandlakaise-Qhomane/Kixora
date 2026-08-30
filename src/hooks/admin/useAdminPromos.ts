@@ -29,7 +29,15 @@ export function useAdminPromos(fallbackPromos: PromoCode[] = []) {
   }, [fallbackPromos]);
 
   useEffect(() => {
-    fetchPromos();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchPromos();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchPromos]);
 
   const createPromo = useCallback(async (formData: PromoFormData) => {

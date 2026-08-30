@@ -50,7 +50,16 @@ export function useProducts(): UseProductsResult {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
+    let ignore = false;
+    const init = () => {
+      setTimeout(() => {
+        if (!ignore) {
+          fetchProducts();
+        }
+      }, 0);
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchProducts]);
 
   return {

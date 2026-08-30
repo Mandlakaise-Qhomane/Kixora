@@ -47,7 +47,15 @@ export function useCartRepository(userId?: string): UseCartRepositoryResult {
   }, [userId]);
 
   useEffect(() => {
-    fetchCart();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchCart();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchCart]);
 
   const addItem = async (sizeId: string, quantity: number = 1, productId?: string, bespokeId?: string | null) => {

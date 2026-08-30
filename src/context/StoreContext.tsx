@@ -118,46 +118,76 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sneakers, setSneakers] = useState<Sneaker[]>(() => {
-    const saved = localStorage.getItem('kixora_sneakers_v2');
-    return saved ? JSON.parse(saved) : INITIAL_SNEAKERS;
+    try {
+      const saved = localStorage.getItem('kixora_sneakers_v2');
+      return saved ? JSON.parse(saved) : INITIAL_SNEAKERS;
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing sneakers from localStorage:', e);
+      return INITIAL_SNEAKERS;
+    }
   });
 
   const [drops, setDrops] = useState<Drop[]>(() => {
-    const saved = localStorage.getItem('kixora_drops_v2');
-    return saved ? JSON.parse(saved) : INITIAL_DROPS;
+    try {
+      const saved = localStorage.getItem('kixora_drops_v2');
+      return saved ? JSON.parse(saved) : INITIAL_DROPS;
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing drops from localStorage:', e);
+      return INITIAL_DROPS;
+    }
   });
 
   const [promos, setPromos] = useState<PromoCode[]>(() => {
-    const saved = localStorage.getItem('kixora_promos_v2');
-    return saved ? JSON.parse(saved) : INITIAL_PROMOS;
+    try {
+      const saved = localStorage.getItem('kixora_promos_v2');
+      return saved ? JSON.parse(saved) : INITIAL_PROMOS;
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing promos from localStorage:', e);
+      return INITIAL_PROMOS;
+    }
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('kixora_orders_v2');
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    try {
+      const saved = localStorage.getItem('kixora_orders_v2');
+      return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing orders from localStorage:', e);
+      return INITIAL_ORDERS;
+    }
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('kixora_cart_v2');
-    return saved ? JSON.parse(saved) : [
-      {
-        id: 'cart-init-01',
-        sneaker: INITIAL_SNEAKERS[0],
-        selectedSize: 10,
-        quantity: 1
-      },
-      {
-        id: 'cart-init-02',
-        sneaker: INITIAL_SNEAKERS[1],
-        selectedSize: 9.5,
-        quantity: 1
-      }
-    ];
+    try {
+      const saved = localStorage.getItem('kixora_cart_v2');
+      return saved ? JSON.parse(saved) : [
+        {
+          id: 'cart-init-01',
+          sneaker: INITIAL_SNEAKERS[0],
+          selectedSize: 10,
+          quantity: 1
+        },
+        {
+          id: 'cart-init-02',
+          sneaker: INITIAL_SNEAKERS[1],
+          selectedSize: 9.5,
+          quantity: 1
+        }
+      ];
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing cart from localStorage:', e);
+      return [];
+    }
   });
 
   const [wishlist, setWishlist] = useState<string[]>(() => {
-    const saved = localStorage.getItem('kixora_wishlist_v2');
-    return saved ? JSON.parse(saved) : ['kixo-shattered-backboard-01', 'kixo-aj4-black-cat-04'];
+    try {
+      const saved = localStorage.getItem('kixora_wishlist_v2');
+      return saved ? JSON.parse(saved) : ['kixo-shattered-backboard-01', 'kixo-aj4-black-cat-04'];
+    } catch (e) {
+      console.warn('[StoreContext] Error parsing wishlist from localStorage:', e);
+      return [];
+    }
   });
 
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -252,13 +282,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedWishlist) {
           try {
             setWishlist(JSON.parse(savedWishlist));
-          } catch {}
+          } catch (e) {
+            console.warn('[StoreContext] Failed to parse wishlist from localStorage', e);
+          }
         }
         const savedCart = localStorage.getItem('kixora_cart_v2');
         if (savedCart) {
           try {
             setCart(JSON.parse(savedCart));
-          } catch {}
+          } catch (e) {
+            console.warn('[StoreContext] Failed to parse cart from localStorage', e);
+          }
         }
       }
     }

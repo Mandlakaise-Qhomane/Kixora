@@ -49,13 +49,18 @@ export const CheckoutModal: React.FC = () => {
 
   // Sync authenticated user details if present
   useEffect(() => {
-    if (isAuthenticated && user) {
+    const syncForm = () => {
+      if (!user) return;
       setFormData(prev => ({
         ...prev,
         fullName: user.fullName || prev.fullName,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
       }));
+    };
+
+    if (isAuthenticated && user) {
+      setTimeout(syncForm, 0);
     }
   }, [isAuthenticated, user, isCheckoutOpen]);
 

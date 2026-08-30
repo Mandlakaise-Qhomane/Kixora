@@ -30,7 +30,15 @@ export function useAdminAudit(initialFilters?: AuditLogFilters) {
   }, [initialFilters]);
 
   useEffect(() => {
-    fetchLogs();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchLogs();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchLogs]);
 
   return {

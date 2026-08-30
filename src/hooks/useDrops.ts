@@ -49,7 +49,16 @@ export function useDrops(): UseDropsResult {
   }, []);
 
   useEffect(() => {
-    fetchDrops();
+    let ignore = false;
+    const init = () => {
+      setTimeout(() => {
+        if (!ignore) {
+          fetchDrops();
+        }
+      }, 0);
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchDrops]);
 
   return {

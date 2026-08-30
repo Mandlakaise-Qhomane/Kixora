@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { StoreProvider, useStore } from './context/StoreContext';
+import { useStore } from './context/StoreContext';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Filters } from './components/Filters';
@@ -354,9 +354,7 @@ const StoreAppContent: React.FC = () => {
 
 export function App() {
   return (
-    <StoreProvider>
-      <StoreAppContent />
-    </StoreProvider>
+    <StoreAppContent />
   );
 }
 

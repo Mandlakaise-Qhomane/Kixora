@@ -41,7 +41,15 @@ export function useOrdersRepository(userId?: string): UseOrdersRepositoryResult 
   }, [userId]);
 
   useEffect(() => {
-    fetchOrders();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchOrders();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchOrders]);
 
   const getOrderDetails = async (orderId: string, guestAccessToken?: string): Promise<Order | null> => {

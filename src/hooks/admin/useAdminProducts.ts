@@ -32,7 +32,15 @@ export function useAdminProducts(fallbackProducts: Sneaker[] = [], initialFilter
   }, [fallbackProducts, initialFilters]);
 
   useEffect(() => {
-    fetchProducts();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchProducts();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchProducts]);
 
   const createProduct = useCallback(async (formData: ProductFormData) => {

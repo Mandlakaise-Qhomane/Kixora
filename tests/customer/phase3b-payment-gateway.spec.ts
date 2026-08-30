@@ -1,9 +1,25 @@
 import { test, expect } from '@playwright/test';
-import { getPaymentDriver, getActivePaymentDriver, isPaymentGatewayConfigured } from '../../src/services/payments';
+import { getPaymentDriver, getActivePaymentDriver } from '../../src/services/payments';
 import { MockPaymentDriver } from '../../src/services/payments/mockDriver';
 import { StripePaymentDriver } from '../../src/services/payments/stripeDriver';
 import { PayFastPaymentDriver } from '../../src/services/payments/payfastDriver';
 import { paymentService } from '../../src/services/paymentService';
+
+// Mock global fetch for unit tests involving Stripe driver
+if (typeof global !== 'undefined') {
+  (global as any).fetch = async (url: string) => {
+    if (url.includes('/api/payments/stripe/create-intent')) {
+      return {
+        ok: true,
+        json: async () => ({
+          clientSecret: 'pi_stripe_test_secret_12345',
+          paymentIntentId: 'pi_stripe_test_id_67890'
+        })
+      };
+    }
+    return { ok: false, status: 404, json: async () => ({ error: 'Not found' }) };
+  };
+}
 
 test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
@@ -42,8 +58,8 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     expect(intent.paymentIntentId).toMatch(/^pi_stripe_/);
     expect(intent.clientSecret).toMatch(/^pi_stripe_.*_secret_/);
     expect(intent.status).toBe('pending');
-    expect(intent.gatewayData?.amountInCents).toBe(450000);
-    expect(intent.gatewayData?.currency).toBe('zar');
+    expect(intent.gatewayData?.amount).toBe(4500);
+    expect(intent.gatewayData?.currency).toBe('ZAR');
   });
 
   test('PG-03: PayFast driver creates valid redirect payload and ZAR parameters for South African checkout', async () => {

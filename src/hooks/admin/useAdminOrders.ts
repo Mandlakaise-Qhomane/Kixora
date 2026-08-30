@@ -31,7 +31,15 @@ export function useAdminOrders(fallbackOrders: Order[] = [], initialFilters?: Ad
   }, [fallbackOrders, initialFilters]);
 
   useEffect(() => {
-    fetchOrders();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchOrders();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchOrders]);
 
   const transitionOrderStatus = useCallback(async (

@@ -1,0 +1,119 @@
+
+Running 86 tests using 1 worker
+
+  ✓   1 [chromium] › tests/admin/admin-smoke.spec.ts:5:3 › Admin Smoke Tests › AS-01: Admin dashboard loads with key performance indicators (5.5s)
+  ✓   2 [chromium] › tests/admin/admin-smoke.spec.ts:15:3 › Admin Smoke Tests › AS-02: Products tab - Search, Add, Edit and Delete a sneaker (5.8s)
+  ✓   3 [chromium] › tests/admin/admin-smoke.spec.ts:41:3 › Admin Smoke Tests › AS-03: Orders tab - Filter orders and update order status (4.8s)
+  ✓   4 [chromium] › tests/admin/admin-smoke.spec.ts:57:3 › Admin Smoke Tests › AS-04: Inventory tab - Adjust stock levels for specific shoe sizes (4.6s)
+  ✓   5 [chromium] › tests/admin/admin-smoke.spec.ts:67:3 › Admin Smoke Tests › AS-05: Promos tab - Create a new promo discount code and toggle active status (5.5s)
+  ✓   6 [chromium] › tests/admin/admin-smoke.spec.ts:90:3 › Admin Smoke Tests › AS-06: Analytics tab and return to storefront (5.3s)
+  ✓   7 [chromium] › tests/admin/phase2c-data-access.spec.ts:38:3 › Phase 2C: Admin Data Access Layer › DAL2C-01: Admin feature flags exist with safe fallback defaults (17ms)
+  ✓   8 [chromium] › tests/admin/phase2c-data-access.spec.ts:56:3 › Phase 2C: Admin Data Access Layer › DAL2C-02: ProductAdminMapper converts forms and hydrated rows correctly (8ms)
+  ✓   9 [chromium] › tests/admin/phase2c-data-access.spec.ts:124:3 › Phase 2C: Admin Data Access Layer › DAL2C-03: PromoAdminMapper & OrderAdminMapper transform models accurately (7ms)
+  ✓  10 [chromium] › tests/admin/phase2c-data-access.spec.ts:163:3 › Phase 2C: Admin Data Access Layer › DAL2C-04: AuditAdminMapper transforms database rows to domain models (5ms)
+  ✓  11 [chromium] › tests/admin/phase2c-data-access.spec.ts:184:3 › Phase 2C: Admin Data Access Layer › DAL2C-05: Repositories expose all required administrative interfaces (21ms)
+  ✓  12 [chromium] › tests/admin/phase2c-data-access.spec.ts:230:3 › Phase 2C: Admin Data Access Layer › DAL2C-06: Centralized auditService logs mutations safely (3ms)
+  ✓  13 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:8:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-01: Role Utilities strictly trust app_metadata and ignore client user_metadata (6ms)
+  ✓  14 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:41:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-02: DomainGuard Hostname Inspection differentiates customer and admin domains (15ms)
+  ✓  15 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:68:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-03: authService customer registration enforces customer role (6ms)
+  ✓  16 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:91:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-04: Customer domain blocks unauthorized access to Admin Dashboard (404 View) (1.9s)
+  ✓  17 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:123:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-05: Admin domain with admin role allows full access to Admin Hub (3.7s)
+  ✓  18 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:153:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-06: Customer role on admin domain receives 403 Forbidden (3.6s)
+  ✓  19 [chromium] › tests/auth/phase4-auth-isolation.spec.ts:183:3 › Phase 4: Real Authentication, Role Synchronization & Domain Isolation › AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and can log in (3.9s)
+  ✓  20 [chromium] › tests/customer/customer-auth.spec.ts:12:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-01: Customer can open auth modal from header and switch between Sign In and Sign Up (4.0s)
+  ✓  21 [chromium] › tests/customer/customer-auth.spec.ts:43:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-02: Customer Sign Up creates account, assigns customer role, and logs in (3.9s)
+  ✓  22 [chromium] › tests/customer/customer-auth.spec.ts:73:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-03: Customer Sign In with valid credentials authenticates successfully (3.5s)
+  ✓  23 [chromium] › tests/customer/customer-auth.spec.ts:95:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-04: Invalid credentials or missing fields display user-friendly error message (3.5s)
+  ✓  24 [chromium] › tests/customer/customer-auth.spec.ts:109:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-05: Authenticated customer session persists across browser page reloads (3.5s)
+  ✓  25 [chromium] › tests/customer/customer-auth.spec.ts:141:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-06: Customer can inspect profile, use quick actions, and Sign Out (5.5s)
+  ✓  26 [chromium] › tests/customer/customer-auth.spec.ts:184:3 › Phase 2B: Customer Authentication UI Integration › CUST-AUTH-07: Customer storefront domain strictly hides Admin controls (1.7s)
+  ✓  27 [chromium] › tests/customer/customer-smoke.spec.ts:5:3 › Customer Smoke Tests › CS-01: Application loads with brand navigation and Hero showcase (1.9s)
+  ✓  28 [chromium] › tests/customer/customer-smoke.spec.ts:19:3 › Customer Smoke Tests › CS-02: Header navigation routes between views seamlessly (4.4s)
+  ✓  29 [chromium] › tests/customer/customer-smoke.spec.ts:33:3 › Customer Smoke Tests › CS-03: Catalog filtering by brand, search, and price slider (3.2s)
+  ✓  30 [chromium] › tests/customer/customer-smoke.spec.ts:56:3 › Customer Smoke Tests › CS-04: Product inspection modal, angle switching and size selection (3.7s)
+  ✓  31 [chromium] › tests/customer/customer-smoke.spec.ts:78:3 › Customer Smoke Tests › CS-05: Add product to cart, quantity adjustment and promo code application (4.7s)
+  ✓  32 [chromium] › tests/customer/customer-smoke.spec.ts:113:3 › Customer Smoke Tests › CS-06: Complete full checkout flow and generate tracked order (10.4s)
+  ✓  33 [chromium] › tests/customer/customer-smoke.spec.ts:154:3 › Customer Smoke Tests › CS-07: 3D Bespoke Lab customization and Add to Vault Cart (4.4s)
+  ✓  34 [chromium] › tests/customer/customer-smoke.spec.ts:178:3 › Customer Smoke Tests › CS-08: Drops Calendar raffle interaction (4.1s)
+  ✓  35 [chromium] › tests/customer/phase2b-data-access.spec.ts:31:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-01: Feature flags exist with safe fallback defaults (25ms)
+  ✓  36 [chromium] › tests/customer/phase2b-data-access.spec.ts:48:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-02: CartMapper transforms hydrated database rows to domain CartItem models (13ms)
+  ✓  37 [chromium] › tests/customer/phase2b-data-access.spec.ts:133:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-03: WishlistMapper transforms hydrated database rows into domain Sneaker models (5ms)
+  ✓  38 [chromium] › tests/customer/phase2b-data-access.spec.ts:184:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-04: OrderMapper transforms hydrated database order into domain Order model (32ms)
+  ✓  39 [chromium] › tests/customer/phase2b-data-access.spec.ts:294:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-05: Repositories expose all required customer methods (8ms)
+  ✓  40 [chromium] › tests/customer/phase2b-data-access.spec.ts:316:3 › Phase 2B: Cart, Wishlist & Order Data Access Layer › DAL2B-06: CheckoutService validates input and handles atomic flow safely (7ms)
+  ✓  41 [chromium] › tests/customer/phase2c-a-wishlist.spec.ts:6:3 › Phase 2C-A: Persistent Wishlist / Saved Grails › WL-01: wishlistRepository exports all required methods with correct signatures (4ms)
+  ✓  42 [chromium] › tests/customer/phase2c-a-wishlist.spec.ts:16:3 › Phase 2C-A: Persistent Wishlist / Saved Grails › WL-02: wishlistRepository safe handling when Supabase or user is unconfigured (4ms)
+  ✓  43 [chromium] › tests/customer/phase2c-a-wishlist.spec.ts:30:3 › Phase 2C-A: Persistent Wishlist / Saved Grails › WL-03: Guest user can view and toggle wishlist in UI via localStorage fallback (2.9s)
+  ✓  44 [chromium] › tests/customer/phase2c-a-wishlist.spec.ts:54:3 › Phase 2C-A: Persistent Wishlist / Saved Grails › WL-04: Authenticated user interacts with Wishlist and receives optimistic feedback (3.8s)
+  ✓  45 [chromium] › tests/customer/phase2c-a-wishlist.spec.ts:82:3 › Phase 2C-A: Persistent Wishlist / Saved Grails › WL-05: Customer and Admin isolation is preserved (2.3s)
+  ✓  46 [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:8:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-01: cartRepository and orderRepository export all required methods with correct signatures (18ms)
+  ✓  47 [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:34:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-02: Safe handling of cartRepository and orderRepository when Supabase or user is unconfigured (3ms)
+  ✘  48 [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:63:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-03: Guest user can add items, update quantity, and apply promo code in cart (8.4s)
+  ✓  49 [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:89:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-04: Full checkout flow from Cart to Vault Order Confirmation and Tracking (10.1s)
+  ✓  50 [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:139:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-05: Customer and Admin isolation remains strictly enforced (3.0s)
+  ✓  51 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:7:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-01: paymentService initializes payment intent successfully with valid input (5ms)
+  ✓  52 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:21:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-02: paymentService rejects invalid payment amount (5ms)
+  ✓  53 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:34:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-03: paymentService webhook handles payment success correctly (5ms)
+  ✓  54 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:51:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-04: paymentService webhook handles payment failure correctly (3ms)
+  ✓  55 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:68:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-05: checkoutService validates customer email before order placement (4ms)
+  ✓  56 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:79:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-06: checkoutService validates non-empty cart before order placement (2ms)
+  ✓  57 [chromium] › tests/customer/phase3a-payment-abstraction.spec.ts:89:3 › Phase 3A: Production Commerce Foundation & Payment Abstraction › PA-07: Admin domain isolation boundary check (1.1s)
+  ✓  58 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:10:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-01: Gateway driver factory resolves correct driver instance for mock, stripe, and payfast (6ms)
+  ✓  59 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:29:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-02: Stripe driver creates payment intent with minor units and client secret format (7ms)
+  ✓  60 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:49:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-03: PayFast driver creates valid redirect payload and ZAR parameters for South African checkout (6ms)
+  ✓  61 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:70:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-04: PayFast webhook / ITN parser transitions payment statuses correctly (5ms)
+  ✓  62 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:114:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-05: Stripe webhook parser handles succeeded, failed, processing, and refund events (5ms)
+  ✓  63 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:170:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-06: paymentService delegates to active driver and processes refunds (4ms)
+  ✓  64 [chromium] › tests/customer/phase3b-payment-gateway.spec.ts:187:3 › Phase 3B: Real Payment Gateway Integration & Drivers › PG-07: Client checkout flow executes cleanly with payment gateway integration (8.8s)
+  ✓  65 [chromium] › tests/customer/phase3c-webhooks.spec.ts:19:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-01: Stripe HMAC-SHA256 signature verification accepts valid signatures and rejects invalid/tampered payloads (7ms)
+  ✓  66 [chromium] › tests/customer/phase3c-webhooks.spec.ts:60:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-02: Stripe signature verification enforces timestamp tolerance against replay attacks (3ms)
+  ✓  67 [chromium] › tests/customer/phase3c-webhooks.spec.ts:83:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-03: PayFast ITN MD5 signature verification validates correct parameter hashes with passphrase (6ms)
+  ✓  68 [chromium] › tests/customer/phase3c-webhooks.spec.ts:119:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-04: Webhook idempotency registry blocks duplicate event execution (5ms)
+  ✓  69 [chromium] › tests/customer/phase3c-webhooks.spec.ts:159:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-05: Webhook service reconciles payment success: marks order paid, authenticates grail, and confirms stock deduction (6ms)
+  ✓  70 [chromium] › tests/customer/phase3c-webhooks.spec.ts:193:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-06: Webhook service reconciles payment failure: marks order failed and releases reserved stock (5ms)
+  ✓  71 [chromium] › tests/customer/phase3c-webhooks.spec.ts:219:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-07: Webhook service reconciles charge refund: marks order refunded and logs timeline audit (4ms)
+  ✓  72 [chromium] › tests/customer/phase3c-webhooks.spec.ts:252:3 › Phase 3C: Payment Verification & Secure Webhook Handling › WH-08: End-to-end webhook processing pipeline gracefully handles corrupted or unconfigured gateway requests (3ms)
+  ✓  73 [chromium] › tests/customer/supabase-data-access.spec.ts:11:3 › Supabase Data Access Layer & Catalog Mapping (Phase 2A) › DAL-01: Supabase client singleton initializes cleanly with safe defaults (3ms)
+  ✓  74 [chromium] › tests/customer/supabase-data-access.spec.ts:20:3 › Supabase Data Access Layer & Catalog Mapping (Phase 2A) › DAL-02: Feature flag toggles exist with expected default safety values (4ms)
+  ✓  75 [chromium] › tests/customer/supabase-data-access.spec.ts:30:3 › Supabase Data Access Layer & Catalog Mapping (Phase 2A) › DAL-03: ProductMapper correctly transforms database rows into Sneaker domain models (9ms)
+  ✓  76 [chromium] › tests/customer/supabase-data-access.spec.ts:145:3 › Supabase Data Access Layer & Catalog Mapping (Phase 2A) › DAL-04: DropsMapper correctly transforms database rows into Drop domain models (5ms)
+  ✓  77 [chromium] › tests/customer/supabase-data-access.spec.ts:181:3 › Supabase Data Access Layer & Catalog Mapping (Phase 2A) › DAL-05: ProductRepository and DropsRepository expose all required read-only methods (5ms)
+  ✓  78 [chromium] › tests/regression/regression-matrix.spec.ts:6:3 › Phase 1 Regression Matrix Tests › REG-C01: [Manual C-01] Header navigation returns to home storefront on logo click (4.1s)
+  ✓  79 [chromium] › tests/regression/regression-matrix.spec.ts:17:3 › Phase 1 Regression Matrix Tests › REG-C15: [Manual C-15] Brand filter isolates specific manufacturer catalog (3.6s)
+  ✓  80 [chromium] › tests/regression/regression-matrix.spec.ts:27:3 › Phase 1 Regression Matrix Tests › REG-C20: [Manual C-20] In-stock filter hides zero-inventory silhouettes (3.7s)
+  ✓  81 [chromium] › tests/regression/regression-matrix.spec.ts:37:3 › Phase 1 Regression Matrix Tests › REG-C24: [Manual C-24] Product card wishlist toggle saves item to wishlist modal (3.2s)
+  ✓  82 [chromium] › tests/regression/regression-matrix.spec.ts:53:3 › Phase 1 Regression Matrix Tests › REG-C27: [Manual C-27] Adding item with selected size opens cart drawer with correct unit price (3.8s)
+  ✓  83 [chromium] › tests/regression/regression-matrix.spec.ts:66:3 › Phase 1 Regression Matrix Tests › REG-C29-30: [Manual C-29, C-30] Promo code calculates 10% discount and enforces minimum spend threshold (4.3s)
+  ✓  84 [chromium] › tests/regression/regression-matrix.spec.ts:85:3 › Phase 1 Regression Matrix Tests › REG-C31-32: [Manual C-31, C-32] Multi-step checkout creates order, generates tracking ID, and clears cart (9.0s)
+  ✓  85 [chromium] › tests/regression/regression-matrix.spec.ts:111:3 › Phase 1 Regression Matrix Tests › REG-A04-07: [Manual A-04, A-07] Admin adds new sneaker and subsequently deletes it from catalog (5.2s)
+  ✓  86 [chromium] › tests/regression/regression-matrix.spec.ts:132:3 › Phase 1 Regression Matrix Tests › REG-A12: [Manual A-12] Admin increments size stock level in real-time matrix (4.3s)
+
+
+  1) [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:63:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-03: Guest user can add items, update quantity, and apply promo code in cart 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByText(/promo code applied/i).first()
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByText(/promo code applied/i).first()
+
+
+      84 |
+      85 |     // 4. Verify promo applied feedback
+    > 86 |     await expect(page.getByText(/promo code applied/i).first()).toBeVisible();
+         |                                                                 ^
+      87 |   });
+      88 |
+      89 |   test('CO-04: Full checkout flow from Cart to Vault Order Confirmation and Tracking', async ({ page }) => {
+        at /app/applet/tests/customer/phase2c-b-cart-orders.spec.ts:86:65
+
+    Error Context: test-results/customer-phase2c-b-cart-or-6fd29-nd-apply-promo-code-in-cart-chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/customer/phase2c-b-cart-orders.spec.ts:63:3 › Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History › CO-03: Guest user can add items, update quantity, and apply promo code in cart 
+  85 passed (3.3m)

@@ -48,13 +48,15 @@ export const CustomerAuthModal: React.FC = () => {
 
   // Reset form errors and fields when modal opens or mode changes
   useEffect(() => {
-    setFormError(null);
-    if (!isAuthModalOpen) {
-      setEmail('');
-      setPassword('');
-      setFullName('');
-      setPhone('');
-    }
+    setTimeout(() => {
+      setFormError(null);
+      if (!isAuthModalOpen) {
+        setEmail('');
+        setPassword('');
+        setFullName('');
+        setPhone('');
+      }
+    }, 0);
   }, [isAuthModalOpen, authModalMode]);
 
   if (!isAuthModalOpen) return null;

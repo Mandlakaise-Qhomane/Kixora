@@ -231,59 +231,35 @@ export const webhookService = {
       if (newStatus === 'paid') {
         nextOrderStatus = 'Authenticated';
 
-        // 1. Update order row
-        await supabase
-          .from('orders')
-          .update({
-            payment_status: 'paid',
-            current_status: 'Authenticated',
-            payment_reference: paymentIntentId || order.payment_reference,
-            payment_metadata: gatewayMetadata || {}
-          })
-          .eq('id', order.id);
-
-        // 2. Insert order_status_history
-        await supabase.from('order_status_history').insert({
-          order_id: order.id,
-          status: 'Authenticated',
-          notes: `Payment successfully captured via ${provider.toUpperCase()} (Event: ${eventType})`
+        // Use Atomic RPC for all state transitions to ensure concurrency safety
+        const { data: rpcData, error: rpcError } = await supabase.rpc('confirm_inventory_sale', { 
+          p_order_id: order.id,
+          p_payment_reference: paymentIntentId || order.payment_reference 
         });
 
-        // 3. Confirm inventory reservation into finalized sale
-        try {
-          await supabase.rpc('confirm_inventory_sale', { p_order_id: order.id });
-          inventoryUpdated = true;
-        } catch (rpcErr) {
-          console.warn('[webhookService] confirm_inventory_sale RPC warning:', rpcErr);
+        if (rpcError) {
+          console.warn('[webhookService] confirm_inventory_sale RPC error:', rpcError);
+          return { success: false, error: rpcError.message };
         }
+
+        inventoryUpdated = true;
+        nextOrderStatus = rpcData?.current_status || 'Authenticated';
 
       } else if (newStatus === 'failed' || newStatus === 'cancelled') {
         nextOrderStatus = 'Cancelled';
 
-        // 1. Update order row
-        await supabase
-          .from('orders')
-          .update({
-            payment_status: newStatus,
-            current_status: 'Cancelled',
-            payment_metadata: gatewayMetadata || {}
-          })
-          .eq('id', order.id);
-
-        // 2. Insert order_status_history
-        await supabase.from('order_status_history').insert({
-          order_id: order.id,
-          status: 'Cancelled',
-          notes: `Payment ${newStatus} via ${provider.toUpperCase()} (Event: ${eventType})`
+        // Use Atomic RPC for all state transitions
+        const { error: rpcError } = await supabase.rpc('release_order_reservations', { 
+          p_order_id: order.id,
+          p_reason: `Payment ${newStatus} via ${provider.toUpperCase()} (Event: ${eventType})`
         });
 
-        // 3. Release reserved inventory back to catalog
-        try {
-          await supabase.rpc('release_reserved_inventory', { p_order_id: order.id });
-          inventoryUpdated = true;
-        } catch (rpcErr) {
-          console.warn('[webhookService] release_reserved_inventory RPC warning:', rpcErr);
+        if (rpcError) {
+          console.warn('[webhookService] release_order_reservations RPC error:', rpcError);
+          return { success: false, error: rpcError.message };
         }
+
+        inventoryUpdated = true;
 
       } else if (newStatus === 'refunded') {
         nextOrderStatus = 'Cancelled';

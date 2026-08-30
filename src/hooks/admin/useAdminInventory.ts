@@ -28,9 +28,15 @@ export function useAdminInventory(productId?: string) {
   }, [productId]);
 
   useEffect(() => {
-    if (productId) {
-      fetchInventory();
-    }
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore && productId) {
+        fetchInventory();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [productId, fetchInventory]);
 
   const adjustStock = useCallback(async (

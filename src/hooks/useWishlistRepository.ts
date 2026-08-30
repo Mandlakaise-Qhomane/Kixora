@@ -42,7 +42,15 @@ export function useWishlistRepository(userId?: string): UseWishlistRepositoryRes
   }, [userId]);
 
   useEffect(() => {
-    fetchWishlist();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        fetchWishlist();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [fetchWishlist]);
 
   const addToWishlist = async (productId: string) => {

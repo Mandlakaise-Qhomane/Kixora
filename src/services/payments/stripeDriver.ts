@@ -3,7 +3,7 @@
 // Production driver for Stripe payments, Elements integration, and Webhook processing.
 // ==============================================================================
 
-import { getEnvConfig } from '../../config/env';
+import { getEnvConfig, getServerConfig } from '../../config/env';
 import { verifyStripeSignature } from './crypto';
 import {
   PaymentGatewayDriver,
@@ -32,7 +32,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
   }
 
   getWebhookSecret(): string {
-    const config = getEnvConfig();
+    const config = getServerConfig();
     return config.stripeWebhookSecret || '';
   }
 
@@ -47,31 +47,55 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
       };
     }
 
-    const currency = (request.currency || 'ZAR').toLowerCase();
-    // Stripe expects amount in lowest denomination (cents)
-    const amountInCents = Math.round(request.amount * 100);
-
-    const intentId = `pi_stripe_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    const clientSecret = `${intentId}_secret_${Math.random().toString(36).substring(2, 16)}`;
-
-    return {
-      success: true,
-      provider: this.provider,
-      paymentIntentId: intentId,
-      clientSecret,
-      status: 'pending',
-      publishableKey: this.getPublishableKey(),
-      gatewayData: {
-        amountInCents,
-        currency,
-        orderCode: request.orderCode,
-        customerEmail: request.customerEmail,
-        metadata: {
+    try {
+      // Production fix: Call server-side endpoint to create real PaymentIntent
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/payments/stripe/create-intent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: request.amount,
+          currency: request.currency || 'ZAR',
           orderCode: request.orderCode,
-          ...request.metadata
-        }
+          customerEmail: request.customerEmail,
+          metadata: request.metadata
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create Stripe payment intent.');
       }
-    };
+
+      const { clientSecret, paymentIntentId } = await response.json();
+
+      return {
+        success: true,
+        provider: this.provider,
+        paymentIntentId,
+        clientSecret,
+        status: 'pending',
+        publishableKey: this.getPublishableKey(),
+        gatewayData: {
+          amount: request.amount,
+          currency: request.currency || 'ZAR',
+          orderCode: request.orderCode,
+          customerEmail: request.customerEmail,
+          metadata: request.metadata
+        }
+      };
+    } catch (err: any) {
+      console.error('[StripeDriver] Error creating payment intent:', err.message);
+      return {
+        success: false,
+        provider: this.provider,
+        status: 'failed',
+        error: err.message,
+        errorCode: 'GATEWAY_ERROR'
+      };
+    }
   }
 
   async verifyPayment(request: PaymentVerificationRequest): Promise<PaymentVerificationResponse> {

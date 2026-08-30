@@ -109,10 +109,18 @@ export function useWishlist(): UseWishlistResult {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   useEffect(() => {
-    loadWishlist();
+    let ignore = false;
+    const init = async () => {
+      await Promise.resolve();
+      if (!ignore) {
+        loadWishlist();
+      }
+    };
+    init();
+    return () => { ignore = true; };
   }, [loadWishlist]);
 
   // Keep localStorage synced when in guest mode
@@ -124,7 +132,7 @@ export function useWishlist(): UseWishlistResult {
         console.warn('[useWishlist] LocalStorage sync error:', e);
       }
     }
-  }, [wishlist, currentUser?.id]);
+  }, [wishlist, currentUser]);
 
   const isWishlisted = useCallback((productId: string): boolean => {
     return wishlist.includes(productId);
@@ -155,7 +163,7 @@ export function useWishlist(): UseWishlistResult {
       }
     }
     return true;
-  }, [wishlist, currentUser?.id]);
+  }, [wishlist, currentUser]);
 
   const removeFromWishlist = useCallback(async (productId: string): Promise<boolean> => {
     if (!productId) return false;
@@ -182,7 +190,7 @@ export function useWishlist(): UseWishlistResult {
       }
     }
     return true;
-  }, [wishlist, currentUser?.id]);
+  }, [wishlist, currentUser]);
 
   const toggleWishlist = useCallback(async (productId: string): Promise<boolean> => {
     if (!productId) return false;
@@ -204,7 +212,7 @@ export function useWishlist(): UseWishlistResult {
     } catch (err: any) {
       console.warn('[useWishlist] Error merging wishlist:', err);
     }
-  }, [currentUser?.id, wishlist, loadWishlist]);
+  }, [currentUser, wishlist, loadWishlist]);
 
   return {
     wishlist,

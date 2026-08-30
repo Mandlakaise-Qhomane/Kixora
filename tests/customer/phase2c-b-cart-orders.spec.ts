@@ -77,9 +77,9 @@ test.describe('Phase 2C-B & 2D: Persistent Cart, Atomic Checkout & Order History
     await expect(cartDrawer).toBeVisible();
     await expect(cartDrawer.getByText(/subtotal/i)).toBeVisible();
 
-    // 3. Apply promo code KIXORA10
+    // 3. Apply promo code KIX10
     const promoInput = page.locator('#cart-promo-input');
-    await promoInput.fill('KIXORA10');
+    await promoInput.fill('KIX10');
     await page.locator('#cart-apply-promo-btn').click();
 
     // 4. Verify promo applied feedback
