@@ -148,7 +148,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
     if (typeof raw === 'string') {
       try {
         raw = JSON.parse(raw);
-      } catch (err) {
+      } catch {
         return {
           success: false,
           event: 'unknown',

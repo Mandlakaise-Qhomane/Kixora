@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../context/StoreContext';
-import { Sneaker } from '../types';
+import { useStore } from '../context/StoreContext';
 import { 
   ArrowRight, 
   ShieldCheck, 
@@ -8,10 +7,8 @@ import {
   RotateCcw, 
   Lock, 
   ShoppingBag, 
-  Sparkles, 
   Mail, 
-  Check,
-  Eye
+  Check
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -29,18 +26,18 @@ export const Hero: React.FC = () => {
     category: 'High-Top',
     price: 2999,
     images: [
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=85',
-      'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png',
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-02.png',
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/travis-scott-mocha-01.png',
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png'
     ]
   };
 
   const angleViews = [
-    { title: 'Side Profile', image: heroSneaker.images[0] || 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85' },
-    { title: '3/4 Dynamic View', image: heroSneaker.images[1] || 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=85' },
-    { title: 'Heel & Collar', image: heroSneaker.images[2] || 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=85' },
-    { title: 'Underside Sole', image: heroSneaker.images[3] || 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=85' }
+    { title: 'Side Profile', image: heroSneaker.images[0] || 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png' },
+    { title: '3/4 Dynamic View', image: heroSneaker.images[1] || 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-02.png' },
+    { title: 'Heel & Collar', image: heroSneaker.images[2] || 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/travis-scott-mocha-01.png' },
+    { title: 'Underside Sole', image: heroSneaker.images[3] || 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png' }
   ];
 
   const handleSubscribe = (e: React.FormEvent) => {

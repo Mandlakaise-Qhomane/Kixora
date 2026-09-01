@@ -1,4 +1,5 @@
 import { Sneaker } from '../../types';
+import { getOptimizedImageUrl } from '../../lib/cloudinary';
 
 export interface ProductHydratedRow {
   id: string;
@@ -65,7 +66,9 @@ export const mapProductRowToSneaker = (row: ProductHydratedRow): Sneaker => {
   const rawImages = [...(row.product_images || [])];
   const sortedImages = rawImages.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   const imageUrls = sortedImages.map(img => img.image_url).filter(Boolean);
-  const primaryImage = sortedImages.find(img => img.is_primary)?.image_url || imageUrls[0] || '';
+  const primaryImage = sortedImages.find(img => img.is_primary)?.image_url
+    ? sortedImages.find(img => img.is_primary)!.image_url
+    : imageUrls[0] || '';
 
   const rawSizes = [...(row.product_sizes || [])];
   const parsedSizes = rawSizes.map(sz => {
@@ -83,6 +86,7 @@ export const mapProductRowToSneaker = (row: ProductHydratedRow): Sneaker => {
       availableStock = Math.max(0, total - reserved);
     }
     return {
+      id: sz.id,
       size: numericSize,
       stock: availableStock
     };

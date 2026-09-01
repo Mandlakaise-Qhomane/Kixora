@@ -7,7 +7,6 @@ import {
   PromoCode, 
   FilterState, 
   ViewMode, 
-  CustomSneakerConfig,
   OrderStatus
 } from '../types';
 import { 
@@ -21,7 +20,10 @@ import { wishlistRepository } from '../repositories/customer/wishlistRepository'
 import { cartRepository } from '../repositories/customer/cartRepository';
 import { orderRepository } from '../repositories/customer/orderRepository';
 import { checkoutService } from '../services/checkoutService';
+import { productRepository } from '../repositories/customer/productRepository';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AuthUser } from '../types/auth';
+import { analyticsService } from '../services/analyticsService';
 
 export const formatPrice = (amount: number): string => {
   return `R${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -70,7 +72,7 @@ interface StoreContextType {
   closeSneakerModal: () => void;
 
   // Cart Actions
-  addToCart: (sneaker: Sneaker, size: number, quantity?: number, customization?: CustomSneakerConfig) => void;
+  addToCart: (sneaker: Sneaker, size: number, quantity?: number) => void;
   removeFromCart: (cartItemId: string) => void;
   updateCartQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -213,12 +215,68 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
+  // Fetch products from DB on mount and set up Realtime inventory tracking
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchSneakers() {
+      if (!isSupabaseConfigured()) {
+        console.info('[StoreContext] Supabase not configured, skipping DB fetch.');
+        return;
+      }
+      try {
+        const data = await productRepository.getProducts();
+        if (isMounted && data.length > 0) {
+          setSneakers(data);
+        }
+      } catch (err) {
+        console.warn('[StoreContext] Failed to fetch sneakers from DB, using initial data:', err);
+      }
+    }
+
+    fetchSneakers();
+
+    // Subscribe to inventory updates
+    let inventoryChannel: any = null;
+    if (isSupabaseConfigured()) {
+      inventoryChannel = supabase
+        .channel('inventory-realtime')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'inventory' },
+          (payload) => {
+            const { product_size_id, stock, reserved_stock } = payload.new;
+            const availableStock = Math.max(0, (stock || 0) - (reserved_stock || 0));
+
+            setSneakers(prev => prev.map(sneaker => {
+              if (!sneaker.sizes.some(sz => sz.id === product_size_id)) return sneaker;
+
+              return {
+                ...sneaker,
+                sizes: sneaker.sizes.map(sz => 
+                  sz.id === product_size_id ? { ...sz, stock: availableStock } : sz
+                )
+              };
+            }));
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      isMounted = false;
+      if (inventoryChannel) {
+        supabase.removeChannel(inventoryChannel);
+      }
+    };
+  }, []);
+
   // Synchronize wishlist, cart, and orders from Supabase for authenticated customer, with safe guest merge
   useEffect(() => {
     let isMounted = true;
 
     async function syncCustomerData() {
-      if (currentUser?.id) {
+      if (currentUser?.id && isSupabaseConfigured()) {
         try {
           // 1. Check for guest wishlist items to migrate
           const guestWishlistRaw = localStorage.getItem('kixora_wishlist_v2');
@@ -363,13 +421,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Cart operations
-  const addToCart = (sneaker: Sneaker, size: number, quantity = 1, customization?: CustomSneakerConfig) => {
+  const addToCart = (sneaker: Sneaker, size: number, quantity = 1) => {
     setCart(prevCart => {
       const existingIndex = prevCart.findIndex(
-        item => item.sneaker.id === sneaker.id && item.selectedSize === size && !item.customization && !customization
+        item => item.sneaker.id === sneaker.id && item.selectedSize === size
       );
 
-      if (existingIndex > -1 && !customization) {
+      if (existingIndex > -1) {
         const updated = [...prevCart];
         updated[existingIndex] = {
           ...updated[existingIndex],
@@ -382,10 +440,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         sneaker,
         selectedSize: size,
-        quantity,
-        customization
+        quantity
       };
       return [...prevCart, newItem];
+    });
+
+    analyticsService.trackEvent('add_to_cart', {
+      productId: sneaker.id,
+      productName: sneaker.name,
+      brand: sneaker.brand,
+      price: sneaker.price,
+      quantity
     });
 
     showToast(
@@ -396,7 +461,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Persist to Supabase if authenticated customer
     if (currentUser?.id) {
-      cartRepository.addItem(currentUser.id, sneaker, size, quantity, customization).catch(err => {
+      cartRepository.addItem(currentUser.id, sneaker, size, quantity).catch(err => {
         console.warn('[StoreContext.addToCart] Background sync error:', err);
       });
     }
@@ -533,6 +598,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Modal open
   const openSneakerModal = (sneaker: Sneaker) => {
     setSelectedSneaker(sneaker);
+    analyticsService.trackEvent('product_view', {
+      productId: sneaker.id,
+      productName: sneaker.name,
+      brand: sneaker.brand,
+      category: sneaker.category,
+      price: sneaker.price,
+      currency: 'ZAR'
+    });
   };
 
   const closeSneakerModal = () => {
@@ -661,6 +734,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAppliedPromo(null);
     setTrackingOrder(newOrder);
 
+    analyticsService.trackEvent('purchase_success', {
+      orderId: orderId,
+      cartValue: finalTotal,
+      itemCount: cart.length
+    });
+
     showToast('Vault Order Placed!', `Order ${orderId} successfully created.`, 'success');
     return newOrder;
   };
@@ -750,6 +829,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const handleSetIsCheckoutOpen = (open: boolean) => {
+    setIsCheckoutOpen(open);
+    if (open && cart.length > 0) {
+      analyticsService.trackEvent('checkout_start', {
+        cartValue: cart.reduce((sum, item) => sum + item.sneaker.price * item.quantity, 0),
+        itemCount: cart.length
+      });
+    }
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -774,7 +863,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setFilters,
         resetFilters,
         setIsCartOpen,
-        setIsCheckoutOpen,
+        setIsCheckoutOpen: handleSetIsCheckoutOpen,
         setIsWishlistOpen,
         setIsAuthModalOpen,
         setAuthModalMode,

@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ShieldCheck, ArrowUpRight, Instagram, Twitter, Youtube, Facebook, Mail } from 'lucide-react';
+import { Instagram, Twitter, Youtube } from 'lucide-react';
+import { PrivacySettings } from './PrivacySettings';
 
 export const Footer: React.FC = () => {
   const { setCurrentView, setFilters } = useStore();
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   return (
     <footer className="w-full bg-[#0D0D0D] border-t border-[#222222] text-[#888888] text-xs font-sans">
+      {isPrivacyOpen && <PrivacySettings isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Info */}
@@ -101,7 +104,7 @@ export const Footer: React.FC = () => {
         <div className="pt-8 border-t border-[#1C1C1C] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono">
           <p>© {new Date().getFullYear()} KIXORA Sneaker Vault. All Rights Reserved.</p>
           <div className="flex items-center gap-6">
-            <span className="hover:text-white cursor-pointer">Privacy Policy</span>
+            <button onClick={() => setIsPrivacyOpen(true)} className="hover:text-white cursor-pointer">Privacy Preferences</button>
             <span className="hover:text-white cursor-pointer">Terms of Service</span>
             <span className="hover:text-white cursor-pointer">Authenticity Guarantee</span>
           </div>

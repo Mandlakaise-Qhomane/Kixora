@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../../context/StoreContext';
-import { Percent, Plus, Tag, ToggleLeft, ToggleRight, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 
 export const AdminPromos: React.FC = () => {
   const { promos, addPromo, togglePromoStatus } = useStore();

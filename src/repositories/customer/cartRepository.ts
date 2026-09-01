@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import { CartItem, Sneaker, CustomSneakerConfig } from '../../types';
+import { CartItem, Sneaker } from '../../types';
 import { mapCartRowsToCartItems, CartItemHydratedRow } from './cartMapper';
 
 export const cartRepository = {
@@ -85,7 +85,6 @@ export const cartRepository = {
             )
           ),
           product_sizes (*),
-          bespoke_designs (*)
         `)
         .eq('cart_id', cartId);
 
@@ -112,20 +111,18 @@ export const cartRepository = {
     cartIdOrUserId: string,
     sneakerOrSizeId: any,
     sizeOrQuantity?: any,
-    quantityOrProductIdOrCustomization?: any,
-    bespokeIdOrCustomization?: any
+    quantityOrProductIdOrCustomization?: any
   ): Promise<void> {
     if (!isSupabaseConfigured() || !cartIdOrUserId) return;
 
     try {
-      // Branch 1: Called with (userId | cartId, sneaker: Sneaker, size: number, quantity?: number, customization?: CustomSneakerConfig)
+      // Branch 1: Called with (userId | cartId, sneaker: Sneaker, size: number, quantity?: number)
       if (typeof sneakerOrSizeId === 'object' && sneakerOrSizeId?.id) {
         const sneaker: Sneaker = sneakerOrSizeId;
         const size: number = typeof sizeOrQuantity === 'number' ? sizeOrQuantity : 9;
         const quantity: number = typeof quantityOrProductIdOrCustomization === 'number' && quantityOrProductIdOrCustomization > 0
           ? quantityOrProductIdOrCustomization
           : 1;
-        const customization: CustomSneakerConfig | undefined = bespokeIdOrCustomization || undefined;
 
         let cartId = cartIdOrUserId;
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartId);
@@ -155,44 +152,15 @@ export const cartRepository = {
           productSizeId = fallbackSize?.id || null;
         }
 
-        // 2. Handle Bespoke 3D customization record if present
-        let bespokeDesignId: string | null = null;
-        if (customization) {
-          const { data: bespokeRow } = await supabase
-            .from('bespoke_designs')
-            .insert({
-              base_model: customization.baseModel || 'Air Jordan 1 High OG',
-              base_color: customization.baseColor || '#111111',
-              accent_color: customization.accentColor || '#FF7A00',
-              sole_color: customization.soleColor || '#FFFFFF',
-              laces_color: customization.lacesColor || '#000000',
-              lining_color: customization.liningColor || '#222222',
-              custom_text: customization.customText || '',
-              preview_thumbnail_url: customization.previewThumbnailUrl || null,
-            })
-            .select('id')
-            .maybeSingle();
-
-          if (bespokeRow?.id) {
-            bespokeDesignId = bespokeRow.id;
-          }
-        }
-
         if (productSizeId) {
           // Check for existing cart item to increment quantity
-          let checkQuery = supabase
+          const { data: existingItem } = await supabase
             .from('cart_items')
             .select('id, quantity')
             .eq('cart_id', cartId)
-            .eq('product_size_id', productSizeId);
-
-          if (bespokeDesignId) {
-            checkQuery = checkQuery.eq('bespoke_design_id', bespokeDesignId);
-          } else {
-            checkQuery = checkQuery.is('bespoke_design_id', null);
-          }
-
-          const { data: existingItem } = await checkQuery.maybeSingle();
+            .eq('product_size_id', productSizeId)
+            .is('bespoke_design_id', null)
+            .maybeSingle();
 
           if (existingItem?.id) {
             await supabase
@@ -207,18 +175,16 @@ export const cartRepository = {
             product_id: sneaker.id,
             product_size_id: productSizeId,
             quantity,
-            bespoke_design_id: bespokeDesignId,
           });
         }
         return;
       }
 
-      // Branch 2: Called with (cartId, sizeId, quantity, productId, bespokeId)
+      // Branch 2: Called with (cartId, sizeId, quantity, productId)
       const cartId = cartIdOrUserId;
       const sizeId = sneakerOrSizeId;
       const quantity = typeof sizeOrQuantity === 'number' && sizeOrQuantity > 0 ? sizeOrQuantity : 1;
       const productId = typeof quantityOrProductIdOrCustomization === 'string' ? quantityOrProductIdOrCustomization : null;
-      const bespokeId = typeof bespokeIdOrCustomization === 'string' ? bespokeIdOrCustomization : null;
 
       if (!sizeId) return;
 
@@ -227,7 +193,6 @@ export const cartRepository = {
         product_size_id: sizeId,
         product_id: productId,
         quantity: quantity || 1,
-        bespoke_design_id: bespokeId || null,
       });
 
       if (error) {
@@ -321,8 +286,7 @@ export const cartRepository = {
           cartId,
           item.sneaker,
           item.selectedSize,
-          item.quantity,
-          item.customization
+          item.quantity
         );
       }
     } catch (err) {

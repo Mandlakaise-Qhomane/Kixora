@@ -9,7 +9,7 @@ export interface UseCartRepositoryResult {
   cartId: string | null;
   loading: boolean;
   error: Error | null;
-  addItem: (sizeId: string, quantity?: number, productId?: string, bespokeId?: string | null) => Promise<void>;
+  addItem: (sizeId: string, quantity?: number, productId?: string) => Promise<void>;
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   removeItem: (cartItemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -58,12 +58,12 @@ export function useCartRepository(userId?: string): UseCartRepositoryResult {
     return () => { ignore = true; };
   }, [fetchCart]);
 
-  const addItem = async (sizeId: string, quantity: number = 1, productId?: string, bespokeId?: string | null) => {
+  const addItem = async (sizeId: string, quantity: number = 1, productId?: string) => {
     if (!isSupabaseCartEnabled() || !isSupabaseConfigured() || !userId) return;
     try {
       const activeCartId = cartId || await cartRepository.getOrCreateCart(userId);
       setCartId(activeCartId);
-      await cartRepository.addItem(activeCartId, sizeId, quantity, productId, bespokeId);
+      await cartRepository.addItem(activeCartId, sizeId, quantity, productId);
       await fetchCart();
     } catch (err: any) {
       setError(err instanceof Error ? err : new Error(String(err)));

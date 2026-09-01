@@ -10,13 +10,11 @@ import {
   ShieldCheck, 
   LogOut, 
   ArrowRight, 
-  Sparkles, 
   Heart, 
   Package, 
-  AlertCircle,
-  CheckCircle2
+  AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 export const CustomerAuthModal: React.FC = () => {
   const { 

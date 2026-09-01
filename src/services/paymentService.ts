@@ -10,7 +10,6 @@ import {
   getActivePaymentDriver,
   PaymentProviderType,
   PaymentStatus,
-  PaymentIntentRequest,
   PaymentIntentResponse,
   PaymentVerificationResponse,
   PaymentWebhookResponse,

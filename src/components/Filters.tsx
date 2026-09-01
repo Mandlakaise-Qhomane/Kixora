@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { Brand, Category } from '../types';
-import { SlidersHorizontal, RotateCcw, Check, Sparkles } from 'lucide-react';
+import { SlidersHorizontal, RotateCcw, Check } from 'lucide-react';
 
 interface FiltersProps {
   onCloseMobile?: () => void;

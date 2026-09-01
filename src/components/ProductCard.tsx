@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { Sneaker } from '../types';
-import { ShoppingBag, Heart, Star, Sparkles, Eye } from 'lucide-react';
+import { ShoppingBag, Heart, Star } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 interface ProductCardProps {
   sneaker: Sneaker;
@@ -36,7 +37,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
         setCurrentImageIndex(0);
       }}
       onClick={() => openSneakerModal(sneaker)}
-      className="group bg-[#1A1A1A] hover:bg-[#1E1E1E] border border-[#282828] hover:border-[#FF7A00]/60 rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 relative shadow-xl hover:shadow-2xl hover:shadow-[#FF7A00]/10"
+      className="product-card group bg-[#1A1A1A] hover:bg-[#1E1E1E] border border-[#282828] hover:border-[#FF7A00]/60 rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 relative shadow-xl hover:shadow-2xl hover:shadow-[#FF7A00]/10"
     >
       {/* Top badges & Wishlist */}
       <div className="flex items-center justify-between z-10">
@@ -78,8 +79,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
       {/* Floating Sneaker Image with 3D Hover perspective */}
       <div className="relative aspect-4/3 my-3 flex items-center justify-center overflow-hidden p-2">
         <motion.img
-          src={sneaker.images[currentImageIndex] || sneaker.images[0]}
+          src={getOptimizedImageUrl(sneaker.images[currentImageIndex] || sneaker.images[0] || sneaker.image, { width: 600, quality: 'auto' })}
           alt={sneaker.name}
+          referrerPolicy="no-referrer"
           animate={{
             rotate: isHovered ? -3 : 0,
             scale: isHovered ? 1.06 : 1

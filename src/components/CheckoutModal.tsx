@@ -4,17 +4,14 @@ import { useAuth } from '../hooks/useAuth';
 import { paymentService } from '../services/paymentService';
 import { 
   X, 
-  ShieldCheck, 
-  CreditCard, 
-  Truck, 
   CheckCircle2, 
   Lock, 
   ArrowRight, 
   ArrowLeft,
-  AlertCircle,
-  RefreshCw
+  AlertCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -33,7 +30,6 @@ export const CheckoutModal: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = useState<any>(null);
-  const [activePaymentIntentId, setActivePaymentIntentId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -105,7 +101,6 @@ export const CheckoutModal: React.FC = () => {
       }
 
       const intentId = paymentIntentRes.paymentIntentId || `pi_kxo_${Date.now()}`;
-      setActivePaymentIntentId(intentId);
 
       // 2. Finalize atomic order placement
       const newOrder = await placeOrder(formData, paymentMethod, shippingMethod, intentId);
@@ -364,7 +359,12 @@ export const CheckoutModal: React.FC = () => {
                 {cart.map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-[#1A1A1A] rounded-xl text-xs">
                     <div className="flex items-center gap-3">
-                      <img src={item.sneaker.images[0]} alt="" className="w-10 h-10 object-contain rounded bg-[#111111]" />
+                      <img 
+                        src={getOptimizedImageUrl(item.sneaker.images[0] || item.sneaker.image, { width: 100, height: 100 })} 
+                        alt={item.sneaker.name} 
+                        referrerPolicy="no-referrer"
+                        className="w-10 h-10 object-contain rounded bg-[#111111]" 
+                      />
                       <div>
                         <div className="font-bold text-white truncate max-w-xs">{item.sneaker.name}</div>
                         <div className="text-[10px] text-[#888888] font-mono">Size US {item.selectedSize} × {item.quantity}</div>

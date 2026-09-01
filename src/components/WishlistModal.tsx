@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { X, Heart, ShoppingBag, Trash2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const WishlistModal: React.FC = () => {
   const { 
@@ -67,8 +68,9 @@ export const WishlistModal: React.FC = () => {
                   className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
                 >
                   <img
-                    src={sneaker.images[0]}
+                    src={getOptimizedImageUrl(sneaker.images[0] || sneaker.image, { width: 120, height: 120 })}
                     alt={sneaker.name}
+                    referrerPolicy="no-referrer"
                     className="w-14 h-14 object-contain bg-[#111111] rounded-lg p-1 shrink-0"
                   />
                   <div className="min-w-0">

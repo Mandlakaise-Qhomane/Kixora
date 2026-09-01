@@ -1,23 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
+import { orderRepository } from '../repositories/customer/orderRepository';
+import { supabase } from '../lib/supabase';
 import { 
-  Package, 
-  Search, 
   ShieldCheck, 
   Truck, 
   CheckCircle2, 
   Clock, 
-  MapPin, 
-  Copy, 
-  ExternalLink 
+  Copy 
 } from 'lucide-react';
-import { motion } from 'motion/react';
 
 export const OrderTrackingModal: React.FC = () => {
   const { orders, trackingOrder, setTrackingOrder, showToast } = useStore();
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeOrder = trackingOrder || orders[0];
+
+  // Realtime subscription for the active order
+  useEffect(() => {
+    if (!activeOrder?.id) return;
+
+    const orderId = activeOrder.id;
+
+    const refreshOrder = async () => {
+      try {
+        const freshOrder = await orderRepository.getOrderById(orderId);
+        if (freshOrder) {
+          setTrackingOrder(freshOrder);
+        }
+      } catch (err) {
+        console.warn('[OrderTrackingModal] Realtime refresh failed:', err);
+      }
+    };
+
+    const channel = supabase
+      .channel(`order-tracking-${orderId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'orders', 
+          filter: `id=eq.${orderId}` 
+        },
+        () => {
+          refreshOrder();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'order_status_history', 
+          filter: `order_id=eq.${orderId}` 
+        },
+        () => {
+          refreshOrder();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'shipments', 
+          filter: `order_id=eq.${orderId}` 
+        },
+        () => {
+          refreshOrder();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeOrder?.id, setTrackingOrder]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

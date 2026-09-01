@@ -3,7 +3,7 @@
 // Manages Google OAuth token acquisition via GSI Token Client.
 // ==============================================================================
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 declare global {
   interface Window {

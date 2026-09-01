@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { canAccessAdminDomain } from '../utils/roleUtils';
-import { ShieldAlert, Lock, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft } from 'lucide-react';
 
 export interface DomainInspectionResult {
   isAdminDomain: boolean;

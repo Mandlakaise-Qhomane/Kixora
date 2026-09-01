@@ -1,20 +1,17 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
+import { SEO } from './SEO';
 import { 
   X, 
   ShoppingBag, 
   Heart, 
   ShieldCheck, 
-  Star, 
-  Truck, 
-  RotateCcw, 
   CheckCircle2, 
-  Layers, 
   ChevronLeft, 
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const ProductModal: React.FC = () => {
   const { 
@@ -28,12 +25,10 @@ export const ProductModal: React.FC = () => {
 
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
 
   if (!selectedSneaker) return null;
 
   const isWishlisted = wishlist.includes(selectedSneaker.id);
-  const currentSizeObj = selectedSneaker.sizes.find(s => s.size === selectedSize);
   const inStockSizes = selectedSneaker.sizes.filter(s => s.stock > 0);
   const isSoldOut = inStockSizes.length === 0;
 
@@ -45,13 +40,19 @@ export const ProductModal: React.FC = () => {
 
   const handleAddToCart = () => {
     const sizeToUse = selectedSize || inStockSizes[0]?.size || selectedSneaker.sizes[0]?.size || 9;
-    addToCart(selectedSneaker, sizeToUse, quantity);
+    addToCart(selectedSneaker, sizeToUse, 1);
     closeSneakerModal();
     setIsCartOpen(true);
   };
 
   return (
     <div id="product-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
+      <SEO 
+        title={selectedSneaker.name}
+        description={selectedSneaker.description}
+        image={selectedSneaker.image}
+        type="product"
+      />
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -100,8 +101,9 @@ export const ProductModal: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.2 }}
-                src={selectedSneaker.images[activeImageIndex] || selectedSneaker.images[0]}
+                src={getOptimizedImageUrl(selectedSneaker.images[activeImageIndex] || selectedSneaker.images[0] || selectedSneaker.image, { width: 800, quality: 'auto' })}
                 alt={selectedSneaker.name}
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.9)]"
               />
 
@@ -148,7 +150,12 @@ export const ProductModal: React.FC = () => {
                         : 'border-[#2C2C2C] opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="Thumb" className="w-full h-full object-contain" />
+                    <img 
+                      src={getOptimizedImageUrl(img, { width: 120, height: 120, quality: 'auto' })} 
+                      alt="Thumb" 
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-contain" 
+                    />
                   </button>
                 ))}
               </div>
@@ -263,7 +270,7 @@ export const ProductModal: React.FC = () => {
               >
                 <ShoppingBag className="w-4 h-4 stroke-[2.5]" />
                 <span>
-                  {isSoldOut ? 'Sold Out in Vault' : `Add to Vault Cart • ${formatPrice(selectedSneaker.price * quantity)}`}
+                  {isSoldOut ? 'Sold Out in Vault' : `Add to Vault Cart • ${formatPrice(selectedSneaker.price)}`}
                 </span>
               </button>
             </div>

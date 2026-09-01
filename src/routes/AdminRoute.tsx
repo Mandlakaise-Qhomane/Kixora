@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { ShieldCheck, ShieldAlert, LogIn, Lock, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, LogIn, Lock, ArrowLeft } from 'lucide-react';
 
 export interface AdminRouteProps {
   children: React.ReactNode;

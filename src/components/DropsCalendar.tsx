@@ -1,10 +1,11 @@
 import React from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
-import { Flame, Bell, Clock, Sparkles, ShieldAlert, ArrowRight } from 'lucide-react';
+import { Flame, Bell, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const DropsCalendar: React.FC = () => {
-  const { drops, toggleDropNotify, setCurrentView } = useStore();
+  const { drops, toggleDropNotify } = useStore();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -49,8 +50,9 @@ export const DropsCalendar: React.FC = () => {
                 {/* Sneaker Image */}
                 <div className="aspect-4/3 flex items-center justify-center p-2 relative overflow-hidden">
                   <img
-                    src={drop.image}
+                    src={getOptimizedImageUrl(drop.image, { width: 600, quality: 'auto' })}
                     alt={drop.sneakerName}
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-contain filter drop-shadow-[0_15px_15px_rgba(0,0,0,0.8)] group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>

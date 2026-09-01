@@ -1,23 +1,15 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../context/StoreContext';
+import { useStore } from '../context/StoreContext';
 import { useAuth } from '../hooks/useAuth';
 import { inspectHostname } from '../routes/DomainGuard';
-import { ViewMode, Brand } from '../types';
+import { ViewMode } from '../types';
 import { 
   Search, 
   Heart, 
   ShoppingBag, 
   User, 
   Menu, 
-  X, 
-  SlidersHorizontal,
-  Sparkles,
-  ShieldCheck,
-  Package,
-  Layers,
-  LayoutDashboard,
-  LogOut,
-  UserCheck
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -25,7 +17,7 @@ interface NavbarProps {
   onToggleMobileFilters?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
+export const Navbar: React.FC<NavbarProps> = () => {
   const { 
     cart, 
     wishlist, 
@@ -38,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
     openAuthModal
   } = useStore();
 
-  const { user, isAuthenticated, role, signOut } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { isAdminDomain } = inspectHostname();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -130,23 +122,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
               className="py-2 text-[#888888] hover:text-white transition-colors"
             >
               <span>BRANDS</span>
-            </button>
-
-            <button
-              id="nav-link-customizer"
-              onClick={() => handleNavClick('customizer')}
-              className={`relative py-2 transition-colors flex items-center gap-1 ${
-                currentView === 'customizer' ? 'text-white' : 'text-[#888888] hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3 h-3 text-[#FF7A00]" />
-              <span>3D LAB</span>
-              {currentView === 'customizer' && (
-                <motion.div
-                  layoutId="activeNavIndicator"
-                  className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF7A00] rounded-full"
-                />
-              )}
             </button>
 
             <button
@@ -370,12 +345,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleMobileFilters }) => {
                 className={`p-3 rounded-lg text-left ${currentView === 'drops' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#F5F5F5]'}`}
               >
                 New Releases 🔥
-              </button>
-              <button
-                onClick={() => handleNavClick('customizer')}
-                className={`p-3 rounded-lg text-left ${currentView === 'customizer' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#F5F5F5]'}`}
-              >
-                3D Custom Lab ✨
               </button>
               <button
                 onClick={() => handleNavClick('tracking')}

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import { Sneaker } from '../../types';
 import { ProductHydratedRow } from '../customer/productMapper';
+import { getOptimizedImageUrl } from '../../lib/cloudinary';
 import {
   mapAdminProductRowToSneaker,
   mapAdminProductRowsToSneakers,
@@ -193,9 +194,10 @@ export const productAdminRepository = {
     }
 
     // 5. Insert product images
-    const images = formData.images && formData.images.length > 0
+    const rawImages: string[] = formData.images && formData.images.length > 0
       ? formData.images
-      : ['https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85'];
+      : ['https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png'];
+    const images = rawImages.map((img: string) => getOptimizedImageUrl(img));
 
     for (let i = 0; i < images.length; i++) {
       await supabase.from('product_images').insert({

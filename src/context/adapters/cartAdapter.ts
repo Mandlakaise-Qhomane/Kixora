@@ -1,4 +1,4 @@
-import { CartItem, Sneaker, CustomSneakerConfig } from '../../types';
+import { CartItem, Sneaker } from '../../types';
 import { cartRepository } from '../../repositories/customer/cartRepository';
 import { isSupabaseCartEnabled } from '../../config/features';
 
@@ -32,13 +32,12 @@ export const cartAdapter = {
     userId: string,
     sneaker: Sneaker,
     size: number,
-    quantity: number = 1,
-    customization?: CustomSneakerConfig
+    quantity: number = 1
   ): Promise<void> {
     if (!isSupabaseCartEnabled()) return;
 
     try {
-      await cartRepository.addItem(userId, sneaker, size, quantity, customization);
+      await cartRepository.addItem(userId, sneaker, size, quantity);
     } catch (error) {
       console.warn('[cartAdapter.syncAddItem] Background cart sync failed:', error);
     }

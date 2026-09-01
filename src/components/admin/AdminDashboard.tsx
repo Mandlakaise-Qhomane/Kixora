@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
+import { useStore } from '../../context/StoreContext';
 import { 
   LayoutDashboard, 
   Package, 
@@ -12,16 +12,11 @@ import {
   Star, 
   BarChart3, 
   Settings, 
-  ArrowUpRight, 
   AlertTriangle, 
   Calendar, 
   Download, 
-  ExternalLink,
   ChevronDown,
-  Store,
-  CheckCircle2,
-  Clock,
-  Truck
+  Store
 } from 'lucide-react';
 import { AdminProducts } from './AdminProducts';
 import { AdminOrders } from './AdminOrders';
@@ -43,12 +38,11 @@ type AdminNavTab =
   | 'settings';
 
 export const AdminDashboard: React.FC = () => {
-  const { sneakers, orders, setCurrentView, showToast } = useStore();
+  const { setCurrentView, showToast } = useStore();
   const [activeTab, setActiveTab] = useState<AdminNavTab>('dashboard');
-  const [dateRange, setDateRange] = useState('May 21 – May 27, 2025');
+  const [dateRange] = useState('May 21 – May 27, 2025');
 
   // KPI Calculations matching the reference numbers with live flexibility
-  const liveRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const totalRevenueFormatted = 'R248,950.00';
   const totalOrdersCount = 1458;
   const totalCustomersCount = 892;
@@ -120,7 +114,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="pt-6 border-t border-[#242424] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
+              src="https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto,w_120,h_120,c_fill/kixora/avatars/admin_avatar.png"
               alt="Admin Avatar"
               className="w-9 h-9 rounded-full object-cover border border-[#333333]"
             />
@@ -413,10 +407,10 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="space-y-3">
                   {[
-                    { name: 'Air Jordan 1 Retro', sub: '"Shattered Backboard"', sold: '356 sold', image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=100&q=80' },
-                    { name: 'Nike Air Force 1 \'07', sub: 'White', sold: '289 sold', image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=100&q=80' },
-                    { name: 'Nike Dunk Low Retro', sub: 'Black / White', sold: '245 sold', image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=100&q=80' },
-                    { name: 'Air Jordan 4 Retro', sub: 'Black Cat*', sold: '210 sold', image: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=100&q=80' }
+                    { name: 'Air Jordan 1 Retro', sub: '"Shattered Backboard"', sold: '356 sold', image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png' },
+                    { name: 'Nike Air Force 1 \'07', sub: 'White', sold: '289 sold', image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/af1-triple-white-01.png' },
+                    { name: 'Nike Dunk Low Retro', sub: 'Black / White', sold: '245 sold', image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/dunk-low-panda-01.png' },
+                    { name: 'Air Jordan 4 Retro', sub: 'Black Cat*', sold: '210 sold', image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png' }
                   ].map((prod, idx) => (
                     <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-[#1D1D1D]">
                       <img

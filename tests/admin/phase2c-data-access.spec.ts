@@ -14,7 +14,6 @@ import {
   mapProductFormToDbInsert,
 } from '../../src/repositories/admin/productAdminMapper';
 import {
-  mapAdminOrderRowToOrder,
   getStatusTransitionDefaults,
 } from '../../src/repositories/admin/orderAdminMapper';
 import {

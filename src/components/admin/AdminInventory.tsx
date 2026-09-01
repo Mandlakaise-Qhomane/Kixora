@@ -1,10 +1,26 @@
 import React, { useState } from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
-import { Boxes, Search, AlertTriangle, Check, Plus, Minus } from 'lucide-react';
+import { useStore } from '../../context/StoreContext';
+import { Search, AlertTriangle, Plus, Minus, RefreshCw } from 'lucide-react';
+import { inventorySyncService } from '../../services/inventorySyncService';
+import { getOptimizedImageUrl } from '../../lib/cloudinary';
 
 export const AdminInventory: React.FC = () => {
-  const { sneakers, updateStock } = useStore();
+  const { sneakers, updateStock, showToast } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleRunSync = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await inventorySyncService.runFullSync();
+      showToast('Sync Complete', `Processed ${res.processed} items. Found ${res.discrepancies} discrepancies.`, 'success');
+      // Refresh local state if needed
+    } catch (err: any) {
+      showToast('Sync Failed', err.message, 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredSneakers = sneakers.filter(s =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -17,15 +33,26 @@ export const AdminInventory: React.FC = () => {
       <div>
         <h2 className="font-display font-bold text-lg text-white mb-4">Size-Level Inventory Manager</h2>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search stock matrix by silhouette..."
-              className="w-full bg-[#161616] text-xs text-white placeholder-[#666666] pl-10 pr-4 py-2.5 rounded-xl border border-[#282828] focus:outline-none focus:border-[#FF7A00]"
-            />
+          <div className="flex items-center gap-3 flex-1 max-w-2xl">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search stock matrix by silhouette..."
+                className="w-full bg-[#161616] text-xs text-white placeholder-[#666666] pl-10 pr-4 py-2.5 rounded-xl border border-[#282828] focus:outline-none focus:border-[#FF7A00]"
+              />
+            </div>
+            
+            <button
+              onClick={handleRunSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] font-mono font-bold bg-white/5 text-white border border-white/10 hover:bg-white/10 disabled:opacity-50 transition-all shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'SYNCING...' : 'RUN CHANNEL SYNC'}
+            </button>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-2 bg-[#EF4444]/15 border border-[#EF4444]/30 rounded-xl text-xs font-mono text-[#EF4444]">
@@ -55,8 +82,9 @@ export const AdminInventory: React.FC = () => {
                     <td className="p-4 min-w-[220px]">
                       <div className="flex items-center gap-3">
                         <img
-                          src={sneaker.images[0]}
+                          src={getOptimizedImageUrl(sneaker.images?.[0] || sneaker.image, { width: 100, height: 100 })}
                           alt={sneaker.name}
+                          referrerPolicy="no-referrer"
                           className="w-12 h-12 object-contain bg-[#111111] rounded-lg p-1 shrink-0"
                         />
                         <div>

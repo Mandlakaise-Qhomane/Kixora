@@ -1,6 +1,8 @@
 import { supabase } from '../api/supabase';
 import { handleSupabaseError } from '../api/errors';
 import type { BespokeDesign } from '../types/domain';
+import { storageService } from '../services/storageService';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const bespokeRepository = {
   async createDesign(
@@ -13,6 +15,17 @@ export const bespokeRepository = {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) throw handleSupabaseError(userError || { code: 'PGRST116' });
 
+    let persistedImageUrl: string | null = null;
+    if (previewImageUrl) {
+      if (previewImageUrl.startsWith('data:') || previewImageUrl.startsWith('blob:')) {
+        // Upload direct to customizer-renders Supabase Storage bucket & Cloudinary
+        const uploadResult = await storageService.uploadCustomizerRender(previewImageUrl, `${userData.user.id}/${Date.now()}`);
+        persistedImageUrl = uploadResult.secureUrl || uploadResult.url;
+      } else {
+        persistedImageUrl = getOptimizedImageUrl(previewImageUrl);
+      }
+    }
+
     const { data, error } = await supabase
       .from('bespoke_designs')
       .insert({
@@ -21,7 +34,7 @@ export const bespokeRepository = {
         design_name: designName,
         design_snapshot: designSnapshot,
         price_premium: pricePremium,
-        preview_image_url: previewImageUrl || null,
+        preview_image_url: persistedImageUrl,
         is_ordered: false
       })
       .select()

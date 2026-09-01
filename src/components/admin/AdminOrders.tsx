@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../../context/StoreContext';
 import { OrderStatus } from '../../types';
-import { ShoppingBag, Search, ChevronDown, CheckCircle2, Clock, Truck, Eye, RefreshCw, Trash2, FileOutput, ShieldCheck } from 'lucide-react';
+import { Search, Clock, Eye, RefreshCw, FileOutput, ShieldCheck, Truck, Package, Check } from 'lucide-react';
 import { adminOrderService } from '../../services/adminOrderService';
 import { googleDriveService } from '../../services/googleDriveService';
 import { useGoogleAuth } from '../../hooks/useGoogleAuth';
 import { authService } from '../../services/authService';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const AdminOrders: React.FC = () => {
   const { orders, updateOrderStatus, setTrackingOrder, setCurrentView, showToast, refreshOrders } = useStore();
@@ -15,6 +16,48 @@ export const AdminOrders: React.FC = () => {
   const [isCleaning, setIsCleaning] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
+  const toggleOrderSelection = (orderId: string) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
+    );
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedOrders.length === filteredOrders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(filteredOrders.map(o => o.id));
+    }
+  };
+
+  const handleBatchFulfillment = async (newStatus: OrderStatus) => {
+    if (selectedOrders.length === 0) return;
+    
+    setIsBatchProcessing(true);
+    try {
+      const user = await authService.getCurrentUser();
+      const res = await adminOrderService.batchUpdateOrderStatus(
+        selectedOrders,
+        newStatus,
+        user?.id || 'system'
+      );
+
+      if (res.success) {
+        showToast('Batch Success', `Updated ${res.updatedCount} orders to ${newStatus}.`, 'success');
+        setSelectedOrders([]);
+        await refreshOrders();
+      } else {
+        throw new Error(res.error);
+      }
+    } catch (err: any) {
+      showToast('Batch Failed', err.message, 'error');
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
 
   const { token, requestToken, isAuthenticated } = useGoogleAuth([
     'https://www.googleapis.com/auth/drive.file'
@@ -148,12 +191,70 @@ export const AdminOrders: React.FC = () => {
         </div>
       </div>
 
+      {/* Batch Actions Bar */}
+      <AnimatePresence>
+        {selectedOrders.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="flex items-center justify-between px-6 py-4 rounded-2xl bg-[#FF7A00] text-black shadow-lg shadow-[#FF7A00]/20"
+          >
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-lg bg-black/10">
+                <Package className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-sm font-bold">{selectedOrders.length} Orders Selected</div>
+                <div className="text-[10px] font-mono uppercase opacity-70">Batch fulfillment ready</div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleBatchFulfillment('Processing')}
+                disabled={isBatchProcessing}
+                className="px-4 py-2 rounded-xl bg-black text-white text-[10px] font-mono font-bold hover:bg-black/80 transition-all disabled:opacity-50"
+              >
+                MARK PROCESSING
+              </button>
+              <button
+                onClick={() => handleBatchFulfillment('Shipped')}
+                disabled={isBatchProcessing}
+                className="px-4 py-2 rounded-xl bg-white text-black text-[10px] font-mono font-bold hover:bg-white/90 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                <Truck className="w-3 h-3" />
+                DISPATCH BATCH
+              </button>
+              <button
+                onClick={() => setSelectedOrders([])}
+                className="p-2 text-black/60 hover:text-black transition-colors"
+              >
+                <Check className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Orders Table */}
       <div className="rounded-2xl bg-[#161616] border border-[#262626] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-sans">
             <thead className="bg-[#1A1A1A] border-b border-[#282828] text-[10px] font-mono uppercase tracking-wider text-[#888888]">
               <tr>
+                <th className="p-4 w-10">
+                  <button 
+                    onClick={toggleAllSelection}
+                    className={`w-4 h-4 rounded border transition-all flex items-center justify-center ${
+                      selectedOrders.length === filteredOrders.length 
+                        ? 'bg-[#FF7A00] border-[#FF7A00]' 
+                        : 'border-[#444444] hover:border-[#666666]'
+                    }`}
+                  >
+                    {selectedOrders.length === filteredOrders.length && <Check className="w-3 h-3 text-black" />}
+                  </button>
+                </th>
                 <th className="p-4">Order ID</th>
                 <th className="p-4">Date</th>
                 <th className="p-4">Customer</th>
@@ -165,7 +266,19 @@ export const AdminOrders: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-[#242424]">
               {filteredOrders.map(order => (
-                <tr key={order.id} className="hover:bg-[#1D1D1D] transition-colors">
+                <tr key={order.id} className={`hover:bg-[#1D1D1D] transition-colors ${selectedOrders.includes(order.id) ? 'bg-[#FF7A00]/5' : ''}`}>
+                  <td className="p-4">
+                    <button 
+                      onClick={() => toggleOrderSelection(order.id)}
+                      className={`w-4 h-4 rounded border transition-all flex items-center justify-center ${
+                        selectedOrders.includes(order.id) 
+                          ? 'bg-[#FF7A00] border-[#FF7A00]' 
+                          : 'border-[#444444] hover:border-[#666666]'
+                      }`}
+                    >
+                      {selectedOrders.includes(order.id) && <Check className="w-3 h-3 text-black" />}
+                    </button>
+                  </td>
                   <td className="p-4 font-mono font-bold text-white">
                     <button
                       onClick={() => {
@@ -174,7 +287,7 @@ export const AdminOrders: React.FC = () => {
                       }}
                       className="hover:text-[#FF7A00] flex items-center gap-1.5"
                     >
-                      <span>#{order.id}</span>
+                      <span>#{order.id.slice(0, 8)}</span>
                       <Eye className="w-3 h-3 text-[#777777]" />
                     </button>
                   </td>

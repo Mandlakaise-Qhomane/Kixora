@@ -1,4 +1,4 @@
-import { CartItem, CustomSneakerConfig } from '../../types';
+import { CartItem } from '../../types';
 import { mapProductRowToSneaker, ProductHydratedRow } from './productMapper';
 
 export interface CartItemHydratedRow {
@@ -8,16 +8,8 @@ export interface CartItemHydratedRow {
   product_size_id?: string;
   size?: number;
   quantity: number;
-  bespoke_design_id?: string | null;
-  customization?: Record<string, any> | null;
   products?: ProductHydratedRow | null;
   product_sizes?: { id?: string; size_us?: number; size?: number; [key: string]: any } | null;
-  bespoke_designs?: {
-    id?: string;
-    design_name?: string;
-    design_snapshot?: Record<string, any> | null;
-    [key: string]: any;
-  } | null;
   [key: string]: any;
 }
 
@@ -47,14 +39,11 @@ export const mapCartItemRowToCartItem = (row: CartItemHydratedRow): CartItem => 
         salesCount: 0,
       };
 
-  const customization = (row.bespoke_designs?.design_snapshot || row.customization) as CustomSneakerConfig | undefined;
-
   return {
     id: row.id,
     sneaker,
     selectedSize,
-    quantity: row.quantity,
-    customization: customization || undefined,
+    quantity: row.quantity
   };
 };
 

@@ -21,10 +21,6 @@ test.describe('Customer Smoke Tests', () => {
     await page.locator('#nav-link-new-releases').click();
     await expect(page.getByText(/kixora vault raffles & shock drops/i)).toBeVisible();
 
-    // Navigate to 3D Lab
-    await page.locator('#nav-link-customizer').click();
-    await expect(page.getByText(/custom grail builder/i)).toBeVisible();
-
     // Navigate back to Store via Home
     await page.locator('#nav-link-home').click();
     await expect(page.getByText(/built for the culture/i)).toBeVisible();
@@ -149,30 +145,6 @@ test.describe('Customer Smoke Tests', () => {
     await page.locator('#checkout-track-order-btn').click();
     await expect(page.getByText(/track your grail/i)).toBeVisible();
     await expect(page.getByText(/order #kxo-/i).first()).toBeVisible();
-  });
-
-  test('CS-07: 3D Bespoke Lab customization and Add to Vault Cart', async ({ customerPage: page }) => {
-    // 1. Navigate to 3D Lab
-    await page.locator('#nav-link-customizer').click();
-    await expect(page.getByText(/custom grail builder/i)).toBeVisible();
-
-    // 2. Customize Heel Laser Engraving Text
-    const textInput = page.getByPlaceholder(/e\.g\. KIXORA, GRAIL/i);
-    await textInput.fill('BESPOKE-99');
-
-    // 3. Choose a color from palette
-    const colorButton = page.getByRole('button', { name: /university red/i });
-    if (await colorButton.isVisible()) {
-      await colorButton.click();
-    }
-
-    // 4. Click BUILD & ADD TO VAULT CART
-    const buildBtn = page.getByRole('button', { name: /build & add to vault cart/i });
-    await buildBtn.click();
-
-    // Verify custom sneaker appears in Cart Drawer
-    await expect(page.locator('#cart-drawer-container')).toBeVisible();
-    await expect(page.getByText(/bespoke-99/i).first()).toBeVisible();
   });
 
   test('CS-08: Drops Calendar raffle interaction', async ({ customerPage: page }) => {

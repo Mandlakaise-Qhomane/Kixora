@@ -4,28 +4,33 @@ import { mapProductRowToSneaker, ProductHydratedRow } from './productMapper';
 
 export const productRepository = {
   async getProducts(): Promise<Sneaker[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`
-        *,
-        brands (*),
-        categories (*),
-        product_images (*),
-        product_sizes (
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
           *,
-          inventory (*)
-        )
-      `)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+          brands (*),
+          categories (*),
+          product_images (*),
+          product_sizes (
+            *,
+            inventory (*)
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('[productRepository.getProducts] Failed to fetch products:', error);
-      throw error;
+      if (error) {
+        console.error('[productRepository.getProducts] Failed to fetch products:', error);
+        throw error;
+      }
+
+      if (!data) return [];
+      return (data as unknown as ProductHydratedRow[]).map(mapProductRowToSneaker);
+    } catch (err) {
+      console.warn('[productRepository.getProducts] Network error or unconfigured Supabase:', err);
+      throw err;
     }
-
-    if (!data) return [];
-    return (data as unknown as ProductHydratedRow[]).map(mapProductRowToSneaker);
   },
 
   async getProductBySlug(slugOrId: string): Promise<Sneaker | null> {
@@ -74,7 +79,6 @@ export const productRepository = {
     const { data, error } = await supabase
       .from('categories')
       .select('*')
-      .eq('is_active', true)
       .order('name');
     if (error) {
       console.error('[productRepository.getCategories] Error:', error);

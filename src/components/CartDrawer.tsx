@@ -7,12 +7,10 @@ import {
   Minus, 
   ArrowRight, 
   ShoppingBag, 
-  ShieldCheck, 
-  Tag, 
-  Percent,
-  Check
+  Tag
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
+import { getOptimizedImageUrl } from '../lib/cloudinary';
 
 export const CartDrawer: React.FC = () => {
   const { 
@@ -123,8 +121,9 @@ export const CartDrawer: React.FC = () => {
                   className="p-4 rounded-xl bg-[#1A1A1A] border border-[#282828] flex gap-3 items-center"
                 >
                   <img
-                    src={item.sneaker.images[0]}
+                    src={getOptimizedImageUrl(item.sneaker.images[0] || item.sneaker.image, { width: 140, height: 140 })}
                     alt={item.sneaker.name}
+                    referrerPolicy="no-referrer"
                     className="w-16 h-16 object-contain bg-[#121212] rounded-lg p-1 shrink-0"
                   />
 
@@ -134,9 +133,6 @@ export const CartDrawer: React.FC = () => {
                     </h4>
                     <div className="flex items-center gap-2 text-[10px] font-mono text-[#888888] mt-0.5">
                       <span>Size: US {item.selectedSize}</span>
-                      {item.customization && (
-                        <span className="text-[#FF7A00] font-bold">• 3D Custom</span>
-                      )}
                     </div>
                     <div className="font-mono text-xs font-bold text-white mt-1">
                       {formatPrice(item.sneaker.price)}

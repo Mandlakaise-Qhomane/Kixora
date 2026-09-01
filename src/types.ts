@@ -1,4 +1,4 @@
-export type ViewMode = 'store' | 'shop' | 'drops' | 'bespoke' | 'customizer' | 'admin' | 'tracking';
+export type ViewMode = 'store' | 'shop' | 'drops' | 'admin' | 'tracking';
 
 export type Brand = 'Nike' | 'Jordan' | 'Adidas' | 'New Balance' | 'Asics' | 'Travis Scott' | 'Yeezy' | 'Puma' | 'Vans' | 'Converse' | string;
 export type Category = 'High-Top' | 'Low-Top' | 'Mid-Top' | 'Retro' | 'Running' | 'Lifestyle' | 'Limited Edition' | string;
@@ -14,6 +14,7 @@ export type OrderStatus =
   | 'Cancelled';
 
 export interface SneakerSize {
+  id?: string;
   size: number;
   stock: number;
 }
@@ -48,25 +49,11 @@ export interface Sneaker {
   isBestSeller?: boolean;
 }
 
-export interface CustomSneakerConfig {
-  baseColor?: string;
-  swooshColor?: string;
-  accentColor?: string;
-  soleColor?: string;
-  lacesColor?: string;
-  liningColor?: string;
-  material?: 'Leather' | 'Suede' | 'Patent' | 'Canvas';
-  customText?: string;
-  baseModel?: string;
-  previewThumbnailUrl?: string;
-}
-
 export interface CartItem {
   id: string;
   sneaker: Sneaker;
   selectedSize: number;
   quantity: number;
-  customization?: CustomSneakerConfig;
 }
 
 export interface PromoCode {

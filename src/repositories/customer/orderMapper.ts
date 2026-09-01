@@ -49,8 +49,6 @@ export interface OrderHydratedRow {
     unit_price?: number;
     quantity: number;
     total_price?: number;
-    customization?: Record<string, any> | null;
-    bespoke_snapshot?: Record<string, any> | null;
     image_url?: string;
     products?: any;
     created_at?: string;
@@ -114,7 +112,6 @@ export const mapOrderRowToOrder = (row: OrderHydratedRow): Order => {
       },
       selectedSize: size,
       quantity: item.quantity,
-      customization: (item.bespoke_snapshot || item.customization) as any,
     };
   });
 

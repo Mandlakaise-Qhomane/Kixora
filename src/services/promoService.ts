@@ -1,6 +1,5 @@
 import { supabase } from '../api/supabase';
 import { handleSupabaseError, AppError } from '../api/errors';
-import type { PromoCode } from '../types/domain';
 
 export const promoService = {
   /**

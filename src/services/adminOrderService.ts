@@ -4,7 +4,7 @@
 // and audit logging of admin interventions.
 // ==============================================================================
 
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { paymentService, PaymentProviderType, PaymentStatus } from './paymentService';
 
 export interface ReconciliationAuditLog {
@@ -68,7 +68,7 @@ export const adminOrderService = {
       if (gatewayStatus === 'refunded') nextOrderStatus = 'Cancelled';
 
       // 5. Execute atomic reconciliation via RPC
-      const { data: result, error: rpcError } = await supabase.rpc('admin_reconcile_payment_state', {
+      const { error: rpcError } = await supabase.rpc('admin_reconcile_payment_state', {
         p_order_id: orderId,
         p_new_payment_status: gatewayStatus,
         p_new_order_status: nextOrderStatus,
@@ -105,7 +105,7 @@ export const adminOrderService = {
       }
 
       // 2. Align local state
-      const { data: result, error: rpcError } = await supabase.rpc('admin_reconcile_payment_state', {
+      const { error: rpcError } = await supabase.rpc('admin_reconcile_payment_state', {
         p_order_id: orderId,
         p_new_payment_status: 'refunded',
         p_new_order_status: 'Cancelled',
@@ -148,5 +148,66 @@ export const adminOrderService = {
 
     if (error) throw error;
     return data || 0;
+  },
+
+  /**
+   * Bulk updates order statuses and generates tracking if applicable.
+   */
+  async batchUpdateOrderStatus(
+    orderIds: string[], 
+    newStatus: string, 
+    adminId: string
+  ): Promise<{ success: boolean; updatedCount: number; error?: string }> {
+    try {
+      if (!isSupabaseConfigured()) {
+        return { success: true, updatedCount: orderIds.length };
+      }
+
+      let updatedCount = 0;
+
+      for (const orderId of orderIds) {
+        // 1. Update order status
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({ 
+            current_status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', orderId);
+
+        if (updateError) throw updateError;
+
+        // 2. Add to status history
+        await supabase
+          .from('order_status_history')
+          .insert({
+            order_id: orderId,
+            status: newStatus,
+            title: `Order ${newStatus}`,
+            description: `Status updated via batch process by Admin.`,
+            created_by: adminId
+          });
+
+        // 3. Generate tracking if status is 'Shipped' or 'Dispatched'
+        if (newStatus === 'Shipped' || newStatus === 'Dispatched') {
+          const trackingNumber = `KXO-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
+          await supabase
+            .from('shipments')
+            .upsert({
+              order_id: orderId,
+              tracking_number: trackingNumber,
+              carrier: 'Vault Priority Express',
+              dispatched_at: new Date().toISOString()
+            }, { onConflict: 'order_id' });
+        }
+
+        updatedCount++;
+      }
+
+      return { success: true, updatedCount };
+    } catch (err: any) {
+      console.error('[adminOrderService.batchUpdateOrderStatus] Error:', err);
+      return { success: false, updatedCount: 0, error: err.message };
+    }
   }
 };

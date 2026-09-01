@@ -59,7 +59,7 @@ export const productRepository = {
   },
 
   async getCategories(): Promise<Category[]> {
-    const { data, error } = await supabase.from('categories').select('*').eq('is_active', true);
+    const { data, error } = await supabase.from('categories').select('*');
     if (error) throw handleSupabaseError(error);
     return data || [];
   },

@@ -116,7 +116,6 @@ export const checkoutService = {
         product_id: item.sneaker?.id,
         size_us: Number(item.selectedSize || 9),
         quantity: Number(item.quantity || 1),
-        bespoke_config: item.customization || null,
       }));
 
       const { data, error } = await supabase.rpc('place_order_atomic', {
@@ -134,7 +133,7 @@ export const checkoutService = {
         console.warn('[checkoutService.placeOrderAtomic] RPC error:', error);
         
         let errorCode = error.code || 'CHECKOUT_FAILED';
-        let userMessage = error.message;
+        const userMessage = error.message;
 
         if (userMessage.includes('Insufficient stock')) {
           errorCode = 'INSUFFICIENT_INVENTORY';

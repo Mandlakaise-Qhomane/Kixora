@@ -1,10 +1,6 @@
 import React from 'react';
-import { useStore, formatPrice } from '../../context/StoreContext';
-import { BarChart3, TrendingUp, DollarSign, Users, ShoppingBag, ShieldCheck } from 'lucide-react';
 
 export const AdminAnalytics: React.FC = () => {
-  const { orders, sneakers } = useStore();
-
   return (
     <div className="space-y-8">
       <div>

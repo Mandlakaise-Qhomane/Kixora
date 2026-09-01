@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore, formatPrice } from '../../context/StoreContext';
 import { Sneaker, Brand, Category } from '../../types';
 import { 
@@ -6,17 +6,27 @@ import {
   Search, 
   Edit2, 
   Trash2, 
-  X, 
-  Package, 
+  X,
+  Upload,
+  Image as ImageIcon,
+  Sparkles,
   Check,
-  ChevronDown
+  Loader2
 } from 'lucide-react';
+import { storageService } from '../../services/storageService';
+import { getOptimizedImageUrl } from '../../lib/cloudinary';
 
 export const AdminProducts: React.FC = () => {
-  const { sneakers, addSneaker, updateSneaker, deleteSneaker } = useStore();
+  const { sneakers, addSneaker, updateSneaker, deleteSneaker, showToast } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSneaker, setEditingSneaker] = useState<Sneaker | null>(null);
+  
+  // Media Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(false);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -30,7 +40,7 @@ export const AdminProducts: React.FC = () => {
     colorway: '',
     releaseDate: '2025-05-20',
     description: '',
-    imageUrl: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85',
+    imageUrl: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png',
     isFeatured: false,
     isNewRelease: true,
     tags: 'OG High, Vault Grail'
@@ -44,6 +54,8 @@ export const AdminProducts: React.FC = () => {
 
   const handleOpenAdd = () => {
     setEditingSneaker(null);
+    const defaultImg = 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png';
+    setUploadedImages([defaultImg]);
     setFormData({
       name: '',
       brand: 'Jordan',
@@ -55,7 +67,7 @@ export const AdminProducts: React.FC = () => {
       colorway: 'Black / Orange / White',
       releaseDate: new Date().toISOString().split('T')[0],
       description: 'Authentic deadstock sneaker with 12-point authentication verified.',
-      imageUrl: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=85',
+      imageUrl: defaultImg,
       isFeatured: true,
       isNewRelease: true,
       tags: 'Vault Grail, Starfish'
@@ -65,6 +77,11 @@ export const AdminProducts: React.FC = () => {
 
   const handleOpenEdit = (sneaker: Sneaker) => {
     setEditingSneaker(sneaker);
+    const imgs = sneaker.images && sneaker.images.length > 0 
+      ? sneaker.images 
+      : [sneaker.image || 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png'];
+    
+    setUploadedImages(imgs);
     setFormData({
       name: sneaker.name,
       brand: sneaker.brand,
@@ -76,7 +93,7 @@ export const AdminProducts: React.FC = () => {
       colorway: sneaker.colorway,
       releaseDate: sneaker.releaseDate || String(sneaker.releaseYear || 2024),
       description: sneaker.description,
-      imageUrl: sneaker.image || (sneaker.images && sneaker.images[0]) || '',
+      imageUrl: imgs[0] || '',
       isFeatured: !!sneaker.isFeatured,
       isNewRelease: !!sneaker.isNewRelease,
       tags: (sneaker.tags || []).join(', ')
@@ -84,8 +101,64 @@ export const AdminProducts: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const result = await storageService.uploadProductImage(file, file.name, {
+          removeBackground,
+          preferCloudinary: true,
+        });
+
+        const optimizedUrl = getOptimizedImageUrl(result.secureUrl, { removeBackground });
+        newUrls.push(optimizedUrl);
+      }
+
+      const updated = [...uploadedImages, ...newUrls];
+      setUploadedImages(updated);
+      setFormData(prev => ({
+        ...prev,
+        imageUrl: updated[0] || prev.imageUrl
+      }));
+
+      showToast('Images Uploaded', `Successfully processed ${newUrls.length} media asset(s) via Cloudinary CDN.`, 'success');
+    } catch (err) {
+      console.error('Upload failed:', err);
+      showToast('Upload Error', 'Failed to upload one or more images.', 'error');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    const next = uploadedImages.filter((_, idx) => idx !== indexToRemove);
+    setUploadedImages(next);
+    if (next.length > 0) {
+      setFormData(prev => ({ ...prev, imageUrl: next[0] }));
+    }
+  };
+
+  const handleSetPrimary = (indexToPrimary: number) => {
+    const selected = uploadedImages[indexToPrimary];
+    const rest = uploadedImages.filter((_, idx) => idx !== indexToPrimary);
+    const reordered = [selected, ...rest];
+    setUploadedImages(reordered);
+    setFormData(prev => ({ ...prev, imageUrl: selected }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const finalImages = uploadedImages.length > 0 ? uploadedImages : [formData.imageUrl];
+    const primaryImg = finalImages[0];
 
     if (editingSneaker) {
       updateSneaker({
@@ -100,12 +173,14 @@ export const AdminProducts: React.FC = () => {
         colorway: formData.colorway,
         releaseYear: Number(formData.releaseDate) || 2024,
         description: formData.description,
-        image: formData.imageUrl,
-        gallery: [formData.imageUrl, ...(editingSneaker.gallery || []).slice(1)],
+        image: primaryImg,
+        images: finalImages,
+        gallery: finalImages,
         isFeatured: formData.isFeatured,
         isNewRelease: formData.isNewRelease,
         tags: formData.tags.split(',').map(t => t.trim())
       });
+      showToast('Sneaker Updated', 'Catalog item successfully updated.', 'success');
     } else {
       addSneaker({
         name: formData.name,
@@ -120,9 +195,9 @@ export const AdminProducts: React.FC = () => {
         description: formData.description,
         story: '',
         details: ['Verified authentic Deadstock pair', 'Box with original laces & accessories'],
-        image: formData.imageUrl,
-        images: [formData.imageUrl],
-        gallery: [formData.imageUrl],
+        image: primaryImg,
+        images: finalImages,
+        gallery: finalImages,
         salesCount: 0,
         sizes: [
           { size: 8, stock: 5 },
@@ -136,6 +211,7 @@ export const AdminProducts: React.FC = () => {
         isNewRelease: formData.isNewRelease,
         tags: formData.tags.split(',').map(t => t.trim())
       });
+      showToast('Sneaker Created', 'New deadstock sneaker successfully added to catalog.', 'success');
     }
 
     setIsModalOpen(false);
@@ -182,13 +258,14 @@ export const AdminProducts: React.FC = () => {
             <tbody className="divide-y divide-[#242424]">
               {filteredSneakers.map(sneaker => {
                 const totalStock = sneaker.sizes.reduce((sum, sz) => sum + sz.stock, 0);
+                const displayImg = sneaker.images?.[0] || sneaker.image;
 
                 return (
                   <tr key={sneaker.id} className="hover:bg-[#1D1D1D] transition-colors">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <img
-                          src={sneaker.images[0]}
+                          src={displayImg}
                           alt={sneaker.name}
                           className="w-12 h-12 object-contain bg-[#111111] rounded-lg p-1 shrink-0"
                         />
@@ -258,7 +335,103 @@ export const AdminProducts: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleSubmit} className="space-y-5 text-xs">
+              {/* Cloudinary & Media Storage Section */}
+              <div className="p-4 rounded-2xl bg-[#1A1A1A] border border-[#2D2D2D] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-[#FF7A00]" />
+                    <span className="font-bold text-white text-xs uppercase tracking-wider font-mono">
+                      Cloudinary Media Manager
+                    </span>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-[11px] text-[#AAAAAA] hover:text-white">
+                    <input
+                      type="checkbox"
+                      checked={removeBackground}
+                      onChange={e => setRemoveBackground(e.target.checked)}
+                      className="rounded border-[#444444] bg-[#222222] text-[#FF7A00] focus:ring-0"
+                    />
+                    <Sparkles className="w-3.5 h-3.5 text-[#FF7A00]" />
+                    <span>AI Background Removal</span>
+                  </label>
+                </div>
+
+                {/* Upload Zone */}
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-[#383838] hover:border-[#FF7A00] bg-[#141414] hover:bg-[#181818] transition-colors rounded-xl p-5 flex flex-col items-center justify-center cursor-pointer gap-2"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={e => handleFileUpload(e.target.files)}
+                    className="hidden"
+                  />
+                  {isUploading ? (
+                    <div className="flex items-center gap-2 text-[#FF7A00] font-mono text-xs">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Optimizing & Uploading to Cloudinary CDN...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-[#777777]" />
+                      <div className="text-center">
+                        <span className="font-bold text-white">Click or drag images to upload</span>
+                        <p className="text-[10px] text-[#777777] mt-0.5">Supports bulk uploads (PNG, JPG, WebP) with auto f_auto,q_auto</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Uploaded Thumbnails */}
+                {uploadedImages.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] font-mono text-[#888888] uppercase">
+                      Media Gallery ({uploadedImages.length} images) — First image is Primary
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {uploadedImages.map((img, idx) => (
+                        <div key={idx} className="relative group rounded-lg overflow-hidden border border-[#333333] bg-[#111111] aspect-square">
+                          <img
+                            src={img}
+                            alt={`Preview ${idx}`}
+                            className="w-full h-full object-contain p-1"
+                          />
+                          {idx === 0 && (
+                            <span className="absolute top-1 left-1 bg-[#FF7A00] text-black text-[8px] font-extrabold px-1 rounded">
+                              MAIN
+                            </span>
+                          )}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 p-1">
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetPrimary(idx)}
+                                className="p-1 bg-[#222222] hover:bg-[#FF7A00] text-white hover:text-black rounded"
+                                title="Set as Primary"
+                              >
+                                <Check className="w-3 h-3" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveImage(idx)}
+                              className="p-1 bg-[#222222] hover:bg-[#EF4444] text-white rounded"
+                              title="Remove"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-[11px] font-mono text-[#888888] uppercase">Sneaker Model Name</label>
@@ -329,13 +502,13 @@ export const AdminProducts: React.FC = () => {
                 </div>
 
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-[11px] font-mono text-[#888888] uppercase">Image URL</label>
+                  <label className="text-[11px] font-mono text-[#888888] uppercase">Primary Image Secure URL</label>
                   <input
                     type="url"
                     required
                     value={formData.imageUrl}
                     onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="w-full bg-[#1C1C1C] border border-[#2C2C2C] rounded-lg px-3 py-2 text-white font-mono"
+                    className="w-full bg-[#1C1C1C] border border-[#2C2C2C] rounded-lg px-3 py-2 text-white font-mono text-[11px]"
                   />
                 </div>
 
@@ -360,7 +533,8 @@ export const AdminProducts: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#FF7A00] text-black font-extrabold rounded-xl shadow-lg shadow-[#FF7A00]/20"
+                  disabled={isUploading}
+                  className="px-6 py-2.5 bg-[#FF7A00] text-black font-extrabold rounded-xl shadow-lg shadow-[#FF7A00]/20 disabled:opacity-50"
                 >
                   {editingSneaker ? 'Update Sneaker' : 'Save to Vault Catalog'}
                 </button>

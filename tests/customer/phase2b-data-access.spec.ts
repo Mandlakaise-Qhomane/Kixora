@@ -52,7 +52,6 @@ test.describe('Phase 2B: Cart, Wishlist & Order Data Access Layer', () => {
       product_id: 'prod-nike-01',
       product_size_id: 'size-row-10',
       quantity: 2,
-      bespoke_design_id: 'bespoke-999',
       created_at: '2026-08-20T10:00:00Z',
       updated_at: '2026-08-20T10:00:00Z',
       products: {
@@ -91,26 +90,6 @@ test.describe('Phase 2B: Cart, Wishlist & Order Data Access Layer', () => {
         product_id: 'prod-nike-01',
         size_us: 10.5,
         created_at: '2025-01-01T00:00:00Z'
-      },
-      bespoke_designs: {
-        id: 'bespoke-999',
-        user_id: 'user-001',
-        base_product_id: 'prod-nike-01',
-        design_name: 'Custom Royal Chicago',
-        design_snapshot: {
-          baseModel: 'Jordan 1 High',
-          baseColor: '#ffffff',
-          accentColor: '#e11d48',
-          soleColor: '#ffffff',
-          lacesColor: '#000000',
-          liningColor: '#000000',
-          customText: 'VAULT'
-        },
-        preview_image_url: null,
-        price_premium: 800,
-        is_ordered: false,
-        created_at: '2026-08-20T10:00:00Z',
-        updated_at: '2026-08-20T10:00:00Z'
       }
     };
 
@@ -122,8 +101,6 @@ test.describe('Phase 2B: Cart, Wishlist & Order Data Access Layer', () => {
     expect(cartItem.sneaker.name).toBe('Air Jordan 1 Retro High OG "Chicago"');
     expect(cartItem.sneaker.brand).toBe('Jordan');
     expect(cartItem.sneaker.price).toBe(3499);
-    expect(cartItem.customization).toBeDefined();
-    expect(cartItem.customization?.customText).toBe('VAULT');
 
     const mappedList = mapCartRowsToCartItems([mockCartRow]);
     expect(mappedList.length).toBe(1);

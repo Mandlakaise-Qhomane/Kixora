@@ -10,14 +10,14 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     price: 4999,
     originalPrice: 5499,
     description: 'Inspired by the uniform Michael Jordan wore when he shattered the glass backboard in an Italian exhibition game.',
-    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png',
     images: [
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png',
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-02.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80',
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-01.png',
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/shattered-backboard-02.png'
     ],
     sizes: [
       { size: 8, stock: 3 },
@@ -52,12 +52,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     price: 5899,
     originalPrice: 6200,
     description: 'Featuring the iconic inverted oversized Swoosh and signature Cactus Jack heel embroidery.',
-    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/travis-scott-mocha-01.png',
     images: [
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/travis-scott-mocha-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/travis-scott-mocha-01.png'
     ],
     sizes: [
       { size: 8.5, stock: 2 },
@@ -90,12 +90,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     price: 2499,
     originalPrice: 2899,
     description: 'The ultra-clean monochrome icon that defined modern street culture.',
-    image: 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/dunk-low-panda-01.png',
     images: [
-      'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/dunk-low-panda-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/dunk-low-panda-01.png'
     ],
     sizes: [
       { size: 7, stock: 5 },
@@ -127,12 +127,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     price: 1999,
     originalPrice: 2299,
     description: 'The radiance lives on with the b-ball icon that puts a fresh spin on crisp leather and clean lines.',
-    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/af1-triple-white-01.png',
     images: [
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/af1-triple-white-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/af1-triple-white-01.png'
     ],
     sizes: [
       { size: 8, stock: 10 },
@@ -163,12 +163,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     gender: 'Men',
     price: 5299,
     description: 'Triple-black nubuck stealth icon named after Michael Jordan’s nickname.',
-    image: 'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png',
     images: [
-      'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/aj4-black-cat-01.png'
     ],
     sizes: [
       { size: 9, stock: 2 },
@@ -199,12 +199,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     gender: 'Unisex',
     price: 3899,
     description: 'Iconic Primeknit zebra-striped upper with SPLY-350 branding in solar red.',
-    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/yeezy-zebra-01.png',
     images: [
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/yeezy-zebra-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/yeezy-zebra-01.png'
     ],
     sizes: [
       { size: 8, stock: 4 },
@@ -234,12 +234,12 @@ export const INITIAL_SNEAKERS: Sneaker[] = [
     gender: 'Unisex',
     price: 3699,
     description: 'Made in USA craftsmanship equipped with FuelCell foam cushioning.',
-    image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/nb-990v6-grey-01.png',
     images: [
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/nb-990v6-grey-01.png'
     ],
     gallery: [
-      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1000&q=80'
+      'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/products/nb-990v6-grey-01.png'
     ],
     sizes: [
       { size: 8, stock: 5 },
@@ -270,7 +270,7 @@ export const INITIAL_DROPS: Drop[] = [
     brand: 'Nike',
     price: 6500,
     releaseTime: '2026-09-15T18:00:00Z',
-    image: 'https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/drops/offwhite-mca-drop.png',
     description: 'Museum of Contemporary Art Chicago exclusive in University Blue.',
     isNotified: false,
     subscribersCount: 1420,
@@ -283,7 +283,7 @@ export const INITIAL_DROPS: Drop[] = [
     brand: 'Nike',
     price: 7200,
     releaseTime: '2026-09-28T16:00:00Z',
-    image: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1000&q=80',
+    image: 'https://res.cloudinary.com/kixora/image/upload/f_auto,q_auto/kixora/drops/tiffany-af1-drop.png',
     description: 'Premium black suede with Tiffany Blue tumbled leather swoosh and 925 sterling silver heel tag.',
     isNotified: true,
     subscribersCount: 2840,

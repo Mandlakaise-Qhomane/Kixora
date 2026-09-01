@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { extractRoleFromUser, extractRoleFromAppMetadata, isUnauthorizedRoleElevation, hasAdminRole, hasSuperAdminRole, canAccessAdminDomain } from '../../src/utils/roleUtils';
+import { extractRoleFromUser, isUnauthorizedRoleElevation, hasAdminRole, hasSuperAdminRole } from '../../src/utils/roleUtils';
 import { inspectHostname } from '../../src/routes/DomainGuard';
 import { authService } from '../../src/services/authService';
 

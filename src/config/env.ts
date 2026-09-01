@@ -17,6 +17,9 @@ export interface ClientEnvConfig {
   customerDomain: string;
   adminDomain: string;
   googleClientId: string;
+  cloudinaryCloudName: string;
+  cloudinaryUploadPreset: string;
+  cloudinaryApiKey: string;
 }
 
 /**
@@ -50,6 +53,9 @@ export function getEnvConfig(): ClientEnvConfig {
     customerDomain: metaEnv.VITE_CUSTOMER_DOMAIN || procEnv.VITE_CUSTOMER_DOMAIN || 'https://kixora.com',
     adminDomain: metaEnv.VITE_ADMIN_DOMAIN || procEnv.VITE_ADMIN_DOMAIN || 'https://admin.kixora.com',
     googleClientId: metaEnv.VITE_GOOGLE_CLIENT_ID || procEnv.VITE_GOOGLE_CLIENT_ID || '',
+    cloudinaryCloudName: metaEnv.VITE_CLOUDINARY_CLOUD_NAME || procEnv.VITE_CLOUDINARY_CLOUD_NAME || 'kixora',
+    cloudinaryUploadPreset: metaEnv.VITE_CLOUDINARY_UPLOAD_PRESET || procEnv.VITE_CLOUDINARY_UPLOAD_PRESET || 'kixora_product_images',
+    cloudinaryApiKey: metaEnv.VITE_CLOUDINARY_API_KEY || procEnv.VITE_CLOUDINARY_API_KEY || '',
   };
 }
 

@@ -10,28 +10,22 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { WishlistModal } from './components/WishlistModal';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { DropsCalendar } from './components/DropsCalendar';
-import { CustomizerStudio } from './components/CustomizerStudio';
 import { OrderTrackingModal } from './components/OrderTrackingModal';
 import { DomainGuard } from './routes/DomainGuard';
 import { AdminRoute } from './routes/AdminRoute';
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
+import { SEO } from './components/SEO';
 import { 
   ArrowUpDown, 
   SlidersHorizontal, 
-  Sparkles, 
-  ShieldCheck, 
-  Truck, 
-  RotateCcw,
-  X,
-  Heart,
-  ChevronRight
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const MainStorefront: React.FC<{ onOpenMobileFilters: () => void }> = ({ onOpenMobileFilters }) => {
-  const { sneakers, filters, setFilters, resetFilters, openSneakerModal } = useStore();
+  const { sneakers, filters, setFilters, resetFilters } = useStore();
 
   // Filter and Sort Logic
   const filteredSneakers = useMemo(() => {
@@ -252,6 +246,10 @@ const StoreAppContent: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              <SEO 
+                title="Sneaker Vault & Catalog" 
+                description="Browse our curated collection of authenticated limited edition sneakers."
+              />
               <MainStorefront onOpenMobileFilters={() => setIsMobileFiltersOpen(true)} />
             </motion.div>
           )}
@@ -264,19 +262,11 @@ const StoreAppContent: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              <SEO 
+                title="Drops Calendar & Raffles" 
+                description="Never miss a drop. Stay updated with our live sneaker release calendar and exclusive raffles."
+              />
               <DropsCalendar />
-            </motion.div>
-          )}
-
-          {currentView === 'customizer' && (
-            <motion.div
-              key="customizer"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <CustomizerStudio />
             </motion.div>
           )}
 
@@ -288,6 +278,10 @@ const StoreAppContent: React.FC = () => {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              <SEO 
+                title="Order Tracking" 
+                description="Track your authenticated sneaker delivery in real-time."
+              />
               <OrderTrackingModal />
             </motion.div>
           )}

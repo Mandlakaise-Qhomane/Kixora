@@ -55,7 +55,6 @@ Every test runs in an isolated context using custom fixtures defined in `tests/f
 | :--- | :--- | :--- | :--- | :--- |
 | **C-01** | Navigation | Logo click navigates back to storefront | `REG-C01` (`tests/regression/regression-matrix.spec.ts`) | **AUTOMATED** |
 | **C-03** | Navigation | Hype Drops link switches to drops view | `CS-02` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
-| **C-04** | Navigation | 3D Lab navigation opens customizer | `CS-02` & `CS-07` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **C-07** | Search | Header search query filters catalog | `CS-03` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **C-10** | Showcase | Hero renders 4 perspective showcase cards | `CS-01` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **C-14** | Filter | Brand chips in hero jump to filtered catalog | `CS-03` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
@@ -72,7 +71,6 @@ Every test runs in an isolated context using custom fixtures defined in `tests/f
 | **C-32** | Checkout | Order submission creates tracking ID | `CS-06` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **C-33** | Tracking | Order tracking verification & status lookup | `CS-06` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **C-34** | Drops | Raffle alert subscription toggle | `CS-08` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
-| **C-35** | 3D Lab | Custom color palette & bespoke cart add | `CS-07` (`tests/customer/customer-smoke.spec.ts`) | **AUTOMATED** |
 | **A-01** | Admin | Executive Hub metric overview loads | `AS-01` (`tests/admin/admin-smoke.spec.ts`) | **AUTOMATED** |
 | **A-04** | Admin | Create new deadstock sneaker in catalog | `AS-02` & `REG-A04-07` (`tests/regression/regression-matrix.spec.ts`) | **AUTOMATED** |
 | **A-07** | Admin | Delete sneaker from catalog | `AS-02` & `REG-A04-07` (`tests/regression/regression-matrix.spec.ts`) | **AUTOMATED** |

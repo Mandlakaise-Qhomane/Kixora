@@ -1,6 +1,6 @@
 {
   "name": "Kixora",
-  "description": "Exclusive sneaker vault, bespoke 3D customizer, and drops platform.",
+  "description": "Exclusive sneaker vault and limited drops platform.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
