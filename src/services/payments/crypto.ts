@@ -100,7 +100,7 @@ export function verifyStripeSignature(
     return {
       valid: false,
       timestamp,
-      error: `Webhook timestamp is outside the tolerance window (${Math.abs(now - timestamp)}s drift > ${toleranceSeconds}s limit).`
+      error: `Webhook timestamp is outside acceptable drift tolerance (${Math.abs(now - timestamp)}s drift exceeds ${toleranceSeconds}s limit).`
     };
   }
 
@@ -198,7 +198,7 @@ export function verifyCarrierWebhookSignature(
       return {
         valid: false,
         timestamp,
-        error: `Webhook timestamp is outside the tolerance window (${drift}s drift > ${toleranceSeconds}s limit).`
+        error: `Webhook timestamp is outside acceptable drift tolerance (${drift}s drift exceeds ${toleranceSeconds}s limit).`
       };
     }
   }
