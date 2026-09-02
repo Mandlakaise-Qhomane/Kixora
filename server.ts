@@ -49,26 +49,43 @@ async function startServer() {
   // ===========================================================================
   // SECURITY MIDDLEWARE & HEADERS (Task 4)
   // ===========================================================================
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Origins allowed to embed the app in an <iframe>. Hosted previews (e.g. Google AI Studio)
+  // render the app inside a cross-origin frame, so framing is open outside production and
+  // restricted to 'self' plus ALLOWED_FRAME_ANCESTORS in production.
+  const frameAncestors = isProduction
+    ? ["'self'", ...(process.env.ALLOWED_FRAME_ANCESTORS || '').split(/[\s,]+/).filter(Boolean)]
+    : ['*'];
+
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://www.google-analytics.com"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://*.stripe.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com"],
-        connectSrc: ["'self'", "https://*.supabase.co", "https://*.stripe.com", "wss://*.supabase.co", "https://api.cloudinary.com", "https://res.cloudinary.com", "https://www.google-analytics.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://www.google-analytics.com", "https://accounts.google.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://*.stripe.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com", "https://*.googleusercontent.com"],
+        connectSrc: [
+          "'self'",
+          "https://*.supabase.co", "https://*.stripe.com", "wss://*.supabase.co",
+          "https://api.cloudinary.com", "https://res.cloudinary.com",
+          "https://www.google-analytics.com", "https://accounts.google.com",
+          ...(isProduction ? [] : ['ws:', 'wss:']),
+        ],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        frameSrc: ["'self'", "https://js.stripe.com"],
+        frameSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com"],
+        frameAncestors,
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
+        ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       },
     },
+    frameguard: false,
     crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
 
   // Standard Security Headers
   app.use((_req, res, next) => {
-    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     next();
@@ -387,7 +404,7 @@ async function startServer() {
     app.use(express.static(distPath));
     
     // SPA Fallback
-    app.get('*', (req, res) => {
+    app.get('/{*splat}', (req, res) => {
       // Avoid intercepting API routes that might have failed above
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API route not found' });
