@@ -1,29 +1,30 @@
 /**
- * KIXORA PII MASKING SPECIFICATION (Production-Ready)
- * 
- * POLICY: Full Redaction approach for maximum security posture
- * - Emails: Show domain only, redact local part
- * - Phones: Show country code only, redact all digits
- * - Names: Full redaction
- * - Addresses: Full redaction
+ * Kixora Security & PII Sanitization Utilities
+ *//**
+ * Masks sensitive PII data in strings (emails, phone numbers).
  */
-
 export function maskPII(value: string): string {
-  if (!value || typeof value !== 'string') return '[REDACTED]';
+  if (!value) return '';
 
+  // Email masking
   if (value.includes('@')) {
-    const [, domain] = value.split('@');
-    return `[REDACTED]@${domain}`;
+    const [local, domain] = value.split('@');
+    if (local.length <= 2) return `***@${domain}`;
+    return `${local[0]}${'*'.repeat(local.length - 2)}${local[local.length - 1]}@${domain}`;
   }
 
-  if (value.startsWith('+') || /^\d{7,}$/.test(value.replace(/\D/g, ''))) {
-    const countryCode = value.match(/^\+?\d{1,3}/)?.[0] || '+XX';
-    return `${countryCode}-[REDACTED]`;
+  // Phone number masking (assumes digits)
+  const digits = value.replace(/\D/g, '');
+  if (digits.length >= 7) {
+    return `${'*'.repeat(digits.length - 4)}${digits.slice(-4)}`;
   }
 
-  return '[REDACTED]';
+  return '***';
 }
 
+/**
+ * Sanitizes a data object to remove or mask PII fields before logging.
+ */
 export function sanitizeDataForLogging(data: any): any {
   if (!data || typeof data !== 'object') return data;
 
@@ -39,7 +40,16 @@ export function sanitizeDataForLogging(data: any): any {
   for (const key in sanitized) {
     if (sensitiveFields.includes(key)) {
       if (typeof sanitized[key] === 'string') {
-        sanitized[key] = maskPII(sanitized[key]);
+        // Only mask if it looks like an email or phone number (mostly digits)
+        const isEmail = sanitized[key].includes('@');
+        const digits = sanitized[key].replace(/\D/g, '');
+        const isPhone = digits.length >= 7 && digits.length <= 15;
+
+        if (isEmail || isPhone) {
+          sanitized[key] = maskPII(sanitized[key]);
+        } else {
+          sanitized[key] = '[REDACTED]';
+        }
       } else {
         sanitized[key] = '[REDACTED]';
       }
@@ -51,6 +61,9 @@ export function sanitizeDataForLogging(data: any): any {
   return sanitized;
 }
 
+/**
+ * Scrubs payment metadata by redacting sensitive payment card fields.
+ */
 export function scrubPaymentMetadata(metadata: any): any {
   if (!metadata || typeof metadata !== 'object') return metadata;
 
