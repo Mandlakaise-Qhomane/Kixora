@@ -181,9 +181,15 @@ export const CartDrawer: React.FC = () => {
               <div>
                 {appliedPromo ? (
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-[#10B981]/15 border border-[#10B981]/30 text-xs">
-                    <div className="flex items-center gap-2 text-[#10B981] font-mono font-bold">
+                    <div 
+                      id="cart-promo-applied-feedback"
+                      className="flex items-center gap-2 text-[#10B981] font-mono font-bold"
+                      aria-live="polite"
+                    >
                       <Tag className="w-3.5 h-3.5" />
-                      <span>Promo code applied: {appliedPromo.code} ({appliedPromo.discountPercent}% OFF)</span>
+                      <span id="promo-applied-feedback-text" className="font-bold" data-promo={appliedPromo.code}>
+                        Promo code applied: {appliedPromo.code} ({appliedPromo.discountPercent}% OFF)
+                      </span>
                     </div>
                     <button
                       id="cart-remove-promo-btn"
@@ -205,7 +211,8 @@ export const CartDrawer: React.FC = () => {
                     />
                     <button
                       id="cart-apply-promo-btn"
-                      type="submit"
+                      type="button"
+                      onClick={handleApplyPromo}
                       className="px-4 py-2 bg-[#262626] hover:bg-[#333333] text-white font-bold text-xs rounded-lg transition-colors"
                     >
                       Apply

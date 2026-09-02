@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+playwright-report/
+test-results/
+lint_results.json
+test_output.txt
+playwright_output.txt

@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { isSupabaseCheckoutEnabled } from '../config/features';
 import { CartItem } from '../types';
 import { paymentService } from './paymentService';
+import { emailService } from './email/emailService';
 
 export interface CustomerInfoInput {
   email: string;
@@ -96,6 +97,34 @@ export const checkoutService = {
     if (!isSupabaseConfigured() || !isSupabaseCheckoutEnabled()) {
       const mockTrackingNumber = `KX-${Math.floor(10000000 + Math.random() * 90000000)}-ZA`;
 
+      // Trigger asynchronous order confirmation email pipeline
+      emailService.sendOrderConfirmation({
+        orderCode: mockOrderCode,
+        customerEmail: input.customerInfo.email,
+        customerName: input.customerInfo.fullName,
+        items: items.map(i => ({
+          name: i.sneaker?.name || 'Sneaker Grail',
+          sku: i.sneaker?.sku,
+          sizeUs: Number(i.selectedSize || 9),
+          quantity: Number(i.quantity || 1),
+          unitPrice: Number(i.sneaker?.price || 0),
+        })),
+        subtotal,
+        discount,
+        shippingFee,
+        total,
+        shippingAddress: {
+          street: input.customerInfo.street,
+          city: input.customerInfo.city,
+          state: input.customerInfo.state,
+          zip: input.customerInfo.zip,
+          country: input.customerInfo.country,
+        },
+        paymentMethod: input.paymentMethod || 'Credit / Debit Card',
+        trackingNumber: mockTrackingNumber,
+        trackingUrl: `https://kixora.com/?track=${mockTrackingNumber}`,
+      }).catch(e => console.warn('[checkoutService] Background email dispatch notice:', e));
+
       return {
         success: true,
         orderId: `order-${Date.now()}`,
@@ -149,6 +178,34 @@ export const checkoutService = {
           errorCode,
         };
       }
+
+      // Trigger asynchronous order confirmation email pipeline
+      emailService.sendOrderConfirmation({
+        orderCode: data.order_code,
+        customerEmail: input.customerInfo.email,
+        customerName: input.customerInfo.fullName,
+        items: items.map(i => ({
+          name: i.sneaker?.name || 'Sneaker Grail',
+          sku: i.sneaker?.sku,
+          sizeUs: Number(i.selectedSize || 9),
+          quantity: Number(i.quantity || 1),
+          unitPrice: Number(i.sneaker?.price || 0),
+        })),
+        subtotal: data.subtotal,
+        discount: data.discount,
+        shippingFee: data.shipping_fee,
+        total: data.total,
+        shippingAddress: {
+          street: input.customerInfo.street,
+          city: input.customerInfo.city,
+          state: input.customerInfo.state,
+          zip: input.customerInfo.zip,
+          country: input.customerInfo.country,
+        },
+        paymentMethod: input.paymentMethod || 'Credit / Debit Card',
+        trackingNumber: data.tracking_number,
+        trackingUrl: `https://kixora.com/?track=${data.tracking_number}`,
+      }).catch(e => console.warn('[checkoutService] Background email dispatch notice:', e));
 
       return {
         success: true,

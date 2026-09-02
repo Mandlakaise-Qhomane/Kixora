@@ -1,5 +1,4 @@
 import { Sneaker } from '../../types';
-import { getOptimizedImageUrl } from '../../lib/cloudinary';
 
 export interface ProductHydratedRow {
   id: string;

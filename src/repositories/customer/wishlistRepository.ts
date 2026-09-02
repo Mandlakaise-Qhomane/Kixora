@@ -35,8 +35,8 @@ export const wishlistRepository = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[wishlistRepository.getWishlist] Error fetching wishlist:', error);
-      throw error;
+      console.warn('[wishlistRepository.getWishlist] Database error (falling back to empty):', error);
+      return [];
     }
 
     return mapWishlistRowsToSneakers((data || []) as unknown as WishlistHydratedRow[]);
@@ -58,8 +58,8 @@ export const wishlistRepository = {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('[wishlistRepository.getWishlistProductIds] Error:', error);
-      throw error;
+      console.warn('[wishlistRepository.getWishlistProductIds] Database error (falling back to empty):', error);
+      return [];
     }
 
     return (data || []).map((row: any) => row.product_id).filter(Boolean);

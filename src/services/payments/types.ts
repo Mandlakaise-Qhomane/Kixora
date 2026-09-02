@@ -47,7 +47,7 @@ export interface PaymentVerificationResponse {
 
 export interface PaymentWebhookPayload {
   provider?: PaymentProviderType;
-  payload: any;
+  payload?: any;
   signature?: string;
   signatureHeader?: string;
   rawBody?: string;

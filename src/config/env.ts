@@ -32,6 +32,11 @@ export interface ServerEnvConfig {
   payfastPassphrase: string;
   payfastMerchantKeySecret: string; 
   supabaseServiceRoleKey: string;
+  resendApiKey: string;
+  emailFrom: string;
+  theCourierGuyApiKey: string;
+  shiplogicApiKey: string;
+  shippingWebhookSecret: string;
 }
 
 export function getEnvConfig(): ClientEnvConfig {
@@ -70,7 +75,12 @@ export function getServerConfig(): ServerEnvConfig {
       stripeWebhookSecret: '',
       payfastPassphrase: '',
       payfastMerchantKeySecret: '',
-      supabaseServiceRoleKey: ''
+      supabaseServiceRoleKey: '',
+      resendApiKey: '',
+      emailFrom: '',
+      theCourierGuyApiKey: '',
+      shiplogicApiKey: '',
+      shippingWebhookSecret: '',
     };
   }
 
@@ -80,7 +90,12 @@ export function getServerConfig(): ServerEnvConfig {
     stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
     payfastPassphrase: env.PAYFAST_PASSPHRASE || '',
     payfastMerchantKeySecret: env.PAYFAST_MERCHANT_KEY || '',
-    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || ''
+    supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || '',
+    resendApiKey: env.RESEND_API_KEY || '',
+    emailFrom: env.EMAIL_FROM || 'Kixora Vault <orders@kixora.com>',
+    theCourierGuyApiKey: env.THE_COURIER_GUY_API_KEY || '',
+    shiplogicApiKey: env.SHIPLOGIC_API_KEY || '',
+    shippingWebhookSecret: env.SHIPPING_WEBHOOK_SECRET || '',
   };
 }
 

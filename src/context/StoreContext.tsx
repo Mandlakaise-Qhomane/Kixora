@@ -520,7 +520,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setAppliedPromo(found);
-    showToast('Promo Code Applied!', `${found.discountPercent}% discount activated.`, 'success');
+    showToast('Voucher Activated!', `${found.discountPercent}% discount successfully applied to vault cart.`, 'success');
     return { success: true, message: `${found.discountPercent}% discount applied!` };
   };
 

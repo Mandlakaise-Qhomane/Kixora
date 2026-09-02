@@ -117,14 +117,22 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
   }
 
   async handleWebhook(payload: PaymentWebhookPayload): Promise<PaymentWebhookResponse> {
-    // 1. Signature Verification if signature / header provided
+    // 1. Signature Verification if signature / header provided or secret is configured
     const signatureHeader = payload.signatureHeader || payload.signature;
     const secret = payload.secret || this.getWebhookSecret();
     const rawBody = payload.rawBody;
 
     let isVerified = false;
 
-    if (signatureHeader && rawBody && secret) {
+    if (secret) {
+      if (!signatureHeader || !rawBody) {
+        return {
+          success: false,
+          event: payload.payload?.type || 'stripe.webhook',
+          verified: false,
+          error: 'Missing mandatory Stripe signature header or raw request body.'
+        };
+      }
       const verification = verifyStripeSignature(
         rawBody,
         signatureHeader,
@@ -141,11 +149,38 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
         };
       }
       isVerified = true;
+    } else if (signatureHeader && rawBody) {
+      // In sandbox/testing without secret, verify if secret passed in payload
+      const verification = verifyStripeSignature(
+        rawBody,
+        signatureHeader,
+        payload.secret || '',
+        payload.toleranceSeconds ?? 300
+      );
+      if (!verification.valid) {
+        return {
+          success: false,
+          event: payload.payload?.type || 'stripe.webhook',
+          verified: false,
+          error: verification.error || 'Stripe webhook signature verification failed.'
+        };
+      }
+      isVerified = true;
     }
 
     // 2. Parse payload
     let raw = payload.payload;
-    if (typeof raw === 'string') {
+    if (!raw && rawBody) {
+      try {
+        raw = JSON.parse(rawBody);
+      } catch {
+        return {
+          success: false,
+          event: 'unknown',
+          error: 'Failed to parse JSON raw request body.'
+        };
+      }
+    } else if (typeof raw === 'string') {
       try {
         raw = JSON.parse(raw);
       } catch {

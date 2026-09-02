@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -43,19 +43,21 @@ export const CustomerAuthModal: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(isAuthModalOpen);
+  const [prevMode, setPrevMode] = useState(authModalMode);
 
-  // Reset form errors and fields when modal opens or mode changes
-  useEffect(() => {
-    setTimeout(() => {
-      setFormError(null);
-      if (!isAuthModalOpen) {
-        setEmail('');
-        setPassword('');
-        setFullName('');
-        setPhone('');
-      }
-    }, 0);
-  }, [isAuthModalOpen, authModalMode]);
+  // Reset form errors and fields when modal state changes
+  if (isAuthModalOpen !== prevOpen || authModalMode !== prevMode) {
+    setPrevOpen(isAuthModalOpen);
+    setPrevMode(authModalMode);
+    setFormError(null);
+    if (!isAuthModalOpen) {
+      setEmail('');
+      setPassword('');
+      setFullName('');
+      setPhone('');
+    }
+  }
 
   if (!isAuthModalOpen) return null;
 

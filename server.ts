@@ -5,6 +5,9 @@ import Stripe from 'stripe';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { webhookService } from './src/services/webhookService';
+import { shippingService } from './src/services/shipping/shippingService';
+import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
+import { emailService } from './src/services/email/emailService';
 import { getServerConfig } from './src/config/env';
 import { logger } from './logger';
 
@@ -52,7 +55,7 @@ async function startServer() {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://www.google-analytics.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://*.stripe.com", "https://images.unsplash.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com"],
+        imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://*.stripe.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com"],
         connectSrc: ["'self'", "https://*.supabase.co", "https://*.stripe.com", "wss://*.supabase.co", "https://api.cloudinary.com", "https://res.cloudinary.com", "https://www.google-analytics.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         frameSrc: ["'self'", "https://js.stripe.com"],
@@ -99,9 +102,12 @@ async function startServer() {
   app.use('/api/auth/', authLimiter);
   app.use('/api/payments/stripe/create-intent', checkoutLimiter);
 
-  // Payload Size Validation (Strict limits)
-  app.use('/api/webhooks/', express.raw({ type: 'application/json', limit: '100kb' }));
-  app.use('/api/payments/', express.json({ limit: '10kb' }));
+  // Payload Size Validation
+  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
+  app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
+  app.use('/api/payments/stripe/create-intent', express.json({ limit: '10kb' }));
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -234,7 +240,7 @@ async function startServer() {
    * POST /api/webhooks/payfast
    * PayFast ITN Verification & Reconciliation
    */
-  app.post('/api/webhooks/payfast', express.urlencoded({ extended: true, limit: '10kb' }), async (req, res) => {
+  app.post('/api/webhooks/payfast', express.urlencoded({ extended: true, limit: '10mb' }), async (req, res) => {
     const { payfastPassphrase } = getServerConfig();
     const payload = req.body;
 
@@ -260,6 +266,107 @@ async function startServer() {
       logger.error('[PayFast Webhook] Exception', { error: err.message });
       res.status(500).send('Internal server error');
     }
+  });
+
+  // ===========================================================================
+  // CARRIER TRACKING WEBHOOK & SHIPPING INTEGRATIONS (Phase 9)
+  // ===========================================================================
+
+  /**
+   * POST /api/webhooks/tracking
+   * Carrier Tracking Milestone Webhook Ingress (Signature-Verified, Replay-Protected & Idempotent)
+   */
+  app.post('/api/webhooks/tracking', async (req, res) => {
+    try {
+      const rawBody = Buffer.isBuffer(req.body)
+        ? req.body.toString('utf-8')
+        : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {}));
+
+      const signatureHeader = (req.headers['x-kixora-signature'] ||
+        req.headers['x-shipping-signature'] ||
+        req.headers['x-tcg-signature'] ||
+        req.headers['signature']) as string | undefined;
+
+      const timestampHeader = (req.headers['x-kixora-timestamp'] ||
+        req.headers['x-webhook-timestamp'] ||
+        req.headers['x-timestamp']) as string | undefined;
+
+      logger.info('[Tracking Webhook] Inbound carrier event received', {
+        hasSignature: !!signatureHeader,
+        hasTimestamp: !!timestampHeader,
+      });
+
+      const result = await trackingWebhookService.verifyAndProcessTrackingWebhook({
+        rawBody,
+        signatureHeader,
+        timestampHeader,
+      });
+
+      if (!result.success) {
+        logger.warn('[Tracking Webhook] Verification or processing rejected', { error: result.error });
+        return res.status(401).json({ error: result.error || 'Webhook verification failed' });
+      }
+
+      res.status(200).json(result);
+    } catch (err: any) {
+      logger.error('[Tracking Webhook] Exception', { error: err.message });
+      res.status(500).json({ error: 'Failed to process tracking webhook' });
+    }
+  });
+
+  /**
+   * POST /api/shipping/rates
+   * Real-time Multi-Carrier Shipping Rate Calculation
+   */
+  app.post('/api/shipping/rates', express.json(), async (req, res) => {
+    try {
+      const quotes = await shippingService.calculateRates(req.body);
+      res.json({ success: true, quotes });
+    } catch (err: any) {
+      logger.error('[Shipping Rates API] Exception', { error: err.message });
+      res.status(500).json({ error: 'Failed to calculate shipping rates', details: err.message });
+    }
+  });
+
+  /**
+   * POST /api/shipping/labels
+   * Admin / Automation Carrier Waybill Label Generation
+   */
+  app.post('/api/shipping/labels', express.json(), async (req, res) => {
+    try {
+      const label = await shippingService.createShipmentLabel(req.body);
+      res.json(label);
+    } catch (err: any) {
+      logger.error('[Shipping Labels API] Exception', { error: err.message });
+      res.status(500).json({ error: 'Failed to generate shipping label', details: err.message });
+    }
+  });
+
+  /**
+   * POST /api/notifications/email/order-confirmation
+   * Transactional Order Confirmation Dispatch
+   */
+  app.post('/api/notifications/email/order-confirmation', express.json(), async (req, res) => {
+    try {
+      const result = await emailService.sendOrderConfirmation(req.body);
+      res.json(result);
+    } catch (err: any) {
+      logger.error('[Email Notification API] Exception', { error: err.message });
+      res.status(500).json({ error: 'Failed to send confirmation email', details: err.message });
+    }
+  });
+
+  // Global Error Handler for API & Payload errors
+  app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (err) {
+      if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
+        logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
+        return res.status(413).json({ error: 'Request payload too large. Maximum size is 50MB.' });
+      }
+      logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
+      return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+    }
+    next();
   });
 
   // ===========================================================================

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { useAuth } from '../hooks/useAuth';
 import { paymentService } from '../services/paymentService';
@@ -43,22 +43,24 @@ export const CheckoutModal: React.FC = () => {
     country: 'South Africa'
   });
 
+  const [prevSyncState, setPrevSyncState] = useState({ 
+    auth: isAuthenticated, 
+    userId: user?.id, 
+    open: isCheckoutOpen 
+  });
+
   // Sync authenticated user details if present
-  useEffect(() => {
-    const syncForm = () => {
-      if (!user) return;
+  if (isAuthenticated !== prevSyncState.auth || user?.id !== prevSyncState.userId || isCheckoutOpen !== prevSyncState.open) {
+    setPrevSyncState({ auth: isAuthenticated, userId: user?.id, open: isCheckoutOpen });
+    if (isAuthenticated && user && isCheckoutOpen) {
       setFormData(prev => ({
         ...prev,
         fullName: user.fullName || prev.fullName,
         email: user.email || prev.email,
         phone: user.phone || prev.phone,
       }));
-    };
-
-    if (isAuthenticated && user) {
-      setTimeout(syncForm, 0);
     }
-  }, [isAuthenticated, user, isCheckoutOpen]);
+  }
 
   const [shippingMethod, setShippingMethod] = useState('Express Vault Courier (1-2 Days)');
   const [paymentMethod, setPaymentMethod] = useState('Credit / Debit Card (3D Secure)');

@@ -12,7 +12,7 @@ export interface ErrorContext {
 }
 
 class MonitoringService {
-  private isProduction = process.env.NODE_ENV === 'production';
+  private isProduction = (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') || (typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD);
 
   /**
    * Reports an error to the production monitoring system (abstraction).
@@ -34,7 +34,7 @@ class MonitoringService {
       // Stack trace is excluded in production reporting to customers/logs if sensitive,
       // but usually kept in internal reporting. Here we follow the rule of not exposing it to customers.
       stack: this.isProduction ? undefined : errorStack, 
-      environment: process.env.NODE_ENV || 'development',
+      environment: (typeof process !== 'undefined' && process.env?.NODE_ENV) || (typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE) || 'development',
     };
 
     // 3. Dispatch (Mocking production endpoint dispatch)

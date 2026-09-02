@@ -122,6 +122,109 @@ export function verifyStripeSignature(
   return { valid: true, timestamp };
 }
 
+export interface CarrierSignatureResult {
+  valid: boolean;
+  timestamp?: number;
+  error?: string;
+}
+
+/**
+ * Verify Carrier / Shipping webhook signature header with HMAC-SHA256 and timestamp drift validation.
+ * Format supported:
+ * 1. 't=1614555555,v1=abc...' (Standard timestamped HMAC)
+ * 2. 'sha256=abc...' with optional timestampHeader
+ * 3. Raw hex digest with optional timestampHeader
+ *
+ * @param rawBody - Exact unparsed string or Buffer of the HTTP request body
+ * @param signatureHeader - The signature header (e.g., 'x-kixora-signature', 'x-shipping-signature')
+ * @param secret - The webhook signing secret
+ * @param timestampHeader - Optional explicit timestamp header if not in signatureHeader
+ * @param toleranceSeconds - Maximum allowed drift between event timestamp and current time (default 300s / 5 min)
+ */
+export function verifyCarrierWebhookSignature(
+  rawBody: string,
+  signatureHeader: string,
+  secret: string,
+  timestampHeader?: string,
+  toleranceSeconds = 300
+): CarrierSignatureResult {
+  if (!rawBody || typeof rawBody !== 'string') {
+    return { valid: false, error: 'Raw body is required for webhook signature verification.' };
+  }
+  if (!signatureHeader || typeof signatureHeader !== 'string') {
+    return { valid: false, error: 'Missing webhook signature header.' };
+  }
+  if (!secret || typeof secret !== 'string') {
+    return { valid: false, error: 'Webhook signing secret is not configured.' };
+  }
+
+  let timestampStr: string | null = timestampHeader || null;
+  let signatureToCompare: string | null = null;
+
+  // Check if header is key-value formatted (e.g. t=...,v1=...)
+  if (signatureHeader.includes('=')) {
+    const parts = signatureHeader.split(',').map(p => p.trim());
+    for (const part of parts) {
+      const [key, value] = part.split('=');
+      if (key === 't' && value) {
+        timestampStr = value;
+      } else if ((key === 'v1' || key === 'sha256' || key === 'sig') && value) {
+        signatureToCompare = value;
+      }
+    }
+  } else {
+    signatureToCompare = signatureHeader.trim();
+  }
+
+  if (!signatureToCompare) {
+    return { valid: false, error: 'Signature hash missing in signature header.' };
+  }
+
+  // If timestamp is present or provided, enforce replay protection window
+  let timestamp: number | undefined;
+  if (timestampStr) {
+    timestamp = parseInt(timestampStr, 10);
+    // Support either seconds or milliseconds
+    if (timestamp > 1000000000000) {
+      timestamp = Math.floor(timestamp / 1000);
+    }
+    if (isNaN(timestamp)) {
+      return { valid: false, error: 'Invalid timestamp format in webhook header.' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const drift = Math.abs(now - timestamp);
+    if (drift > toleranceSeconds) {
+      return {
+        valid: false,
+        timestamp,
+        error: `Webhook timestamp is outside the tolerance window (${drift}s drift > ${toleranceSeconds}s limit).`
+      };
+    }
+  }
+
+  // Calculate expected HMAC
+  const payloadToSign = timestampStr ? `${timestampStr}.${rawBody}` : rawBody;
+  const expectedSignature = computeHmacSha256(payloadToSign, secret);
+
+  // Also check without timestamp prefix if direct body signing was used
+  const directSignature = computeHmacSha256(rawBody, secret);
+
+  const isValid =
+    timingSafeEqual(signatureToCompare.toLowerCase(), expectedSignature.toLowerCase()) ||
+    timingSafeEqual(signatureToCompare.toLowerCase(), directSignature.toLowerCase());
+
+  if (!isValid) {
+    return {
+      valid: false,
+      timestamp,
+      error: 'Calculated webhook signature does not match received signature.'
+    };
+  }
+
+  return { valid: true, timestamp };
+}
+
 export interface PayFastSignatureResult {
   valid: boolean;
   expectedSignature?: string;

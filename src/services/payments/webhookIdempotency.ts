@@ -64,6 +64,52 @@ class WebhookIdempotencyRegistry {
   }
 
   /**
+   * Atomically checks and acquires lock if not already processed or currently in-flight.
+   * Returns true if lock was successfully acquired (first processing attempt), false if duplicate.
+   */
+  async acquireProcessingLock(eventId: string, provider: string): Promise<boolean> {
+    if (!eventId || !provider) return false;
+
+    const key = this.makeKey(provider, eventId);
+    
+    // 1. Synchronous check-and-set for memory cache to block concurrent in-flight requests
+    if (this.inMemoryCache.has(key)) {
+      return false;
+    }
+
+    // Set optimistic lock in memory cache IMMEDIATELY before any awaits
+    this.inMemoryCache.set(key, {
+      eventId,
+      provider,
+      eventType: 'in_flight',
+      status: 'processed',
+      processedAt: new Date().toISOString(),
+    });
+
+    // 2. Check persistent database if available (secondary guard)
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await supabase
+          .from('webhook_events')
+          .select('event_id')
+          .eq('event_id', eventId)
+          .eq('provider', provider)
+          .maybeSingle();
+
+        if (!error && data) {
+          // Already in DB, so it was definitely processed before this run
+          return false;
+        }
+      } catch (err) {
+        console.warn('[WebhookIdempotency] DB lock check error:', err);
+        // Fallback to the memory lock we already set
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Record a webhook event as successfully processed.
    */
   async recordEventProcessed(record: {

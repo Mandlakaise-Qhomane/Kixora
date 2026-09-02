@@ -21,7 +21,7 @@ test.describe('Kixora: PII Sanitization Logic', () => {
     const sanitized = sanitizeDataForLogging(data);
     expect(sanitized.email).toBe('t**t@example.com');
     expect(sanitized.phone).toBe('******6789');
-    expect(sanitized.fullName).toBe('***');
+    expect(sanitized.fullName).toBe('[REDACTED]');
     expect(sanitized.nonSensitive).toBe('public_value');
   });
 

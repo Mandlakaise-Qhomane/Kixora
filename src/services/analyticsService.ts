@@ -25,7 +25,7 @@ export interface AnalyticsMetadata {
 
 class AnalyticsService {
   private OPT_OUT_KEY = 'kixora_analytics_opt_out';
-  private isProduction = process.env.NODE_ENV === 'production';
+  private isProduction = (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production') || (typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD);
 
   /**
    * Tracks a business event if the user has not opted out.

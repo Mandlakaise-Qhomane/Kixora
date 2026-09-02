@@ -136,12 +136,31 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
       };
     }
 
-    // 1. Signature Verification if signature provided in payload or wrapper
+    // 1. Signature Verification if signature provided in payload or wrapper, or passphrase configured
     const receivedSignature = payload.signature || raw.signature;
     const passphrase = payload.passphrase ?? this.getPassphrase();
     let isVerified = false;
 
-    if (receivedSignature) {
+    if (passphrase && passphrase.trim() !== '') {
+      if (!receivedSignature) {
+        return {
+          success: false,
+          event: 'payfast.itn.missing_signature',
+          verified: false,
+          error: 'Missing mandatory PayFast ITN signature.'
+        };
+      }
+      const verification = verifyPayFastSignature(raw, receivedSignature, passphrase);
+      if (!verification.valid) {
+        return {
+          success: false,
+          event: 'payfast.itn.invalid_signature',
+          verified: false,
+          error: verification.error || 'PayFast ITN signature mismatch.'
+        };
+      }
+      isVerified = true;
+    } else if (receivedSignature) {
       const verification = verifyPayFastSignature(raw, receivedSignature, passphrase);
       if (!verification.valid) {
         return {
