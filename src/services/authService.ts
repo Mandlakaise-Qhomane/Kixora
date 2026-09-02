@@ -174,6 +174,10 @@ export const authService = {
       }
     }
 
+    if (import.meta.env.PROD) {
+      return { user: null, session: null, error: "Authentication service unavailable. Please try again later." };
+    }
+
     // Mock fallback authentication
     const isAdminEmail = email.toLowerCase().includes('admin') || email.toLowerCase() === 'admin@kixora.com';
     const role: UserRole = isAdminEmail ? 'admin' : 'customer';
