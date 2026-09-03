@@ -95,7 +95,7 @@ export const checkoutService = {
 
     // Step 3: Fallback / Mock mode when Supabase is unconfigured
     if (!isSupabaseConfigured() || !isSupabaseCheckoutEnabled()) {
-      const mockTrackingNumber = `KX-${Math.floor(10000000 + Math.random() * 90000000)}-ZA`;
+      const mockTrackingNumber = `KXO-${Math.floor(1000 + Math.random() * 9000)}-TRACK-ZA`;
 
       // Trigger asynchronous order confirmation email pipeline
       emailService.sendOrderConfirmation({

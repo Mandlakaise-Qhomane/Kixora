@@ -79,7 +79,7 @@ async function startServer() {
         ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       },
     },
-    frameguard: false,
+    frameguard: { action: 'deny' },
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));

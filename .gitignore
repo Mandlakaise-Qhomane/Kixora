@@ -11,3 +11,4 @@ test-results/
 lint_results.json
 test_output.txt
 playwright_output.txt
+test-results/
