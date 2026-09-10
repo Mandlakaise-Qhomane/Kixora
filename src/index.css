@@ -12,6 +12,11 @@
     --color-background: #111111;
     --color-border: #2C2C2C;
     --color-muted: #888888;
+    --color-mist: #F5F5F5;
+  }
+
+  html {
+    color-scheme: dark;
   }
 
   body {
@@ -30,7 +35,32 @@
   }
 }
 
-/* Custom glow & utilities */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-[#FF7A00] hover:bg-[#E56E00] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#FF7A00]/25 transition-all duration-200 hover:scale-[1.02];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg bg-transparent text-white font-bold text-xs uppercase tracking-wider border border-[#2C2C2C] hover:border-[#444444] hover:bg-[#1A1A1A] transition-all duration-200;
+  }
+
+  .chip {
+    @apply inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider;
+  }
+
+  .chip-new {
+    @apply chip bg-[#FF7A00] text-black;
+  }
+
+  .chip-sale {
+    @apply chip bg-[#252525] text-white border border-[#3A3A3A];
+  }
+
+  .chip-limited {
+    @apply chip bg-[#252525] text-[#FF7A00] border border-[#FF7A00]/40;
+  }
+}
+
 .glow-orange {
   box-shadow: 0 0 35px -5px rgba(255, 122, 0, 0.45);
 }
@@ -43,7 +73,12 @@
   box-shadow: 0 0 25px 2px rgba(255, 122, 0, 0.6), inset 0 0 15px rgba(255, 122, 0, 0.4);
 }
 
-/* Custom scrollbars */
+.logo-mark {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -16,6 +16,7 @@ import { AdminRoute } from './routes/AdminRoute';
 const AdminDashboard = React.lazy(() => import('./components/admin/AdminDashboard').then(module => ({ default: module.AdminDashboard })));
 import { Toast } from './components/Toast';
 import { Footer } from './components/Footer';
+import { MobileNav } from './components/MobileNav';
 import { SEO } from './components/SEO';
 import { 
   ArrowUpDown, 
@@ -231,7 +232,7 @@ const StoreAppContent: React.FC = () => {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#111111] text-[#F5F5F5] flex flex-col font-sans selection:bg-[#FF7A00] selection:text-black">
+    <div className="min-h-screen bg-[#111111] text-[#F5F5F5] flex flex-col font-sans selection:bg-[#FF7A00] selection:text-black pb-16 lg:pb-0">
       {/* Top Navigation matching Reference Image */}
       <Navbar onToggleMobileFilters={() => setIsMobileFiltersOpen(true)} />
 
@@ -342,6 +343,7 @@ const StoreAppContent: React.FC = () => {
 
       {/* Footer matching Kixora visual system */}
       {currentView !== 'admin' && <Footer />}
+      {currentView !== 'admin' && <MobileNav />}
     </div>
   );
 };
