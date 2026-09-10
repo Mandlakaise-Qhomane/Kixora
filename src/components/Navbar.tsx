@@ -3,12 +3,12 @@ import { useStore } from '../context/StoreContext';
 import { useAuth } from '../hooks/useAuth';
 import { inspectHostname } from '../routes/DomainGuard';
 import { ViewMode } from '../types';
-import { 
-  Search, 
-  Heart, 
-  ShoppingBag, 
-  User, 
-  Menu, 
+import {
+  Search,
+  Heart,
+  ShoppingBag,
+  User,
+  Menu,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -18,12 +18,12 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = () => {
-  const { 
-    cart, 
-    wishlist, 
-    setIsCartOpen, 
-    setIsWishlistOpen, 
-    currentView, 
+  const {
+    cart,
+    wishlist,
+    setIsCartOpen,
+    setIsWishlistOpen,
+    currentView,
     setCurrentView,
     filters,
     setFilters,
@@ -46,24 +46,25 @@ export const Navbar: React.FC<NavbarProps> = () => {
     <header className="sticky top-0 z-40 w-full bg-[#111111]/95 backdrop-blur-md border-b border-[#2C2C2C]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 gap-4">
-          {/* Brand Logo matching Reference Image */}
           <div className="flex items-center gap-3">
             <button
               id="header-logo-btn"
               onClick={() => handleNavClick('store')}
-              className="flex items-center gap-2 group text-left focus:outline-none"
-              aria-label="Kixora"
+              className="flex flex-col items-start group text-left focus:outline-none"
+              aria-label="Kixora — Own the Culture"
             >
               <span className="sr-only">Kixora</span>
-              <div aria-hidden="true" className="font-display font-extrabold text-2xl sm:text-3xl tracking-wider text-white flex items-center">
+              <div aria-hidden="true" className="logo-mark font-display font-extrabold text-2xl sm:text-3xl tracking-wider text-white flex items-center leading-none">
                 <span>KI</span>
                 <span className="text-[#FF7A00] drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]">X</span>
                 <span>ORA</span>
               </div>
+              <span className="hidden sm:block mt-1 text-[9px] font-mono tracking-[0.28em] text-[#888888] uppercase">
+                Own the Culture
+              </span>
             </button>
           </div>
 
-          {/* Center Navigation Links matching Reference Image: HOME, SHOP, NEW RELEASES, BRANDS, ABOUT */}
           <nav className="hidden lg:flex items-center space-x-8 text-xs font-bold tracking-wider uppercase font-sans">
             <button
               id="nav-link-home"
@@ -88,9 +89,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 const el = document.getElementById('catalog-section');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
-              className={`relative py-2 transition-colors ${
-                currentView === 'shop' ? 'text-white' : 'text-[#888888] hover:text-white'
-              }`}
+              className="relative py-2 text-[#888888] hover:text-white transition-colors"
             >
               <span>SHOP</span>
             </button>
@@ -131,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 currentView === 'tracking' ? 'text-white' : 'text-[#888888] hover:text-white'
               }`}
             >
-              <span>AUTHENTICITY</span>
+              <span>ABOUT</span>
               {currentView === 'tracking' && (
                 <motion.div
                   layoutId="activeNavIndicator"
@@ -141,9 +140,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
             </button>
           </nav>
 
-          {/* Right Header Controls */}
           <div className="flex items-center space-x-3 sm:space-x-4">
-            {/* Search Input matching reference image */}
             <div className="hidden md:flex items-center relative w-60 lg:w-68">
               <Search className="w-4 h-4 text-[#888888] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -164,7 +161,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
               )}
             </div>
 
-            {/* Wishlist Icon */}
             <button
               id="header-wishlist-button"
               onClick={() => setIsWishlistOpen(true)}
@@ -177,9 +173,7 @@ export const Navbar: React.FC<NavbarProps> = () => {
               )}
             </button>
 
-            {/* DOMAIN-AWARE AUTH / ADMIN CONTROLS */}
             {isAdminDomain ? (
-              /* Admin Subdomain: Admin Hub Toggle */
               <button
                 id="header-admin-profile-button"
                 onClick={() => handleNavClick(currentView === 'admin' ? 'store' : 'admin')}
@@ -196,7 +190,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 </span>
               </button>
             ) : (
-              /* Customer Domain: Customer Auth / Account Control */
               <button
                 id="header-user-button"
                 data-testid="header-user-button"
@@ -231,7 +224,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
               </button>
             )}
 
-            {/* Cart Icon with Orange Badge counter matching reference image */}
             <button
               id="header-cart-button"
               onClick={() => setIsCartOpen(true)}
@@ -245,7 +237,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
               )}
             </button>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-2 text-[#888888] hover:text-white rounded-lg"
@@ -256,7 +247,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
@@ -265,7 +255,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden bg-[#111111] border-b border-[#2C2C2C] px-4 py-6 space-y-4"
           >
-            {/* Mobile Search */}
             <div className="relative w-full mb-4">
               <Search className="w-4 h-4 text-[#888888] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -277,7 +266,6 @@ export const Navbar: React.FC<NavbarProps> = () => {
               />
             </div>
 
-            {/* Customer Account Strip on Mobile */}
             {!isAdminDomain && (
               <div className="p-3 rounded-xl bg-[#181818] border border-[#2B2B2B] flex items-center justify-between">
                 {isAuthenticated && user ? (
@@ -344,20 +332,20 @@ export const Navbar: React.FC<NavbarProps> = () => {
                 onClick={() => handleNavClick('drops')}
                 className={`p-3 rounded-lg text-left ${currentView === 'drops' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#F5F5F5]'}`}
               >
-                New Releases 🔥
+                New Releases
               </button>
               <button
                 onClick={() => handleNavClick('tracking')}
                 className={`p-3 rounded-lg text-left ${currentView === 'tracking' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#F5F5F5]'}`}
               >
-                Track Order 📦
+                About
               </button>
               {isAdminDomain && (
                 <button
                   onClick={() => handleNavClick('admin')}
                   className={`p-3 rounded-lg text-left ${currentView === 'admin' ? 'bg-[#FF7A00] text-black' : 'bg-[#1A1A1A] text-[#FF7A00]'}`}
                 >
-                  Admin Panel ⚡
+                  Admin Panel
                 </button>
               )}
             </div>

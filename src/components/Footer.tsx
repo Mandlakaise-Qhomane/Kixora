@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Instagram, Twitter, Youtube } from 'lucide-react';
+import { Instagram, Twitter, Youtube, Smartphone, Moon, Zap, LineChart, Shield } from 'lucide-react';
 import { PrivacySettings } from './PrivacySettings';
 
 export const Footer: React.FC = () => {
@@ -10,15 +10,33 @@ export const Footer: React.FC = () => {
   return (
     <footer className="w-full bg-[#0D0D0D] border-t border-[#222222] text-[#888888] text-xs font-sans">
       {isPrivacyOpen && <PrivacySettings isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />}
+
+      <div className="border-b border-[#1C1C1C] bg-[#111111]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {[
+            { icon: Shield, label: 'PWA Ready' },
+            { icon: Moon, label: 'Dark Mode First' },
+            { icon: Zap, label: 'Ultra Fast' },
+            { icon: LineChart, label: 'SEO Optimized' },
+            { icon: Smartphone, label: 'Mobile First' },
+          ].map(({ icon: Icon, label }) => (
+            <div key={label} className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-[#F5F5F5]">
+              <Icon className="w-3.5 h-3.5 text-[#FF7A00]" />
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Brand Info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="font-display font-black text-2xl tracking-wider text-white flex items-center">
               <span>KI</span>
               <span className="text-[#FF7A00]">X</span>
               <span>ORA</span>
             </div>
+            <p className="text-[10px] font-mono tracking-[0.28em] text-[#888888] uppercase">Own the Culture</p>
             <p className="text-xs text-[#888888] leading-relaxed max-w-sm">
               The premier destination for authentic deadstock grails, limited collaborations, and high-heat sneaker releases. Authenticated by expert sneakerheads.
             </p>
@@ -29,7 +47,6 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Links */}
           <div className="space-y-3">
             <h4 className="font-display font-bold text-xs uppercase tracking-wider text-white">SHOP VAULT</h4>
             <ul className="space-y-2 text-xs">
@@ -71,13 +88,12 @@ export const Footer: React.FC = () => {
                   onClick={() => setCurrentView('drops')}
                   className="hover:text-[#FF7A00] text-[#FF7A00] transition-colors"
                 >
-                  Shock Drops & Raffles 🔥
+                  Shock Drops & Raffles
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Brands */}
           <div className="space-y-3">
             <h4 className="font-display font-bold text-xs uppercase tracking-wider text-white">BRANDS</h4>
             <ul className="space-y-2 text-xs">
@@ -89,9 +105,8 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Security & Authenticity */}
           <div className="space-y-3">
-            <h4 className="font-display font-bold text-xs uppercase tracking-wider text-white">AUTHENTICITY</h4>
+            <h4 className="font-display font-bold text-xs uppercase tracking-wider text-white">ABOUT</h4>
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => setCurrentView('tracking')} className="hover:text-white">12-Point Inspection</button></li>
               <li><button onClick={() => setCurrentView('tracking')} className="hover:text-white">Track Your Order</button></li>
@@ -100,7 +115,6 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="pt-8 border-t border-[#1C1C1C] flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] font-mono">
           <p>© {new Date().getFullYear()} KIXORA Sneaker Vault. All Rights Reserved.</p>
           <div className="flex items-center gap-6">
