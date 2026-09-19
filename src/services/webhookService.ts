@@ -73,6 +73,15 @@ export const webhookService = {
         };
       }
 
+      if (['paid', 'refunded'].includes(driverRes.newStatus || '') && !driverRes.orderCode) {
+        return {
+          success: false,
+          provider,
+          event: driverRes.event || 'invalid_payment_event',
+          error: 'Payment event is missing an order reference.'
+        };
+      }
+
       // 2. Determine unique Event ID for idempotency
       const eventId = input.eventIdOverride ||
         (driverRes.gatewayMetadata?.stripeEventId) ||
@@ -135,7 +144,7 @@ export const webhookService = {
         success: false,
         provider,
         event: 'error',
-        error: err.message || 'Fatal error during webhook reconciliation.'
+        error: 'Webhook processing failed.'
       };
     }
   },
@@ -208,7 +217,7 @@ export const webhookService = {
 
     try {
       // Find order by code or id
-      let query = supabase.from('orders').select('id, order_code, current_status, payment_status, payment_reference');
+      let query = supabase.from('orders').select('id, order_code, current_status, payment_status, payment_reference, total');
       if (orderCode) {
         query = query.eq('order_code', orderCode);
       } else if (paymentIntentId) {
@@ -233,6 +242,19 @@ export const webhookService = {
           success: true, 
           orderStatus: newStatus === 'paid' ? 'Authenticated' : (newStatus === 'failed' || newStatus === 'cancelled' || newStatus === 'refunded' ? 'Cancelled' : 'Processing') 
         };
+      }
+
+      if (newStatus === 'paid') {
+        const receivedAmount = provider === 'stripe'
+          ? gatewayMetadata?.amountReceived
+          : gatewayMetadata?.amountGross;
+        if (typeof receivedAmount !== 'number' || !Number.isFinite(receivedAmount) ||
+            Math.abs(receivedAmount - Number(order.total)) > 0.01) {
+          return { success: false, error: 'Payment amount does not match the order total.' };
+        }
+        if (order.payment_reference && paymentIntentId && order.payment_reference !== paymentIntentId) {
+          return { success: false, error: 'Payment reference does not match the order.' };
+        }
       }
 
       let nextOrderStatus = order.current_status;
@@ -299,7 +321,7 @@ export const webhookService = {
       };
     } catch (err: any) {
       console.error('[webhookService.reconcileOrderState] Exception:', err);
-      return { success: false, error: err.message || 'Database reconciliation failed.' };
+      return { success: false, error: 'Order reconciliation failed.' };
     }
   }
 };

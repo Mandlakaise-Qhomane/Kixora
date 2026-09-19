@@ -26,6 +26,9 @@ const drivers: Record<PaymentProviderType, PaymentGatewayDriver> = {
  * Retrieve a payment driver by explicit provider name.
  */
 export function getPaymentDriver(provider?: PaymentProviderType): PaymentGatewayDriver {
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production' && provider === 'mock') {
+    throw new Error('Mock payment mode is strictly prohibited in production.');
+  }
   if (provider && drivers[provider]) {
     return drivers[provider];
   }
@@ -38,7 +41,14 @@ export function getPaymentDriver(provider?: PaymentProviderType): PaymentGateway
 export function getActivePaymentDriver(): PaymentGatewayDriver {
   const config = getEnvConfig();
   const provider = config.paymentProviderMode;
-  return drivers[provider] || drivers.mock;
+  const driver = drivers[provider];
+  if (!driver) {
+    throw new Error(`Unsupported payment provider: ${provider}`);
+  }
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production' && provider === 'mock') {
+    throw new Error('Mock payment mode is strictly prohibited in production.');
+  }
+  return driver;
 }
 
 /**

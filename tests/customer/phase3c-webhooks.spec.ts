@@ -146,10 +146,17 @@ test.describe('Phase 3C: Payment Verification & Secure Webhook Handling', () => 
         }
       }
     };
+    const duplicateRawBody = JSON.stringify(payload);
+    const duplicateTimestamp = Math.floor(Date.now() / 1000);
+    const duplicateSecret = 'whsec_idempotency_test';
+    const duplicateSignature = computeHmacSha256(`${duplicateTimestamp}.${duplicateRawBody}`, duplicateSecret);
 
     const duplicateRes = await webhookService.processWebhook({
       provider: 'stripe',
-      payload
+      payload,
+      rawBody: duplicateRawBody,
+      signatureHeader: `t=${duplicateTimestamp},v1=${duplicateSignature}`,
+      secret: duplicateSecret,
     });
 
     expect(duplicateRes.success).toBe(true);

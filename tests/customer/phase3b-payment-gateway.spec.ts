@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { generatePayFastSignature, computeHmacSha256 } from '../../src/services/payments/crypto';
 import { getPaymentDriver, getActivePaymentDriver } from '../../src/services/payments';
 import { MockPaymentDriver } from '../../src/services/payments/mockDriver';
 import { StripePaymentDriver } from '../../src/services/payments/stripeDriver';
@@ -87,14 +88,17 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     const payfastDriver = new PayFastPaymentDriver();
 
     // 1. COMPLETE event
+    const completePayload = {
+      payment_status: 'COMPLETE',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+      pf_payment_id: '12345678',
+      amount_gross: '2500.00',
+    };
     const completeRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'COMPLETE',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-        pf_payment_id: '12345678',
-        amount_gross: '2500.00',
-      }
+      payload: completePayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(completePayload, 'phase4-test-passphrase'),
     });
 
     expect(completeRes.success).toBe(true);
@@ -102,25 +106,31 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     expect(completeRes.orderCode).toBe('KXO-5555');
 
     // 2. FAILED event
+    const failedPayload = {
+      payment_status: 'FAILED',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+      pf_payment_id: '12345678',
+    };
     const failedRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'FAILED',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-        pf_payment_id: '12345678',
-      }
+      payload: failedPayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(failedPayload, 'phase4-test-passphrase'),
     });
 
     expect(failedRes.success).toBe(true);
     expect(failedRes.newStatus).toBe('failed');
 
     // 3. CANCELLED event
+    const cancelledPayload = {
+      payment_status: 'CANCELLED',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+    };
     const cancelledRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'CANCELLED',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-      }
+      payload: cancelledPayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(cancelledPayload, 'phase4-test-passphrase'),
     });
 
     expect(cancelledRes.success).toBe(true);
@@ -131,17 +141,24 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     const stripeDriver = new StripePaymentDriver();
 
     // 1. payment_intent.succeeded
-    const succRes = await stripeDriver.handleWebhook({
-      provider: 'stripe',
-      payload: {
-        type: 'payment_intent.succeeded',
-        data: {
-          object: {
-            id: 'pi_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
+    const stripeSecret = 'phase4-stripe-secret';
+    const successPayload = {
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_stripe_test123',
+          metadata: { orderCode: 'KXO-9999' }
         }
       }
+    };
+    const stripeTimestamp = Math.floor(Date.now() / 1000);
+    const successRawBody = JSON.stringify(successPayload);
+    const succRes = await stripeDriver.handleWebhook({
+      provider: 'stripe',
+      payload: successPayload,
+      rawBody: successRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${successRawBody}`, stripeSecret)}`,
     });
 
     expect(succRes.success).toBe(true);
@@ -149,34 +166,34 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     expect(succRes.orderCode).toBe('KXO-9999');
 
     // 2. payment_intent.payment_failed
+    const failedPayload = {
+      type: 'payment_intent.payment_failed',
+      data: { object: { id: 'pi_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
+    };
+    const failedRawBody = JSON.stringify(failedPayload);
     const failRes = await stripeDriver.handleWebhook({
       provider: 'stripe',
-      payload: {
-        type: 'payment_intent.payment_failed',
-        data: {
-          object: {
-            id: 'pi_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
-        }
-      }
+      payload: failedPayload,
+      rawBody: failedRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${failedRawBody}`, stripeSecret)}`,
     });
 
     expect(failRes.success).toBe(true);
     expect(failRes.newStatus).toBe('failed');
 
     // 3. charge.refunded
+    const refundPayload = {
+      type: 'charge.refunded',
+      data: { object: { id: 'ch_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
+    };
+    const refundRawBody = JSON.stringify(refundPayload);
     const refundRes = await stripeDriver.handleWebhook({
       provider: 'stripe',
-      payload: {
-        type: 'charge.refunded',
-        data: {
-          object: {
-            id: 'ch_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
-        }
-      }
+      payload: refundPayload,
+      rawBody: refundRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${refundRawBody}`, stripeSecret)}`,
     });
 
     expect(refundRes.success).toBe(true);
@@ -201,9 +218,27 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
   });
 
   test('PG-07: Client checkout flow executes cleanly with payment gateway integration', async ({ page }) => {
-    await page.goto('/?domain=customer');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/?domain=customer', { waitUntil: 'commit' });
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('kixora_auth_session', JSON.stringify({
+        user: {
+          id: 'customer-phase4',
+          email: 'customer@kixora.test',
+          role: 'customer',
+          fullName: 'Phase 4 Customer',
+          appMetadata: { role: 'customer' },
+          userMetadata: { full_name: 'Phase 4 Customer' },
+        },
+        accessToken: 'mock_jwt_customer_phase4',
+        expiresAt: Math.floor(Date.now() / 1000) + 86400,
+      }));
+    });
+    await page.reload({ waitUntil: 'commit' });
+    await page.waitForSelector('header', { state: 'visible' });
+    await page.addStyleTag({
+      content: '* { transition-duration: 0s !important; animation-duration: 0s !important; }',
+    });
 
     // 1. Add product to cart (automatically opens cart drawer)
     const addBtn = page.locator('button[id^="add-to-cart-btn-"]').first();
@@ -213,7 +248,8 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     // 2. Click proceed to checkout in drawer
     const checkoutBtn = page.locator('#cart-proceed-checkout-btn');
     await expect(checkoutBtn).toBeVisible();
-    await checkoutBtn.click();
+    await checkoutBtn.click({ force: true });
+    await page.waitForTimeout(250);
 
     // 3. Checkout modal is visible
     const modalBackdrop = page.locator('#checkout-modal-backdrop');

@@ -1,5 +1,11 @@
 import { test as base, expect, Page } from '@playwright/test';
 
+async function stabilizePage(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: '* { transition-duration: 0s !important; animation-duration: 0s !important; }',
+  });
+}
+
 // Define custom fixture types
 type KixoraFixtures = {
   resetStore: void;
@@ -11,11 +17,15 @@ export const test = base.extend<KixoraFixtures>({
   // Automatically clear localStorage before each test so tests are completely isolated
   resetStore: [
     async ({ page }, use) => {
-      await page.goto('/');
+      await page.goto('/', { waitUntil: 'commit' });
+      await page.waitForSelector('header', { state: 'visible' });
+      await stabilizePage(page);
       await page.evaluate(() => {
         localStorage.clear();
       });
-      await page.reload();
+      await page.reload({ waitUntil: 'commit' });
+      await page.waitForSelector('header', { state: 'visible' });
+      await stabilizePage(page);
       await page.waitForLoadState('domcontentloaded');
       await use();
     },
@@ -23,13 +33,17 @@ export const test = base.extend<KixoraFixtures>({
   ],
 
   customerPage: async ({ page }, use) => {
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'commit' });
+    await page.waitForSelector('header', { state: 'visible' });
+    await stabilizePage(page);
     await page.waitForSelector('header', { state: 'visible' });
     await use(page);
   },
 
   adminPage: async ({ page }, use) => {
-    await page.goto('/?domain=admin');
+    await page.goto('/?domain=admin', { waitUntil: 'commit' });
+    await page.waitForSelector('header', { state: 'visible' });
+    await stabilizePage(page);
     await page.evaluate(() => {
       const mockAdminSession = {
         user: {
@@ -46,10 +60,12 @@ export const test = base.extend<KixoraFixtures>({
       };
       localStorage.setItem('kixora_auth_session', JSON.stringify(mockAdminSession));
     });
-    await page.reload();
+    await page.reload({ waitUntil: 'commit' });
+    await page.waitForSelector('header', { state: 'visible' });
+    await stabilizePage(page);
     const adminBtn = page.locator('#header-admin-profile-button');
     if (await adminBtn.isVisible()) {
-      await adminBtn.click();
+      await adminBtn.click({ force: true });
     }
     await page.waitForSelector('#admin-nav-dashboard', { state: 'visible' });
     await use(page);

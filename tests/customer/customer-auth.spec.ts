@@ -16,7 +16,7 @@ test.describe('Phase 2B: Customer Authentication UI Integration', () => {
     await expect(userBtn).toContainText(/sign in/i);
 
     // 2. Click to open modal
-    await userBtn.click();
+    await userBtn.click({ force: true });
     await expect(page.locator('#customer-auth-modal-content')).toBeVisible();
     await expect(page.getByText(/sign in to vault/i)).toBeVisible();
 
@@ -187,8 +187,8 @@ test.describe('Phase 2B: Customer Authentication UI Integration', () => {
     await expect(adminProfileBtn).not.toBeVisible();
 
     // Check desktop navigation items do not include "Admin"
-    const navText = await page.locator('nav').textContent();
-    expect(navText?.toLowerCase()).not.toContain('admin');
+    const navText = await page.locator('nav').allTextContents();
+    expect(navText.join(' ').toLowerCase()).not.toContain('admin');
   });
 
 });

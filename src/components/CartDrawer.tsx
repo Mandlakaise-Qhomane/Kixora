@@ -44,8 +44,8 @@ export const CartDrawer: React.FC = () => {
   };
 
   const handleProceedCheckout = () => {
-    setIsCartOpen(false);
     setIsCheckoutOpen(true);
+    setIsCartOpen(false);
   };
 
   return (
@@ -248,6 +248,7 @@ export const CartDrawer: React.FC = () => {
               {/* Checkout Button */}
               <button
                 id="cart-proceed-checkout-btn"
+                type="button"
                 onClick={handleProceedCheckout}
                 className="w-full py-3.5 bg-[#FF7A00] hover:bg-[#E56E00] text-black font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-[#FF7A00]/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01]"
               >

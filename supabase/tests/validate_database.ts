@@ -95,22 +95,12 @@ async function runDatabaseValidation() {
   console.log('  KIXORA DATABASE MIGRATION & RLS/INTEGRITY TEST SUITE');
   console.log('===============================================================\n');
 
-  const migrationFiles = [
-    '0001_extensions.sql',
-    '0002_profiles.sql',
-    '0003_catalog.sql',
-    '0004_inventory.sql',
-    '0005_customer_commerce.sql',
-    '0006_orders.sql',
-    '0007_drops.sql',
-    '0008_admin.sql',
-    '0009_functions.sql',
-    '0010_rls.sql',
-    '0011_seed_data.sql'
-  ];
+  const migrationFiles = fs.readdirSync(path.join(process.cwd(), 'supabase', 'migrations'))
+    .filter(file => /^\d+_.*\.sql$/.test(file))
+    .sort();
 
-  // Test 1: Full AST Syntax Parsing for all 11 Migrations
-  console.log('▶ Check 1: Validating Complete PostgreSQL AST Syntax Across All 11 Migrations...');
+  // Test 1: Full AST Syntax Parsing for every migration
+  console.log(`▶ Check 1: Validating PostgreSQL AST Syntax Across All ${migrationFiles.length} Migrations...`);
   for (const file of migrationFiles) {
     const filePath = path.join(process.cwd(), 'supabase', 'migrations', file);
     const sql = fs.readFileSync(filePath, 'utf8');
@@ -430,7 +420,7 @@ async function runDatabaseValidation() {
   console.log(`  ✓ Configured ${policyCount} granular security policies (Customer, Admin, Super Admin).`);
 
   console.log('\n===============================================================');
-  console.log('  ALL 11 DATABASE VALIDATION & INTEGRITY CHECKS PASSED (100%)');
+  console.log(`  ALL DATABASE VALIDATION & INTEGRITY CHECKS PASSED (100%)`);
   console.log('===============================================================\n');
 }
 
