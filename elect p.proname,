@@ -1,0 +1,43 @@
+[1mdiff --git a/supabase/migrations/0021_security_hardening.sql b/supabase/migrations/0021_security_hardening.sql[m
+[1mindex d7a89b8..55c26d8 100644[m
+[1m--- a/supabase/migrations/0021_security_hardening.sql[m
+[1m+++ b/supabase/migrations/0021_security_hardening.sql[m
+[36m@@ -5,34 +5,22 @@[m
+ -- ==============================================================================[m
+ [m
+ -- 1. Fix is_admin and is_super_admin to be more flexible (support optional UID)[m
+[31m-CREATE OR REPLACE FUNCTION public.is_admin(p_user_id UUID DEFAULT NULL)[m
+[32m+[m[32mCREATE OR REPLACE FUNCTION public.is_admin()[m
+ RETURNS BOOLEAN AS $$[m
+ DECLARE[m
+   v_role TEXT;[m
+ BEGIN[m
+[31m-  -- If specific UID provided, check that profile directly[m
+[31m-  -- Otherwise, check current JWT claims or authenticated profile[m
+[31m-  IF p_user_id IS NOT NULL THEN[m
+[31m-    SELECT role INTO v_role FROM public.profiles WHERE id = p_user_id;[m
+[31m-  ELSE[m
+[31m-    v_role := public.get_auth_role();[m
+[31m-  END IF;[m
+[31m-[m
+[32m+[m[32m  v_role := public.get_auth_role();[m
+   RETURN v_role IN ('admin', 'super_admin');[m
+ END;[m
+ $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;[m
+ [m
+[31m-CREATE OR REPLACE FUNCTION public.is_super_admin(p_user_id UUID DEFAULT NULL)[m
+[32m+[m[32mCREATE OR REPLACE FUNCTION public.is_super_admin()[m
+ RETURNS BOOLEAN AS $$[m
+ DECLARE[m
+   v_role TEXT;[m
+ BEGIN[m
+[31m-  IF p_user_id IS NOT NULL THEN[m
+[31m-    SELECT role INTO v_role FROM public.profiles WHERE id = p_user_id;[m
+[31m-  ELSE[m
+[31m-    v_role := public.get_auth_role();[m
+[31m-  END IF;[m
+[31m-[m
+[32m+[m[32m  v_role := public.get_auth_role();[m
+   RETURN v_role = 'super_admin';[m
+ END;[m
+ $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;[m

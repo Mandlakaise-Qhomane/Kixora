@@ -75,10 +75,17 @@ ALTER TABLE public.inventory_sync_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fulfillment_batches ENABLE ROW LEVEL SECURITY;
 
 -- Admin-only policies
-CREATE POLICY admin_full_access_locations ON public.fulfillment_locations FOR ALL TO authenticated USING (public.is_admin(auth.uid()));
-CREATE POLICY admin_full_access_channels ON public.fulfillment_channels FOR ALL TO authenticated USING (public.is_admin(auth.uid()));
-CREATE POLICY admin_full_access_sync_logs ON public.inventory_sync_logs FOR ALL TO authenticated USING (public.is_admin(auth.uid()));
-CREATE POLICY admin_full_access_batches ON public.fulfillment_batches FOR ALL TO authenticated USING (public.is_admin(auth.uid()));
 
+CREATE POLICY admin_full_access_locations ON public.fulfillment_locations
+  FOR ALL TO authenticated USING (public.is_admin());
+
+CREATE POLICY admin_full_access_channels ON public.fulfillment_channels
+  FOR ALL TO authenticated USING (public.is_admin());
+
+CREATE POLICY admin_full_access_sync_logs ON public.inventory_sync_logs
+  FOR ALL TO authenticated USING (public.is_admin());
+
+CREATE POLICY admin_full_access_batches ON public.fulfillment_batches
+  FOR ALL TO authenticated USING (public.is_admin());
 -- Read-only for authenticated users (optional, if needed for some UI)
 -- ...
