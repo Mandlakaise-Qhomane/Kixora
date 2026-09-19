@@ -50,11 +50,18 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
     try {
       // Production fix: Call server-side endpoint to create real PaymentIntent
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      
+      // Fetch CSRF Token
+      const csrfRes = await fetch(`${baseUrl}/api/csrf-token`, { credentials: 'include' });
+      const csrfData = await csrfRes.json();
+
       const response = await fetch(`${baseUrl}/api/payments/stripe/create-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'CSRF-Token': csrfData.csrfToken
         },
+        credentials: 'include',
         body: JSON.stringify({
           amount: request.amount,
           currency: request.currency || 'ZAR',

@@ -101,7 +101,14 @@ export function getServerConfig(): ServerEnvConfig {
 
 export function isPaymentConfigured(): boolean {
   const config = getEnvConfig();
-  if (config.paymentProviderMode === 'mock') return true;
+  if (config.paymentProviderMode === 'mock') {
+    const isProdBrowser = typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD;
+    const isProdServer = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
+    if (isProdBrowser || isProdServer) {
+      throw new Error('Payment configuration Error: Mock payment mode is strictly prohibited in production builds.');
+    }
+    return true;
+  }
   if (config.paymentProviderMode === 'stripe') return !!config.stripePublishableKey || !!config.paymentPublicKey;
   if (config.paymentProviderMode === 'payfast') return !!config.payfastMerchantId && !!config.payfastMerchantKey;
   return !!config.paymentPublicKey;

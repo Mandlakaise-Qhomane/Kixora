@@ -4,6 +4,9 @@ import { createServer as createViteServer } from 'vite';
 import Stripe from 'stripe';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import csurf from 'csurf';
+import cookieParser from 'cookie-parser';
 import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
@@ -58,6 +61,28 @@ async function startServer() {
     ? ["'self'", ...(process.env.ALLOWED_FRAME_ANCESTORS || '').split(/[\s,]+/).filter(Boolean)]
     : ['*'];
 
+  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['https://kixora.com'];
+  
+  app.use(cors({
+    origin: isProduction 
+      ? (origin, callback) => {
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            callback(new Error('Not allowed by CORS'));
+          }
+        }
+      : '*',
+    credentials: true
+  }));
+
+  app.use(cookieParser());
+  const csrfProtection = csurf({ cookie: true });
+  
+  app.get('/api/csrf-token', csrfProtection, (req, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
+
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -79,7 +104,7 @@ async function startServer() {
         ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       },
     },
-    frameguard: { action: 'deny' },
+    frameguard: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
@@ -123,8 +148,8 @@ async function startServer() {
   app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use('/api/payments/stripe/create-intent', express.json({ limit: '10kb' }));
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -172,7 +197,7 @@ async function startServer() {
   const { stripeSecretKey } = getServerConfig();
   const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
-  app.post('/api/payments/stripe/create-intent', async (req, res) => {
+  app.post('/api/payments/stripe/create-intent', csrfProtection, async (req, res) => {
     if (!stripe) {
       logger.error('[Stripe] Missing STRIPE_SECRET_KEY');
       return res.status(500).json({ error: 'Stripe is not configured on the server.' });
@@ -335,7 +360,7 @@ async function startServer() {
    * POST /api/shipping/rates
    * Real-time Multi-Carrier Shipping Rate Calculation
    */
-  app.post('/api/shipping/rates', express.json(), async (req, res) => {
+  app.post('/api/shipping/rates', express.json(), csrfProtection, async (req, res) => {
     try {
       const quotes = await shippingService.calculateRates(req.body);
       res.json({ success: true, quotes });
@@ -349,7 +374,7 @@ async function startServer() {
    * POST /api/shipping/labels
    * Admin / Automation Carrier Waybill Label Generation
    */
-  app.post('/api/shipping/labels', express.json(), async (req, res) => {
+  app.post('/api/shipping/labels', express.json(), csrfProtection, async (req, res) => {
     try {
       const label = await shippingService.createShipmentLabel(req.body);
       res.json(label);
@@ -363,7 +388,7 @@ async function startServer() {
    * POST /api/notifications/email/order-confirmation
    * Transactional Order Confirmation Dispatch
    */
-  app.post('/api/notifications/email/order-confirmation', express.json(), async (req, res) => {
+  app.post('/api/notifications/email/order-confirmation', express.json(), csrfProtection, async (req, res) => {
     try {
       const result = await emailService.sendOrderConfirmation(req.body);
       res.json(result);
@@ -376,9 +401,12 @@ async function startServer() {
   // Global Error Handler for API & Payload errors
   app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err) {
+      if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+      }
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
         logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
-        return res.status(413).json({ error: 'Request payload too large. Maximum size is 50MB.' });
+        return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
       }
       logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
       return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
