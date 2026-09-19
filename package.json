@@ -9,7 +9,8 @@
     "build": "tsc && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0 && tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lighthouse": "lhci autorun"
   },
   "dependencies": {
     "@cloudinary/react": "^1.14.4",

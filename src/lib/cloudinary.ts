@@ -3,6 +3,7 @@ import { auto } from '@cloudinary/url-gen/actions/resize';
 import { autoGravity } from '@cloudinary/url-gen/qualifiers/gravity';
 import { format, quality } from '@cloudinary/url-gen/actions/delivery';
 import { getEnvConfig } from '../config/env';
+import { logger } from '../../logger';
 
 /**
  * Cloudinary Environment-Aware Configuration
@@ -188,3 +189,14 @@ export async function uploadToCloudinary(
     };
   }
 }
+
+// Validate Cloudinary configuration at runtime
+export function validateCloudinaryConfig(): void {
+  if (!CLOUDINARY_CLOUD_NAME || CLOUDINARY_CLOUD_NAME === 'kixora') {
+    logger.warn('[Cloudinary] Using default cloud name "kixora". Ensure VITE_CLOUDINARY_CLOUD_NAME is set in the environment.');
+  }
+  if (!CLOUDINARY_UPLOAD_PRESET || CLOUDINARY_UPLOAD_PRESET === 'kixora_product_images') {
+    logger.warn('[Cloudinary] Using default upload preset "kixora_product_images". Ensure VITE_CLOUDINARY_UPLOAD_PRESET is set in the environment.');
+  }
+}
+validateCloudinaryConfig();
