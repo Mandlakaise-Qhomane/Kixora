@@ -39,6 +39,11 @@ export interface ServerEnvConfig {
   shippingWebhookSecret: string;
 }
 
+export interface ProductionEnvValidation {
+  valid: boolean;
+  errors: string[];
+}
+
 export function getEnvConfig(): ClientEnvConfig {
   const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
   const procEnv = (typeof process !== 'undefined' && process.env) || {};
@@ -99,6 +104,50 @@ export function getServerConfig(): ServerEnvConfig {
   };
 }
 
+export function validateProductionEnv(): ProductionEnvValidation {
+  if (process.env.NODE_ENV !== 'production') {
+    return { valid: true, errors: [] };
+  }
+
+  const client = getEnvConfig();
+  const server = getServerConfig();
+  const errors: string[] = [];
+  const provider = client.paymentProviderMode;
+
+  if (provider !== 'stripe' && provider !== 'payfast') {
+    errors.push('VITE_PAYMENT_PROVIDER_MODE must be stripe or payfast in production.');
+  }
+
+  if (provider === 'stripe') {
+    if (!client.stripePublishableKey && !client.paymentPublicKey) errors.push('Stripe publishable key is required.');
+    if (!server.stripeSecretKey) errors.push('STRIPE_SECRET_KEY is required.');
+    if (!server.stripeWebhookSecret) errors.push('STRIPE_WEBHOOK_SECRET is required.');
+  }
+
+  if (provider === 'payfast') {
+    if (!client.payfastMerchantId || !client.payfastMerchantKey) errors.push('PayFast merchant credentials are required.');
+    if (!server.payfastPassphrase) errors.push('PAYFAST_PASSPHRASE is required.');
+  }
+
+  if (!server.shippingWebhookSecret) errors.push('SHIPPING_WEBHOOK_SECRET is required.');
+
+  const origins = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean);
+  if (origins.length === 0 || origins.includes('*')) {
+    errors.push('CORS_ALLOWED_ORIGINS must contain explicit origins in production.');
+  } else {
+    for (const origin of origins) {
+      try {
+        const parsed = new URL(origin);
+        if (!['http:', 'https:'].includes(parsed.protocol)) errors.push(`Invalid CORS origin: ${origin}`);
+      } catch {
+        errors.push(`Invalid CORS origin: ${origin}`);
+      }
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export function isPaymentConfigured(): boolean {
   const config = getEnvConfig();
   if (config.paymentProviderMode === 'mock') {
@@ -111,5 +160,8 @@ export function isPaymentConfigured(): boolean {
   }
   if (config.paymentProviderMode === 'stripe') return !!config.stripePublishableKey || !!config.paymentPublicKey;
   if (config.paymentProviderMode === 'payfast') return !!config.payfastMerchantId && !!config.payfastMerchantKey;
-  return !!config.paymentPublicKey;
+  if (config.paymentProviderMode === 'paypal') {
+    throw new Error('Payment configuration Error: PayPal is not configured.');
+  }
+  throw new Error(`Payment configuration Error: Unsupported payment provider "${config.paymentProviderMode}".`);
 }

@@ -74,7 +74,6 @@ test.describe('Phase A: Security Hardening', () => {
     
     // Check that CSP frame-ancestors is present
     expect(headers['content-security-policy']).toContain('frame-ancestors');
-    // Check that legacy X-Frame-Options is NOT present (since we set frameguard: false)
-    expect(headers['x-frame-options']).toBeUndefined();
+    expect(headers['x-frame-options']).toBe('DENY');
   });
 });

@@ -139,38 +139,22 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
     // 1. Signature Verification if signature provided in payload or wrapper, or passphrase configured
     const receivedSignature = payload.signature || raw.signature;
     const passphrase = payload.passphrase ?? this.getPassphrase();
-    let isVerified = false;
-
-    if (passphrase && passphrase.trim() !== '') {
-      if (!receivedSignature) {
-        return {
-          success: false,
-          event: 'payfast.itn.missing_signature',
-          verified: false,
-          error: 'Missing mandatory PayFast ITN signature.'
-        };
-      }
-      const verification = verifyPayFastSignature(raw, receivedSignature, passphrase);
-      if (!verification.valid) {
-        return {
-          success: false,
-          event: 'payfast.itn.invalid_signature',
-          verified: false,
-          error: verification.error || 'PayFast ITN signature mismatch.'
-        };
-      }
-      isVerified = true;
-    } else if (receivedSignature) {
-      const verification = verifyPayFastSignature(raw, receivedSignature, passphrase);
-      if (!verification.valid) {
-        return {
-          success: false,
-          event: 'payfast.itn.invalid_signature',
-          verified: false,
-          error: verification.error || 'PayFast ITN signature mismatch.'
-        };
-      }
-      isVerified = true;
+    if (!passphrase || !passphrase.trim() || !receivedSignature) {
+      return {
+        success: false,
+        event: 'payfast.itn.missing_signature',
+        verified: false,
+        error: 'Missing mandatory PayFast ITN verification configuration.'
+      };
+    }
+    const verification = verifyPayFastSignature(raw, receivedSignature, passphrase);
+    if (!verification.valid) {
+      return {
+        success: false,
+        event: 'payfast.itn.invalid_signature',
+        verified: false,
+        error: verification.error || 'PayFast ITN signature mismatch.'
+      };
     }
 
     const paymentStatus = (raw.payment_status || '').toUpperCase();
@@ -201,7 +185,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId: pfPaymentId,
           newStatus: 'paid',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -212,7 +196,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId: pfPaymentId,
           newStatus: 'failed',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -223,7 +207,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId: pfPaymentId,
           newStatus: 'cancelled',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -234,7 +218,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId: pfPaymentId,
           newStatus: 'pending',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
     }

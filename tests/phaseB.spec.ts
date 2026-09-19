@@ -5,7 +5,7 @@ test.describe('Phase B: Real Data & Payments', () => {
 
   test('Catalog loads real Supabase products', async ({ page }) => {
     // Mock the Supabase network response with a specific product to verify it's reading from Supabase
-    await page.route('**/rest/v1/sneakers*', async (route) => {
+    await page.route('**/rest/v1/**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -13,19 +13,19 @@ test.describe('Phase B: Real Data & Payments', () => {
           {
             id: 'supa-shoe-1',
             name: 'Supabase Exclusive Dunk',
-            brand: 'Nike',
             price: 150,
-            image: 'https://example.com/shoe.jpg',
-            images: [],
-            sizes: [{ size: 9, stock: 10 }],
+            brands: { name: 'Nike' },
+            product_images: [],
+            product_sizes: [{ size: 9, inventory: [{ stock: 10, reserved_stock: 0 }] }],
             rating: 5,
-            reviewsCount: 10
+            reviews_count: 10,
+            is_active: true
           }
         ])
       });
     });
 
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     // Check if the mocked Supabase product appears on the page
     const productLocator = page.locator('text=Supabase Exclusive Dunk');
     await expect(productLocator).toBeVisible();
@@ -33,11 +33,11 @@ test.describe('Phase B: Real Data & Payments', () => {
 
   test('Catalog gracefully handles Supabase fetch failure', async ({ page }) => {
     // Force a 500 error from Supabase
-    await page.route('**/rest/v1/sneakers*', async (route) => {
+    await page.route('**/rest/v1/**', async (route) => {
       await route.fulfill({ status: 500, body: 'Internal Server Error' });
     });
 
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     // Check if the UI handles the error gracefully (e.g., showing a fallback or empty state, not crashing)
     const noProductsText = page.locator('text=No sneakers found');
     if (await noProductsText.isVisible()) {
@@ -49,7 +49,7 @@ test.describe('Phase B: Real Data & Payments', () => {
   });
 
   test('Payment flow uses real provider (Stripe/PayFast)', async ({ page }) => {
-    await page.route('**/rest/v1/sneakers*', async (route) => {
+    await page.route('**/rest/v1/**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -57,13 +57,13 @@ test.describe('Phase B: Real Data & Payments', () => {
           {
             id: 'checkout-shoe-1',
             name: 'Checkout Shoe',
-            brand: 'Nike',
             price: 100,
-            image: 'https://example.com/shoe.jpg',
-            images: [],
-            sizes: [{ size: 9, stock: 10 }],
+            brands: { name: 'Nike' },
+            product_images: [],
+            product_sizes: [{ size: 9, inventory: [{ stock: 10, reserved_stock: 0 }] }],
             rating: 5,
-            reviewsCount: 10
+            reviews_count: 10,
+            is_active: true
           }
         ])
       });
@@ -79,12 +79,12 @@ test.describe('Phase B: Real Data & Payments', () => {
       });
     });
 
-    await page.goto('/');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.click('text=Checkout Shoe');
     await page.click('button:has-text("Add to Vault Cart")');
-    
-    // In a real e2e, we would click checkout.
-    expect(true).toBe(true);
+
+    // Adding an item to the cart must not create a payment intent prematurely.
+    expect(intentCalled).toBe(false);
   });
 
   test('isPaymentConfigured() throws if mock mode is used in production', () => {
@@ -102,7 +102,7 @@ test.describe('Phase B: Real Data & Payments', () => {
     }
   });
 
-  test('Two simultaneous orders for the same last-unit item (Race Condition)', async ({ request }) => {
+  test('Two simultaneous orders for the same last-unit item (Race Condition)', async () => {
     // Atomic commits are handled by 'place_order_atomic' RPC call as validated in checkoutService.ts.
     expect(true).toBe(true); 
   });

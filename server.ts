@@ -11,7 +11,7 @@ import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
 import { emailService } from './src/services/email/emailService';
-import { getServerConfig } from './src/config/env';
+import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
 
 /**
@@ -20,8 +20,24 @@ import { logger } from './logger';
  * provides SPA routing, and integrates Vite for development.
  */
 async function startServer() {
+  const productionEnv = validateProductionEnv();
+  if (!productionEnv.valid) {
+    throw new Error(`Invalid production environment:\n- ${productionEnv.errors.join('\n- ')}`);
+  }
+
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
+  const startupConfig = getServerConfig();
+  const clientConfig = getEnvConfig();
+  logger.info('[Startup] Configuration validated', {
+    environment: process.env.NODE_ENV || 'development',
+    paymentProvider: clientConfig.paymentProviderMode,
+    payfastSandbox: clientConfig.payfastSandbox,
+    corsOriginCount: (process.env.CORS_ALLOWED_ORIGINS || 'https://kixora.com').split(',').filter(Boolean).length,
+    stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
+    payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
+    shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
+  });
 
   // ===========================================================================
   // REQUEST CONTEXT & LOGGING (Task 2)
@@ -61,7 +77,10 @@ async function startServer() {
     ? ["'self'", ...(process.env.ALLOWED_FRAME_ANCESTORS || '').split(/[\s,]+/).filter(Boolean)]
     : ['*'];
 
-  const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['https://kixora.com'];
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'https://kixora.com')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
   
   app.use(cors({
     origin: isProduction 
@@ -77,7 +96,13 @@ async function startServer() {
   }));
 
   app.use(cookieParser());
-  const csrfProtection = csurf({ cookie: true });
+  const csrfProtection = csurf({
+    cookie: {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: isProduction,
+    },
+  });
   
   app.get('/api/csrf-token', csrfProtection, (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
@@ -111,6 +136,7 @@ async function startServer() {
 
   // Standard Security Headers
   app.use((_req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     next();
@@ -189,6 +215,33 @@ async function startServer() {
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', domain: 'kixora-production' });
   });
+
+  app.get('/api/ready', (_req, res) => {
+    const config = validateProductionEnv();
+    if (!config.valid) {
+      return res.status(503).json({
+        status: 'not_ready',
+        checks: { configuration: false },
+      });
+    }
+
+    return res.json({
+      status: 'ready',
+      checks: {
+        configuration: true,
+        paymentProvider: clientConfig.paymentProviderMode,
+        stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
+        payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
+        shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
+      },
+    });
+  });
+
+  if (process.env.NODE_ENV === 'test') {
+    app.use('/rest/v1', (_req, res) => {
+      res.json([]);
+    });
+  }
 
   // ===========================================================================
   // STRIPE PAYMENT INTENT (Production Blocker Fix)
@@ -366,7 +419,7 @@ async function startServer() {
       res.json({ success: true, quotes });
     } catch (err: any) {
       logger.error('[Shipping Rates API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to calculate shipping rates', details: err.message });
+      res.status(500).json({ error: 'Failed to calculate shipping rates' });
     }
   });
 
@@ -380,7 +433,7 @@ async function startServer() {
       res.json(label);
     } catch (err: any) {
       logger.error('[Shipping Labels API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to generate shipping label', details: err.message });
+      res.status(500).json({ error: 'Failed to generate shipping label' });
     }
   });
 
@@ -394,7 +447,7 @@ async function startServer() {
       res.json(result);
     } catch (err: any) {
       logger.error('[Email Notification API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to send confirmation email', details: err.message });
+      res.status(500).json({ error: 'Failed to send confirmation email' });
     }
   });
 
@@ -409,7 +462,7 @@ async function startServer() {
         return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
       }
       logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
-      return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+      return res.status(err.status || 500).json({ error: 'Internal server error' });
     }
     next();
   });
@@ -421,7 +474,10 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     // Vite middleware for development
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.NODE_ENV === 'test' ? false : undefined,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
