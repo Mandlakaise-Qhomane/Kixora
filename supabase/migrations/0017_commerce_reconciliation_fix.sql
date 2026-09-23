@@ -4,6 +4,9 @@
 --              payment status transitions, and corrects RPC signatures.
 -- ==============================================================================
 
+ALTER TABLE public.order_status_history
+  ADD COLUMN IF NOT EXISTS notes TEXT;
+
 -- 1. Redefine place_order_atomic to use RESERVATIONS instead of direct decrement
 -- and enforce initial status to 'pending' even if a payment reference is provided.
 CREATE OR REPLACE FUNCTION public.place_order_atomic(
