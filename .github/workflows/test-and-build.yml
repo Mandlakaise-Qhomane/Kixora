@@ -63,6 +63,12 @@ jobs:
       - name: Wait before pulling Supabase images
         run: sleep 15
 
+      - name: Log in to Amazon ECR Public
+        shell: bash
+        run: |
+          aws ecr-public get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin public.ecr.aws
+
       - name: Start local Supabase with rate-limit retries
         shell: bash
         run: |

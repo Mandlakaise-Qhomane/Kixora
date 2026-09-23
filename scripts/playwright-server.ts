@@ -1,4 +1,4 @@
-const port = process.env.PLAYWRIGHT_PORT || '3100';
+const port = process.env.PLAYWRIGHT_PORT || '3000';
 process.env.PORT = port;
 process.env.VITE_SUPABASE_URL = `http://127.0.0.1:${port}`;
 process.env.VITE_SUPABASE_ANON_KEY = 'playwright-anon-key';

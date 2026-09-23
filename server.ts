@@ -27,7 +27,8 @@ async function startServer() {
   }
 
   const app = express();
-  const PORT = Number(process.env.PORT || 3000);
+  const port = Number(process.env.PORT ?? 3000);
+  const host = process.env.HOST ?? '0.0.0.0';
   const startupConfig = getServerConfig();
   const clientConfig = getEnvConfig();
   logger.info('[Startup] Configuration validated', {
@@ -189,7 +190,13 @@ async function startServer() {
     },
   });
 
-  app.get('/api/csrf', csrfProtection, (_req, res) => {
+  // Parse request bodies before CSRF validation so oversized requests return 413.
+  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
+  app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
+  app.use(express.json({ limit: '10kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+  app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
     res.json({ csrfToken: _req.csrfToken() });
   });
 
@@ -225,13 +232,6 @@ async function startServer() {
   app.use('/api/', apiLimiter);
   app.use('/api/auth/', authLimiter);
   app.use('/api/payments/stripe/create-intent', checkoutLimiter);
-
-  // Payload Size Validation
-  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
-  app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
-  app.use('/api/payments/stripe/create-intent', express.json({ limit: '10kb' }));
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -486,7 +486,7 @@ async function startServer() {
    * POST /api/shipping/rates
    * Real-time Multi-Carrier Shipping Rate Calculation
    */
-  app.post('/api/shipping/rates', express.json(), csrfProtection, async (req, res) => {
+  app.post('/api/shipping/rates', csrfProtection, async (req, res) => {
     try {
       const quotes = await shippingService.calculateRates(req.body);
       res.json({ success: true, quotes });
@@ -500,7 +500,7 @@ async function startServer() {
    * POST /api/shipping/labels
    * Admin / Automation Carrier Waybill Label Generation
    */
-  app.post('/api/shipping/labels', express.json(), csrfProtection, async (req, res) => {
+  app.post('/api/shipping/labels', csrfProtection, async (req, res) => {
     try {
       const label = await shippingService.createShipmentLabel(req.body);
       res.json(label);
@@ -514,7 +514,7 @@ async function startServer() {
    * POST /api/notifications/email/order-confirmation
    * Transactional Order Confirmation Dispatch
    */
-  app.post('/api/notifications/email/order-confirmation', express.json(), csrfProtection, async (req, res) => {
+  app.post('/api/notifications/email/order-confirmation', csrfProtection, async (req, res) => {
     try {
       const result = await emailService.sendOrderConfirmation(req.body);
       res.json(result);
@@ -532,7 +532,7 @@ async function startServer() {
       }
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
         logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
-        return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
+        return res.status(413).json({ error: 'Payload too large' });
       }
       if (err.message === 'Blocked by CORS allowlist') {
         return res.status(403).json({ error: 'Blocked by CORS allowlist' });
@@ -574,8 +574,8 @@ async function startServer() {
     console.log('Production static assets and SPA fallback enabled.');
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Kixora Server running on http://localhost:${PORT}`);
+  app.listen(port, host, () => {
+    console.log(`Server listening on http://${host}:${port}`);
   });
 }
 

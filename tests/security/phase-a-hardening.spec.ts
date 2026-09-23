@@ -6,7 +6,7 @@
 import { test, expect, APIRequestContext } from '@playwright/test';
 
 test.describe('Kixora Phase A: Security Hardening', () => {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3100';
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000';
 
   async function csrfHeaders(request: APIRequestContext) {
     const tokenResponse = await request.get(`${baseURL}/api/csrf`);
@@ -215,7 +215,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
 
       expect(response.status()).toBe(413);
       const body = await response.json();
-      expect(body.error).toContain('1MB');
+      expect(body.error).toBe('Payload too large');
     });
 
     test('Request body under 1MB is accepted (not 413)', async ({ request }) => {

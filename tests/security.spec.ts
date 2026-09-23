@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Phase A: Security Hardening', () => {
-  const baseUrl = 'http://localhost:3000';
+  const baseUrl = 'http://127.0.0.1:3000';
 
   test('CORS: Cross-origin request blocked (non-allowlisted)', async ({ request }) => {
     const response = await request.get(`${baseUrl}/api/health`, {
@@ -9,9 +9,8 @@ test.describe('Phase A: Security Hardening', () => {
         'Origin': 'https://malicious-site.com'
       }
     });
-    expect(response.status()).toBe(200);
-    const corsHeader = response.headers()['access-control-allow-origin'];
-    expect(corsHeader).toBeDefined();
+    expect(response.status()).toBe(403);
+    expect(response.headers()['access-control-allow-origin']).toBeUndefined();
   });
 
   test('CSRF: GET /api/csrf-token returns a token and sets cookie', async ({ request }) => {
