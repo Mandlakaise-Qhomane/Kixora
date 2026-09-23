@@ -116,7 +116,12 @@ class WebhookIdempotencyRegistry {
       }
     }
 
-    // Development/test fallback only; production always has Supabase configured.
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.error('[WebhookIdempotency] Refusing non-persistent webhook processing in production.');
+      return false;
+    }
+
+    // Development/test fallback only.
     this.inMemoryCache.set(key, {
       eventId,
       provider,

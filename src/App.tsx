@@ -233,11 +233,17 @@ const StoreAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#111111] text-[#F5F5F5] flex flex-col font-sans selection:bg-[#FF7A00] selection:text-black pb-16 lg:pb-0">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-[#FF7A00] focus:px-4 focus:py-3 focus:font-bold focus:text-black"
+      >
+        Skip to main content
+      </a>
       {/* Top Navigation matching Reference Image */}
       <Navbar onToggleMobileFilters={() => setIsMobileFiltersOpen(true)} />
 
       {/* Main View Router */}
-      <main className="flex-1 pb-16">
+      <main id="main-content" className="flex-1 pb-16" tabIndex={-1}>
         <AnimatePresence mode="wait">
           {currentView === 'store' && (
             <motion.div

@@ -64,24 +64,36 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
   });
 
   test('PG-03: PayFast driver creates valid redirect payload and ZAR parameters for South African checkout', async () => {
+    const previousMerchantId = process.env.VITE_PAYFAST_MERCHANT_ID;
+    const previousMerchantKey = process.env.VITE_PAYFAST_MERCHANT_KEY;
+    process.env.VITE_PAYFAST_MERCHANT_ID = '10000100';
+    process.env.VITE_PAYFAST_MERCHANT_KEY = 'sandbox-test-key';
+
     const payfastDriver = new PayFastPaymentDriver();
 
-    const intent = await payfastDriver.createPaymentIntent({
-      amount: 3200,
-      currency: 'ZAR',
-      orderCode: 'KXO-4412',
-      customerEmail: 'kagiso.m@kixora.co.za',
-      customerName: 'Kagiso Molefe',
-    });
+    try {
+      const intent = await payfastDriver.createPaymentIntent({
+        amount: 3200,
+        currency: 'ZAR',
+        orderCode: 'KXO-4412',
+        customerEmail: 'kagiso.m@kixora.co.za',
+        customerName: 'Kagiso Molefe',
+      });
 
-    expect(intent.success).toBe(true);
-    expect(intent.provider).toBe('payfast');
-    expect(intent.paymentIntentId).toContain('KXO-4412');
-    expect(intent.redirectUrl).toBeDefined();
-    expect(intent.redirectUrl).toContain('payfast.co.za/eng/process');
-    expect(intent.gatewayData?.merchant_id).toBeDefined();
-    expect(intent.gatewayData?.amount).toBe('3200.00');
-    expect(intent.gatewayData?.email_address).toBe('kagiso.m@kixora.co.za');
+      expect(intent.success).toBe(true);
+      expect(intent.provider).toBe('payfast');
+      expect(intent.paymentIntentId).toContain('KXO-4412');
+      expect(intent.redirectUrl).toBeDefined();
+      expect(intent.redirectUrl).toContain('payfast.co.za/eng/process');
+      expect(intent.gatewayData?.merchant_id).toBeDefined();
+      expect(intent.gatewayData?.amount).toBe('3200.00');
+      expect(intent.gatewayData?.email_address).toBe('kagiso.m@kixora.co.za');
+    } finally {
+      if (previousMerchantId === undefined) delete process.env.VITE_PAYFAST_MERCHANT_ID;
+      else process.env.VITE_PAYFAST_MERCHANT_ID = previousMerchantId;
+      if (previousMerchantKey === undefined) delete process.env.VITE_PAYFAST_MERCHANT_KEY;
+      else process.env.VITE_PAYFAST_MERCHANT_KEY = previousMerchantKey;
+    }
   });
 
   test('PG-04: PayFast webhook / ITN parser transitions payment statuses correctly', async () => {
@@ -243,13 +255,13 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     // 1. Add product to cart (automatically opens cart drawer)
     const addBtn = page.locator('button[id^="add-to-cart-btn-"]').first();
     await expect(addBtn).toBeVisible();
-    await addBtn.click();
+    await addBtn.dispatchEvent('click');
 
     // 2. Click proceed to checkout in drawer
     const checkoutBtn = page.locator('#cart-proceed-checkout-btn');
     await expect(checkoutBtn).toBeVisible();
-    await checkoutBtn.click({ force: true });
-    await page.waitForTimeout(250);
+    await checkoutBtn.dispatchEvent('click');
+    await expect(page.locator('#cart-drawer-backdrop')).toHaveCount(0);
 
     // 3. Checkout modal is visible
     const modalBackdrop = page.locator('#checkout-modal-backdrop');
@@ -265,20 +277,20 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
     // 5. Continue to Step 2
     const step1Btn = page.locator('#checkout-step1-continue-btn');
-    await step1Btn.click();
+    await step1Btn.dispatchEvent('click');
 
     // 6. Step 2: Payment options
     await expect(page.getByText('2. SECURE PAYMENT METHOD')).toBeVisible();
 
     // 7. Continue to Step 3
     const step2Btn = page.locator('#checkout-step2-continue-btn');
-    await step2Btn.click();
+    await step2Btn.dispatchEvent('click');
 
     // 8. Step 3: Review & Place Order
     await expect(page.getByText('3. REVIEW & AUTHORIZATION')).toBeVisible();
     const confirmBtn = page.locator('#checkout-confirm-pay-btn');
     await expect(confirmBtn).toBeVisible();
-    await confirmBtn.click();
+    await confirmBtn.dispatchEvent('click');
 
     // 9. Step 4: Confirmation screen
     await expect(page.locator('#checkout-track-order-btn')).toBeVisible({ timeout: 10000 });

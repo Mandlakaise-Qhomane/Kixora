@@ -8,6 +8,11 @@ process.env.VITE_USE_SUPABASE_CART = 'false';
 process.env.VITE_USE_SUPABASE_WISHLIST = 'false';
 process.env.VITE_USE_SUPABASE_ORDERS = 'false';
 process.env.VITE_USE_SUPABASE_CHECKOUT = 'false';
+process.env.CORS_ALLOWED_ORIGINS = [
+  `http://127.0.0.1:${port}`,
+  `http://localhost:${port}`,
+  `http://admin.localhost:${port}`,
+].join(',');
 process.env.NODE_ENV = 'test';
 
 await import('../server.ts');

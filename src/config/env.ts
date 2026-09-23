@@ -37,6 +37,8 @@ export interface ServerEnvConfig {
   theCourierGuyApiKey: string;
   shiplogicApiKey: string;
   shippingWebhookSecret: string;
+  adminOrigin: string;
+  customerOrigin: string;
 }
 
 export interface ProductionEnvValidation {
@@ -86,6 +88,8 @@ export function getServerConfig(): ServerEnvConfig {
       theCourierGuyApiKey: '',
       shiplogicApiKey: '',
       shippingWebhookSecret: '',
+      adminOrigin: '',
+      customerOrigin: '',
     };
   }
 
@@ -101,6 +105,8 @@ export function getServerConfig(): ServerEnvConfig {
     theCourierGuyApiKey: env.THE_COURIER_GUY_API_KEY || '',
     shiplogicApiKey: env.SHIPLOGIC_API_KEY || '',
     shippingWebhookSecret: env.SHIPPING_WEBHOOK_SECRET || '',
+    adminOrigin: env.ADMIN_ORIGIN || env.VITE_ADMIN_ORIGIN || env.VITE_ADMIN_DOMAIN || 'https://admin.kixora.com',
+    customerOrigin: env.CUSTOMER_ORIGIN || env.VITE_CUSTOMER_ORIGIN || env.VITE_CUSTOMER_DOMAIN || 'https://kixora.com',
   };
 }
 
@@ -142,6 +148,25 @@ export function validateProductionEnv(): ProductionEnvValidation {
       } catch {
         errors.push(`Invalid CORS origin: ${origin}`);
       }
+    }
+
+    const adminOrigin = server.adminOrigin;
+    const customerOrigin = server.customerOrigin;
+    for (const [name, origin] of [['ADMIN_ORIGIN', adminOrigin], ['CUSTOMER_ORIGIN', customerOrigin]] as const) {
+      try {
+        const parsed = new URL(origin);
+        if (parsed.protocol !== 'https:' || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+          errors.push(`${name} must be an HTTPS origin without a path, query, or hash.`);
+        }
+      } catch {
+        errors.push(`${name} must be a valid HTTPS origin.`);
+      }
+    }
+    if (adminOrigin === customerOrigin) {
+      errors.push('ADMIN_ORIGIN and CUSTOMER_ORIGIN must be different origins.');
+    }
+    if (!origins.includes(adminOrigin) || !origins.includes(customerOrigin)) {
+      errors.push('CORS_ALLOWED_ORIGINS must include both ADMIN_ORIGIN and CUSTOMER_ORIGIN.');
     }
   }
 

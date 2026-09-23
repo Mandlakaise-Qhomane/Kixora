@@ -280,14 +280,11 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
       };
     }
 
-    const refundId = `re_stripe_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
     return {
-      success: true,
+      success: false,
       provider: this.provider,
-      refundId,
-      amountRefunded: request.amount || 0,
-      status: 'refunded'
+      status: 'paid',
+      error: 'Stripe refunds require a server-side Stripe Refunds API integration; no refund was created.'
     };
   }
 }

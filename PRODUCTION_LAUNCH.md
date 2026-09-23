@@ -20,7 +20,9 @@
 | `THE_COURIER_GUY_API_KEY` | Server Only | The Courier Guy REST API credentials | YES |
 | `SHIPPING_WEBHOOK_SECRET` | Server Only | HMAC-SHA256 secret for carrier webhook signatures | YES |
 | `RESEND_API_KEY` | Server Only | Transactional email delivery service API key | YES |
-| `CORS_ORIGIN` | Server Only | Production origin domain (`https://kixora.com`) | YES |
+| `CUSTOMER_ORIGIN` | Server Only | Exact storefront origin | YES |
+| `ADMIN_ORIGIN` | Server Only | Exact admin origin; must differ from customer origin | YES |
+| `CORS_ALLOWED_ORIGINS` | Server Only | Comma-separated exact allowlist containing both origins | YES |
 
 ### Environment & Secrets Hygiene Rules
 1. **Zero Client Secrets**: No server secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYFAST_PASSPHRASE`, `SHIPPING_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are bundled into client-facing artifacts or prefixed with `VITE_`.
@@ -29,6 +31,18 @@
 ---
 
 ## 2. CDN & Caching Rules Specification
+
+## 2a. Supabase environment separation
+
+- Staging and production must use separate Supabase projects and separate
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
+  `SUPABASE_SERVICE_ROLE_KEY` secret sets.
+- CI validates migrations against a local Supabase instance with
+  `REQUIRE_SUPABASE=true`; a missing Docker/Supabase runtime is a failed gate,
+  not a successful skip.
+- Apply migrations to staging first, run authenticated smoke tests, then apply
+  the same migration revision to production. No production service-role key
+  belongs in browser variables or repository files.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -88,10 +102,15 @@
 ## 4. DNS & Domain Cutover Runbook
 
 ### Pre-Cutover Verification (T-48 Hours)
-- [x] Configure production Cloudflare zone for `kixora.com`.
-- [x] Set DNS TTL to `300` seconds (5 minutes) across existing DNS records to allow rapid propagation.
-- [x] Verify SSL/TLS mode is set to **Full (Strict)** on Cloudflare.
-- [x] Ensure origin server presents valid Let's Encrypt / Google Trust Services TLS certificate.
+
+The repository does not provision DNS, Cloudflare, certificates, or registrar
+changes. These are external launch blockers and must be verified by the
+operator in the authoritative provider consoles before marking complete.
+
+- [ ] Configure the production DNS zone for `kixora.com` and `admin.kixora.com`.
+- [ ] Verify both origins resolve to the intended deployment.
+- [ ] Verify SSL/TLS is **Full (Strict)** and certificates cover both origins.
+- [ ] Confirm `CUSTOMER_ORIGIN`, `ADMIN_ORIGIN`, and `CORS_ALLOWED_ORIGINS` match the verified DNS names.
 
 ### DNS Records Table
 
@@ -119,8 +138,8 @@
 ### Automated Smoke Test Checklist
 - **GET `/api/health`**: Returns HTTP 200 `{ status: 'ok', domain: 'kixora-production' }`.
 - **GET `/`**: Returns HTTP 200 with HTML title `Kixora | Authenticated Sneaker Vault`.
-- **POST `/api/shipping/rates`**: Computes accurate multi-carrier quotes for domestic South African addresses.
-- **POST `/api/shipping/labels`**: Generates waybill PDF link, barcode URI, and tracking number.
+- **POST `/api/shipping/rates`**: Must fail closed until an authenticated, supported carrier integration is configured.
+- **POST `/api/shipping/labels`**: Must fail closed until an authenticated, supported carrier integration is configured.
 - **POST `/api/webhooks/tracking`**: Rejects missing/tampered signatures (HTTP 401); accepts valid HMAC signatures (HTTP 200).
 - **POST `/api/webhooks/stripe`**: Rejects missing/tampered signatures (HTTP 400); accepts valid signatures.
 - **POST `/api/webhooks/payfast`**: Rejects invalid MD5 checksums (HTTP 400); processes valid ITNs.
@@ -136,7 +155,7 @@
 
 If a critical incident occurs during cutover (e.g. fatal edge routing, database lock, gateway failure):
 
-1. **DNS Fallback**: Switch Cloudflare DNS target back to previous stable container IP (propagation in < 300s due to low TTL).
+1. **DNS Fallback**: Use the verified provider runbook to restore the previous stable target; propagation time is not guaranteed by this repository.
 2. **Container Rollback**: Revert Cloud Run service traffic to previous stable revision tag via CLI/Console.
 3. **Database Reversion**: Run backward migration if schema modifications broke compatibility.
 4. **Incident Audit**: Review server logs for root cause analysis prior to re-attempting deployment.

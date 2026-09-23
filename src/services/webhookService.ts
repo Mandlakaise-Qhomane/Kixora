@@ -87,8 +87,16 @@ export const webhookService = {
         (driverRes.gatewayMetadata?.stripeEventId) ||
         (typeof payload === 'object' && payload?.id) ||
         (typeof payload === 'object' && payload?.m_payment_id) ||
-        driverRes.paymentIntentId ||
-        `evt_${provider}_${Date.now()}_${driverRes.orderCode || 'unknown'}`;
+        undefined;
+
+      if (!eventId) {
+        return {
+          success: false,
+          provider,
+          event: driverRes.event,
+          error: 'Webhook event is missing a stable event ID.'
+        };
+      }
 
       // 3. Idempotency Check & Atomic Lock Acquisition
       const lockAcquired = await webhookIdempotency.acquireProcessingLock(eventId, provider);
@@ -207,6 +215,9 @@ export const webhookService = {
     }
 
     if (!isSupabaseConfigured()) {
+      if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+        return { success: false, error: 'Persistent order reconciliation is unavailable.' };
+      }
       // Local fallback representation
       return {
         success: true,
@@ -217,7 +228,7 @@ export const webhookService = {
 
     try {
       // Find order by code or id
-      let query = supabase.from('orders').select('id, order_code, current_status, payment_status, payment_reference, total');
+      let query = supabase.from('orders').select('id, order_code, current_status, payment_status, payment_reference, total, currency');
       if (orderCode) {
         query = query.eq('order_code', orderCode);
       } else if (paymentIntentId) {
@@ -227,21 +238,13 @@ export const webhookService = {
       const { data: order, error: findError } = await query.maybeSingle();
 
       if (findError) {
-        console.warn('[webhookService.reconcileOrderState] Database error finding order (falling back to mock):', findError);
-        // Fallback to mock behavior if database is unreachable or schema is missing
-        return {
-          success: true,
-          orderStatus: newStatus === 'paid' ? 'Authenticated' : (newStatus === 'failed' || newStatus === 'cancelled' || newStatus === 'refunded' ? 'Cancelled' : 'Processing'),
-          inventoryUpdated: true
-        };
+        console.warn('[webhookService.reconcileOrderState] Database error finding order:', findError);
+        return { success: false, error: 'Persistent order reconciliation failed.' };
       }
 
       if (!order) {
-        console.warn(`[webhookService.reconcileOrderState] Order not found for orderCode: ${orderCode} (returning success for webhook)`);
-        return { 
-          success: true, 
-          orderStatus: newStatus === 'paid' ? 'Authenticated' : (newStatus === 'failed' || newStatus === 'cancelled' || newStatus === 'refunded' ? 'Cancelled' : 'Processing') 
-        };
+        console.warn(`[webhookService.reconcileOrderState] Order not found for orderCode: ${orderCode}`);
+        return { success: false, error: 'Order not found for payment event.' };
       }
 
       if (newStatus === 'paid') {
@@ -251,6 +254,11 @@ export const webhookService = {
         if (typeof receivedAmount !== 'number' || !Number.isFinite(receivedAmount) ||
             Math.abs(receivedAmount - Number(order.total)) > 0.01) {
           return { success: false, error: 'Payment amount does not match the order total.' };
+        }
+        const receivedCurrency = String(gatewayMetadata?.currency || '').toLowerCase();
+        const orderCurrency = String((order as any).currency || 'ZAR').toLowerCase();
+        if (!receivedCurrency || receivedCurrency !== orderCurrency) {
+          return { success: false, error: 'Payment currency does not match the order currency.' };
         }
         if (order.payment_reference && paymentIntentId && order.payment_reference !== paymentIntentId) {
           return { success: false, error: 'Payment reference does not match the order.' };

@@ -51,8 +51,17 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
     }
 
     const config = getEnvConfig();
-    const merchantId = config.payfastMerchantId || '10000100'; // Default PayFast sandbox merchant ID
-    const merchantKey = config.payfastMerchantKey || '46f0cd694581a'; // Default PayFast sandbox key
+    const merchantId = config.payfastMerchantId;
+    const merchantKey = config.payfastMerchantKey;
+    if (!merchantId || !merchantKey) {
+      return {
+        success: false,
+        provider: this.provider,
+        status: 'failed',
+        error: 'PayFast merchant credentials are required; payment was not initialized.',
+        errorCode: 'PAYFAST_NOT_CONFIGURED'
+      };
+    }
 
     const paymentId = `pf_${Date.now()}_${request.orderCode}`;
     const formattedAmount = Number(request.amount).toFixed(2);
@@ -109,10 +118,11 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
     }
 
     return {
-      success: true,
+      success: false,
       provider: this.provider,
       status: 'pending',
-      transactionId: request.paymentIntentId
+      transactionId: request.paymentIntentId,
+      error: 'PayFast verification requires a verified ITN callback; no payment was confirmed.'
     };
   }
 
@@ -235,11 +245,10 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
     }
 
     return {
-      success: true,
+      success: false,
       provider: this.provider,
-      refundId: `pf_ref_${Date.now()}`,
-      amountRefunded: request.amount || 0,
-      status: 'refunded'
+      status: 'paid',
+      error: 'PayFast refunds require an authenticated provider refund workflow; no refund was created.'
     };
   }
 }

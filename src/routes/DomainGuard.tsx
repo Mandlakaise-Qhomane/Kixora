@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { canAccessAdminDomain } from '../utils/roleUtils';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { getEnvConfig } from '../config/env';
 
 export interface DomainInspectionResult {
   isAdminDomain: boolean;
@@ -12,39 +12,23 @@ export interface DomainInspectionResult {
 /**
  * Pure function to inspect current hostname and determine domain classification.
  */
-export function inspectHostname(hostnameInput?: string, searchParamsInput?: string): DomainInspectionResult {
+export function inspectHostname(hostnameInput?: string, _searchParamsInput?: string): DomainInspectionResult {
   const hostname = (
     hostnameInput ??
     (typeof window !== 'undefined' ? window.location.hostname : 'kixora.com')
   ).toLowerCase();
-
-  const searchParams = searchParamsInput ?? (typeof window !== 'undefined' ? window.location.search : '');
-  const urlParams = new URLSearchParams(searchParams);
-  const domainOverride = urlParams.get('domain')?.toLowerCase();
-  const isAdminParam = urlParams.get('admin') === 'true';
-
-  // Check explicit query param override first (useful in QA/Playwright sandbox)
-  if (domainOverride === 'admin' || isAdminParam) {
-    return {
-      isAdminDomain: true,
-      isCustomerDomain: false,
-      hostname,
-    };
+  const { adminDomain } = getEnvConfig();
+  let configuredAdminHostname: string;
+  try {
+    configuredAdminHostname = new URL(adminDomain).hostname.toLowerCase();
+  } catch {
+    configuredAdminHostname = 'admin.kixora.com';
   }
 
-  if (domainOverride === 'customer' || domainOverride === 'store') {
-    return {
-      isAdminDomain: false,
-      isCustomerDomain: true,
-      hostname,
-    };
-  }
-
-  // Hostname matching
-  const isAdmin =
-    hostname === 'admin.kixora.com' ||
-    hostname === 'admin.localhost' ||
-    hostname.startsWith('admin.');
+  const isAdmin = hostname === configuredAdminHostname || (
+    hostname === 'admin.localhost' &&
+    (typeof window === 'undefined' || window.location.protocol === 'http:')
+  );
 
   return {
     isAdminDomain: isAdmin,
@@ -71,11 +55,10 @@ export const DomainGuard: React.FC<DomainGuardProps> = ({
   onReturnToStore,
 }) => {
   const { isAdminDomain } = inspectHostname();
-  const { role } = useAuth();
-  const hasAccess = canAccessAdminDomain(role);
+  useAuth();
 
   // If on customer domain, Admin routes/views are strictly blocked (404/Inaccessible)
-  if (!isAdminDomain && !hasAccess) {
+  if (!isAdminDomain) {
     if (fallback) {
       return <>{fallback}</>;
     }

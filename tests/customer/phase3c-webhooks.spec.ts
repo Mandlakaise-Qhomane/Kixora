@@ -270,7 +270,7 @@ test.describe('Phase 3C: Payment Verification & Secure Webhook Handling', () => 
       provider: 'invalid_gateway' as any,
       payload: { type: 'test' }
     });
-    expect(invalidProviderRes.success).toBe(true); // Fallback mock driver resolves cleanly
+    expect(invalidProviderRes.success).toBe(false); // Unsupported providers fail closed
 
     // 3. Delegation through paymentService facade
     const facadeRes = await paymentService.handlePaymentWebhook(
