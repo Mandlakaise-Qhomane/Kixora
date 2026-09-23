@@ -37,6 +37,9 @@ export class ShippingService {
    * Calculates live and fallback shipping quotes across available couriers
    */
   async calculateRates(request: ShippingRateRequest): Promise<ShippingRateQuote[]> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Shipping is unavailable in production until an authenticated carrier integration is configured.');
+    }
     const quotes: ShippingRateQuote[] = [];
 
     for (const driver of this.drivers.values()) {
@@ -48,23 +51,6 @@ export class ShippingService {
       }
     }
 
-    if (quotes.length === 0) {
-      // Deterministic fallback quote
-      const est = new Date();
-      est.setDate(est.getDate() + 2);
-      quotes.push({
-        rateId: 'fallback-std-01',
-        carrierId: 'the_courier_guy',
-        carrierName: 'The Courier Guy',
-        serviceName: 'Standard Courier (Calculated)',
-        estimatedDeliveryDays: 2,
-        estimatedDeliveryDate: est.toISOString().split('T')[0],
-        rateZar: request.totalValueZar >= 2000 ? 0 : 150,
-        currency: 'ZAR',
-        isInsured: true,
-      });
-    }
-
     return quotes;
   }
 
@@ -72,6 +58,9 @@ export class ShippingService {
    * Generates waybill label and registers the tracking record in Supabase
    */
   async createShipmentLabel(request: ShippingLabelRequest): Promise<ShippingLabelResult> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Shipping labels are unavailable in production until an authenticated carrier integration is configured.');
+    }
     const driver = this.getDriver(request.carrierId);
     const labelResult = await driver.generateLabel(request);
 
@@ -125,6 +114,9 @@ export class ShippingService {
    * Retrieves tracking history and status for a given tracking number
    */
   async getTracking(trackingNumber: string, carrierId?: CarrierProviderId): Promise<CarrierTrackingResult> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Shipping tracking is unavailable in production until an authenticated carrier integration is configured.');
+    }
     const driver = this.getDriver(carrierId);
     return driver.getTracking(trackingNumber);
   }

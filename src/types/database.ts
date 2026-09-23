@@ -448,6 +448,9 @@ export interface Database {
           shipping_method: string
           payment_status: string
           payment_reference: string | null
+          payment_provider: string | null
+          payment_metadata: Json
+          currency: string
           current_status: string
           created_at: string
           updated_at: string
@@ -467,6 +470,9 @@ export interface Database {
           shipping_method: string
           payment_status?: string
           payment_reference?: string | null
+          payment_provider?: string | null
+          payment_metadata?: Json
+          currency?: string
           current_status?: string
           created_at?: string
           updated_at?: string
@@ -486,6 +492,9 @@ export interface Database {
           shipping_method?: string
           payment_status?: string
           payment_reference?: string | null
+          payment_provider?: string | null
+          payment_metadata?: Json
+          currency?: string
           current_status?: string
           created_at?: string
           updated_at?: string

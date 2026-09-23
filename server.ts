@@ -13,6 +13,7 @@ import { trackingWebhookService } from './src/services/shipping/trackingWebhookS
 import { emailService } from './src/services/email/emailService';
 import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
+import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -77,21 +78,19 @@ async function startServer() {
     ? ["'self'", ...(process.env.ALLOWED_FRAME_ANCESTORS || '').split(/[\s,]+/).filter(Boolean)]
     : ['*'];
 
-  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'https://kixora.com')
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || `${startupConfig.customerOrigin},${startupConfig.adminOrigin}`)
     .split(',')
     .map(origin => origin.trim())
     .filter(Boolean);
   
   app.use(cors({
-    origin: isProduction 
-      ? (origin, callback) => {
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-          } else {
-            callback(new Error('Not allowed by CORS'));
-          }
-        }
-      : '*',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true
   }));
 
@@ -256,20 +255,37 @@ async function startServer() {
       return res.status(500).json({ error: 'Stripe is not configured on the server.' });
     }
 
-    const { amount, currency, orderCode, customerEmail, metadata } = req.body;
+    const { orderCode, customerEmail } = req.body;
+    if (!orderCode || !customerEmail || !isSupabaseConfigured()) {
+      return res.status(400).json({ error: 'A persisted order is required to initialize payment.' });
+    }
 
     try {
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, order_code, total, payment_reference, customer_snapshot')
+        .eq('order_code', orderCode)
+        .maybeSingle();
+      if (orderError || !order) {
+        return res.status(404).json({ error: 'Order not found.' });
+      }
+      const persistedEmail = (order.customer_snapshot as any)?.email;
+      if (persistedEmail && String(persistedEmail).toLowerCase() !== String(customerEmail).toLowerCase()) {
+        return res.status(403).json({ error: 'Payment customer does not own this order.' });
+      }
+      if (!Number.isFinite(Number(order.total)) || Number(order.total) <= 0) {
+        return res.status(422).json({ error: 'Order has no payable total.' });
+      }
       logger.info(`[Stripe] Creating intent for order ${orderCode}`, {
         orderCode,
-        amount,
-        currency
+        amount: order.total,
+        currency: 'ZAR'
       });
       const intent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // convert to cents
-        currency: (currency || 'zar').toLowerCase(),
+        amount: Math.round(Number(order.total) * 100),
+        currency: 'zar',
         metadata: {
-          orderCode,
-          ...metadata
+          orderCode
         },
         receipt_email: customerEmail,
         description: `Kixora Order ${orderCode}`
