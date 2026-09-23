@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
-import { useAuth } from '../hooks/useAuth';
 import { paymentService } from '../services/paymentService';
 import { 
   X, 
@@ -24,8 +23,6 @@ export const CheckoutModal: React.FC = () => {
     setTrackingOrder
   } = useStore();
 
-  const { user, isAuthenticated } = useAuth();
-
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
@@ -42,25 +39,6 @@ export const CheckoutModal: React.FC = () => {
     zip: '2196',
     country: 'South Africa'
   });
-
-  const [prevSyncState, setPrevSyncState] = useState({ 
-    auth: isAuthenticated, 
-    userId: user?.id, 
-    open: isCheckoutOpen 
-  });
-
-  // Sync authenticated user details if present
-  if (isAuthenticated !== prevSyncState.auth || user?.id !== prevSyncState.userId || isCheckoutOpen !== prevSyncState.open) {
-    setPrevSyncState({ auth: isAuthenticated, userId: user?.id, open: isCheckoutOpen });
-    if (isAuthenticated && user && isCheckoutOpen) {
-      setFormData(prev => ({
-        ...prev,
-        fullName: user.fullName || prev.fullName,
-        email: user.email || prev.email,
-        phone: user.phone || prev.phone,
-      }));
-    }
-  }
 
   const [shippingMethod, setShippingMethod] = useState('Express Vault Courier (1-2 Days)');
   const [paymentMethod, setPaymentMethod] = useState('Credit / Debit Card (3D Secure)');

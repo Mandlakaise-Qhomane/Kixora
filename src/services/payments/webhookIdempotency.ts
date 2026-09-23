@@ -5,6 +5,8 @@
 // ==============================================================================
 
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getEnvConfig, getServerConfig } from '../../config/env';
 
 export interface ProcessedWebhookRecord {
   eventId: string;
@@ -19,6 +21,15 @@ export interface ProcessedWebhookRecord {
 class WebhookIdempotencyRegistry {
   private inMemoryCache: Map<string, ProcessedWebhookRecord> = new Map();
   private maxCacheSize = 2000;
+
+  private getPersistenceClient(): SupabaseClient {
+    const clientConfig = getEnvConfig();
+    const serverConfig = getServerConfig();
+    if (typeof window === 'undefined' && serverConfig.supabaseServiceRoleKey) {
+      return createClient(clientConfig.supabaseUrl, serverConfig.supabaseServiceRoleKey);
+    }
+    return supabase;
+  }
 
   private makeKey(provider: string, eventId: string): string {
     return `${provider.toLowerCase()}:${eventId}`;
@@ -77,7 +88,40 @@ class WebhookIdempotencyRegistry {
       return false;
     }
 
-    // Set optimistic lock in memory cache IMMEDIATELY before any awaits
+    if (isSupabaseConfigured()) {
+      try {
+        const { data, error } = await this.getPersistenceClient().rpc('claim_webhook_event', {
+          p_event_id: eventId,
+          p_provider: provider,
+        });
+
+        if (error) {
+          console.error('[WebhookIdempotency] Authoritative claim failed:', error);
+          return false;
+        }
+        if (data !== true) {
+          return false;
+        }
+        this.inMemoryCache.set(key, {
+          eventId,
+          provider,
+          eventType: 'in_flight',
+          status: 'processed',
+          processedAt: new Date().toISOString(),
+        });
+        return true;
+      } catch (err) {
+        console.error('[WebhookIdempotency] Authoritative claim exception:', err);
+        return false;
+      }
+    }
+
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      console.error('[WebhookIdempotency] Refusing non-persistent webhook processing in production.');
+      return false;
+    }
+
+    // Development/test fallback only.
     this.inMemoryCache.set(key, {
       eventId,
       provider,
@@ -85,27 +129,6 @@ class WebhookIdempotencyRegistry {
       status: 'processed',
       processedAt: new Date().toISOString(),
     });
-
-    // 2. Check persistent database if available (secondary guard)
-    if (isSupabaseConfigured()) {
-      try {
-        const { data, error } = await supabase
-          .from('webhook_events')
-          .select('event_id')
-          .eq('event_id', eventId)
-          .eq('provider', provider)
-          .maybeSingle();
-
-        if (!error && data) {
-          // Already in DB, so it was definitely processed before this run
-          return false;
-        }
-      } catch (err) {
-        console.warn('[WebhookIdempotency] DB lock check error:', err);
-        // Fallback to the memory lock we already set
-      }
-    }
-
     return true;
   }
 
@@ -141,10 +164,10 @@ class WebhookIdempotencyRegistry {
     }
     this.inMemoryCache.set(key, entry);
 
-    // Persist to Supabase if configured
+    // Persist the authoritative final state if configured.
     if (isSupabaseConfigured()) {
       try {
-        await supabase.from('webhook_events').insert({
+        const { error } = await this.getPersistenceClient().from('webhook_events').upsert({
           event_id: eventId,
           provider,
           event_type: eventType,
@@ -152,9 +175,12 @@ class WebhookIdempotencyRegistry {
           payload: payload || {},
           status,
           processed_at: new Date().toISOString()
-        });
+        }, { onConflict: 'provider,event_id' });
+        if (error) {
+          console.error('[WebhookIdempotency] Supabase event update failed:', error);
+        }
       } catch (err) {
-        console.warn('[WebhookIdempotency] Supabase insert warning:', err);
+        console.error('[WebhookIdempotency] Supabase event update exception:', err);
       }
     }
   }

@@ -57,12 +57,12 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     expect(adminLocal.isAdminDomain).toBe(true);
     expect(adminLocal.isCustomerDomain).toBe(false);
 
-    // 3. Query parameter test overrides
+    // 3. Query parameters cannot override the origin boundary
     const queryOverrideAdmin = inspectHostname('localhost', '?domain=admin');
-    expect(queryOverrideAdmin.isAdminDomain).toBe(true);
+    expect(queryOverrideAdmin.isAdminDomain).toBe(false);
 
     const queryOverrideCustomer = inspectHostname('admin.kixora.com', '?domain=customer');
-    expect(queryOverrideCustomer.isAdminDomain).toBe(false);
+    expect(queryOverrideCustomer.isAdminDomain).toBe(true);
   });
 
   test('AUTH-03: authService customer registration enforces customer role', async () => {
@@ -90,7 +90,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-04: Customer domain blocks unauthorized access to Admin Dashboard (404 View)', async ({ page }) => {
     // Navigate to customer domain with customer session
-    await page.goto('/?domain=customer');
+    await page.goto('/');
     await page.evaluate(() => {
       const customerSession = {
         user: {
@@ -107,22 +107,15 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     });
     await page.reload();
 
-    // Verify customer storefront is active
-    await expect(page.getByText(/built for the culture/i)).toBeVisible();
-
-    // Click admin switcher button
-    const adminBtn = page.locator('#header-admin-profile-button');
-    if (await adminBtn.isVisible()) {
-      await adminBtn.click();
-      // On customer domain, DomainGuard presents the 404 Vault Not Found view
-      await expect(page.locator('#domain-guard-404')).toBeVisible();
-      await expect(page.getByText(/404: vault view not found/i)).toBeVisible();
-    }
+    // Verify the current storefront and that the customer origin does not expose
+    // an admin navigation affordance.
+    await expect(page.locator('#main-content')).toBeVisible();
+    await expect(page.locator('#header-admin-profile-button')).toHaveCount(0);
   });
 
   test('AUTH-05: Admin domain with admin role allows full access to Admin Hub', async ({ page }) => {
     // Navigate to admin domain with admin session
-    await page.goto('/?domain=admin');
+    await page.goto('http://admin.localhost:3100/');
     await page.evaluate(() => {
       const adminSession = {
         user: {
@@ -141,9 +134,8 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
     // Click admin button
     const adminBtn = page.locator('#header-admin-profile-button');
-    if (await adminBtn.isVisible()) {
-      await adminBtn.click();
-    }
+    await expect(adminBtn).toBeVisible();
+    await adminBtn.click();
 
     // Verify Admin Dashboard is rendered
     await expect(page.locator('#admin-nav-dashboard')).toBeVisible();
@@ -152,7 +144,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-06: Customer role on admin domain receives 403 Forbidden', async ({ page }) => {
     // Navigate to admin domain with customer credentials
-    await page.goto('/?domain=admin');
+    await page.goto('http://admin.localhost:3100/');
     await page.evaluate(() => {
       const customerSession = {
         user: {
@@ -171,9 +163,8 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
     // Click admin switcher button
     const adminBtn = page.locator('#header-admin-profile-button');
-    if (await adminBtn.isVisible()) {
-      await adminBtn.click();
-    }
+    await expect(adminBtn).toBeVisible();
+    await adminBtn.click();
 
     // Verify 403 Forbidden is rendered
     await expect(page.locator('#admin-route-forbidden')).toBeVisible();
@@ -182,7 +173,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and can log in', async ({ page }) => {
     // Navigate to admin domain with no session
-    await page.goto('/?domain=admin');
+    await page.goto('http://admin.localhost:3100/');
     await page.evaluate(() => {
       localStorage.clear();
     });
@@ -190,9 +181,8 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
     // Click admin button
     const adminBtn = page.locator('#header-admin-profile-button');
-    if (await adminBtn.isVisible()) {
-      await adminBtn.click();
-    }
+    await expect(adminBtn).toBeVisible();
+    await adminBtn.click();
 
     // Verify Vault Admin Authentication form appears
     await expect(page.locator('#admin-route-forbidden')).toBeVisible();

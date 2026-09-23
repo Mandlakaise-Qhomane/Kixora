@@ -28,13 +28,10 @@ VALUES
     10485760, -- 10MB
     ARRAY['image/jpeg', 'image/png', 'image/webp']
   )
-ON CONFLICT (id) DO UPDATE SET
-  public = EXCLUDED.public,
-  file_size_limit = EXCLUDED.file_size_limit,
-  allowed_mime_types = EXCLUDED.allowed_mime_types;
+ON CONFLICT (id) DO NOTHING;
 
 -- 2. ENABLE RLS ON STORAGE OBJECTS
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- RLS on storage.objects is enabled by Supabase; no need to alter.
 
 -- 3. STORAGE ACCESS POLICIES: PUBLIC READ
 DROP POLICY IF EXISTS "Public can view product images" ON storage.objects;

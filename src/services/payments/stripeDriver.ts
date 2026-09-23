@@ -152,50 +152,30 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
     const secret = payload.secret || this.getWebhookSecret();
     const rawBody = payload.rawBody;
 
-    let isVerified = false;
-
-    if (secret) {
-      if (!signatureHeader || !rawBody) {
-        return {
-          success: false,
-          event: payload.payload?.type || 'stripe.webhook',
-          verified: false,
-          error: 'Missing mandatory Stripe signature header or raw request body.'
-        };
-      }
-      const verification = verifyStripeSignature(
-        rawBody,
-        signatureHeader,
-        secret,
-        payload.toleranceSeconds ?? 300
-      );
-
-      if (!verification.valid) {
-        return {
-          success: false,
-          event: payload.payload?.type || 'stripe.webhook',
-          verified: false,
-          error: verification.error || 'Stripe webhook signature verification failed.'
-        };
-      }
-      isVerified = true;
-    } else if (signatureHeader && rawBody) {
-      // In sandbox/testing without secret, verify if secret passed in payload
-      const verification = verifyStripeSignature(
-        rawBody,
-        signatureHeader,
-        payload.secret || '',
-        payload.toleranceSeconds ?? 300
-      );
-      if (!verification.valid) {
-        return {
-          success: false,
-          event: payload.payload?.type || 'stripe.webhook',
-          verified: false,
-          error: verification.error || 'Stripe webhook signature verification failed.'
-        };
-      }
-      isVerified = true;
+    if (!secret) {
+      return {
+        success: false,
+        event: payload.payload?.type || 'stripe.webhook',
+        verified: false,
+        error: 'Missing mandatory Stripe webhook verification configuration.'
+      };
+    }
+    if (!signatureHeader || !rawBody) {
+      return {
+        success: false,
+        event: payload.payload?.type || 'stripe.webhook',
+        verified: false,
+        error: 'Missing mandatory Stripe signature header or raw request body.'
+      };
+    }
+    const verification = verifyStripeSignature(rawBody, signatureHeader, secret, payload.toleranceSeconds ?? 300);
+    if (!verification.valid) {
+      return {
+        success: false,
+        event: payload.payload?.type || 'stripe.webhook',
+        verified: false,
+        error: verification.error || 'Stripe webhook signature verification failed.'
+      };
     }
 
     // 2. Parse payload
@@ -251,7 +231,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'paid',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -263,7 +243,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'failed',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -274,7 +254,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'processing',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -285,7 +265,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'cancelled',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -296,7 +276,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'refunded',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
 
@@ -307,7 +287,7 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
           orderCode,
           paymentIntentId,
           newStatus: 'pending',
-          verified: isVerified || true,
+          verified: true,
           gatewayMetadata
         };
     }
@@ -323,14 +303,11 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
       };
     }
 
-    const refundId = `re_stripe_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
     return {
-      success: true,
+      success: false,
       provider: this.provider,
-      refundId,
-      amountRefunded: request.amount || 0,
-      status: 'refunded'
+      status: 'paid',
+      error: 'Stripe refunds require a server-side Stripe Refunds API integration; no refund was created.'
     };
   }
 }

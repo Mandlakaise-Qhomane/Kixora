@@ -76,7 +76,24 @@ export class TrackingWebhookService {
     const serverConfig = getServerConfig();
     const secret = input.secret || serverConfig.shippingWebhookSecret;
 
-    // 1. Signature Verification if secret or signature is configured/provided
+    if (!secret) {
+      logger.warn('[TrackingWebhook] Missing webhook verification configuration');
+      return {
+        success: false,
+        idempotent: false,
+        error: 'Missing mandatory carrier webhook verification configuration',
+      };
+    }
+    if (!signatureHeader) {
+      logger.warn('[TrackingWebhook] Missing mandatory carrier signature header');
+      return {
+        success: false,
+        idempotent: false,
+        error: 'Missing carrier signature header',
+      };
+    }
+
+    // 1. Signature Verification
     if (secret && signatureHeader) {
       const verification = verifyCarrierWebhookSignature(
         rawBody,
@@ -97,13 +114,6 @@ export class TrackingWebhookService {
           error: verification.error || 'Invalid carrier webhook signature',
         };
       }
-    } else if (secret && !signatureHeader) {
-      logger.warn('[TrackingWebhook] Missing mandatory carrier signature header');
-      return {
-        success: false,
-        idempotent: false,
-        error: 'Missing carrier signature header',
-      };
     }
 
     // 2. Parse Raw Payload

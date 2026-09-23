@@ -11,8 +11,9 @@ import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
 import { emailService } from './src/services/email/emailService';
-import { getServerConfig } from './src/config/env';
+import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
+import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -20,8 +21,24 @@ import { logger } from './logger';
  * provides SPA routing, and integrates Vite for development.
  */
 async function startServer() {
+  const productionEnv = validateProductionEnv();
+  if (!productionEnv.valid) {
+    throw new Error(`Invalid production environment:\n- ${productionEnv.errors.join('\n- ')}`);
+  }
+
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
+  const startupConfig = getServerConfig();
+  const clientConfig = getEnvConfig();
+  logger.info('[Startup] Configuration validated', {
+    environment: process.env.NODE_ENV || 'development',
+    paymentProvider: clientConfig.paymentProviderMode,
+    payfastSandbox: clientConfig.payfastSandbox,
+    corsOriginCount: (process.env.CORS_ALLOWED_ORIGINS || 'https://kixora.com').split(',').filter(Boolean).length,
+    stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
+    payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
+    shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
+  });
 
   // ===========================================================================
   // REQUEST CONTEXT & LOGGING (Task 2)
@@ -41,7 +58,7 @@ async function startServer() {
         method: req.method,
         url: req.url,
         statusCode: res.statusCode,
-        duration: `${duration}ms`,
+        duration,
         userAgent: req.headers['user-agent']
       });
     });
@@ -59,6 +76,23 @@ async function startServer() {
   // If a legitimate production iframe use case is approved later, remove
   // frameguard and use only CSP frame-ancestors with an explicit allowlist.
   const frameAncestors = ["'none'"];
+
+  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || `${startupConfig.customerOrigin},${startupConfig.adminOrigin}`)
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true
+  }));
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -81,13 +115,14 @@ async function startServer() {
         ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       },
     },
-    frameguard: { action: 'deny' },
+    frameguard: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   }));
 
   // Standard Security Headers
   app.use((_req, res, next) => {
+    res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
     next();
@@ -251,33 +286,77 @@ async function startServer() {
     res.json({ status: 'ok', domain: 'kixora-production' });
   });
 
+  app.get('/api/ready', (_req, res) => {
+    const config = validateProductionEnv();
+    if (!config.valid) {
+      return res.status(503).json({
+        status: 'not_ready',
+        checks: { configuration: false },
+      });
+    }
+
+    return res.json({
+      status: 'ready',
+      checks: {
+        configuration: true,
+        paymentProvider: clientConfig.paymentProviderMode,
+        stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
+        payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
+        shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
+      },
+    });
+  });
+
+  if (process.env.NODE_ENV === 'test') {
+    app.use('/rest/v1', (_req, res) => {
+      res.json([]);
+    });
+  }
+
   // ===========================================================================
   // STRIPE PAYMENT INTENT (Production Blocker Fix)
   // ===========================================================================
-  
+
   const { stripeSecretKey } = getServerConfig();
   const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
-  app.post('/api/payments/stripe/create-intent', async (req, res) => {
+  app.post('/api/payments/stripe/create-intent', csrfProtection, async (req, res) => {
     if (!stripe) {
       logger.error('[Stripe] Missing STRIPE_SECRET_KEY');
       return res.status(500).json({ error: 'Stripe is not configured on the server.' });
     }
 
-    const { amount, currency, orderCode, customerEmail, metadata } = req.body;
+    const { orderCode, customerEmail } = req.body;
+    if (!orderCode || !customerEmail || !isSupabaseConfigured()) {
+      return res.status(400).json({ error: 'A persisted order is required to initialize payment.' });
+    }
 
     try {
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, order_code, total, payment_reference, customer_snapshot')
+        .eq('order_code', orderCode)
+        .maybeSingle();
+      if (orderError || !order) {
+        return res.status(404).json({ error: 'Order not found.' });
+      }
+      const persistedEmail = (order.customer_snapshot as any)?.email;
+      if (persistedEmail && String(persistedEmail).toLowerCase() !== String(customerEmail).toLowerCase()) {
+        return res.status(403).json({ error: 'Payment customer does not own this order.' });
+      }
+      if (!Number.isFinite(Number(order.total)) || Number(order.total) <= 0) {
+        return res.status(422).json({ error: 'Order has no payable total.' });
+      }
       logger.info(`[Stripe] Creating intent for order ${orderCode}`, {
         orderCode,
-        amount,
-        currency
+        amount: order.total,
+        currency: 'ZAR'
       });
       const intent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // convert to cents
-        currency: (currency || 'zar').toLowerCase(),
+        amount: Math.round(Number(order.total) * 100),
+        currency: 'zar',
         metadata: {
-          orderCode,
-          ...metadata
+          orderCode
         },
         receipt_email: customerEmail,
         description: `Kixora Order ${orderCode}`
@@ -421,13 +500,13 @@ async function startServer() {
    * POST /api/shipping/rates
    * Real-time Multi-Carrier Shipping Rate Calculation
    */
-  app.post('/api/shipping/rates', express.json(), async (req, res) => {
+  app.post('/api/shipping/rates', express.json(), csrfProtection, async (req, res) => {
     try {
       const quotes = await shippingService.calculateRates(req.body);
       res.json({ success: true, quotes });
     } catch (err: any) {
       logger.error('[Shipping Rates API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to calculate shipping rates', details: err.message });
+      res.status(500).json({ error: 'Failed to calculate shipping rates' });
     }
   });
 
@@ -435,13 +514,13 @@ async function startServer() {
    * POST /api/shipping/labels
    * Admin / Automation Carrier Waybill Label Generation
    */
-  app.post('/api/shipping/labels', express.json(), async (req, res) => {
+  app.post('/api/shipping/labels', express.json(), csrfProtection, async (req, res) => {
     try {
       const label = await shippingService.createShipmentLabel(req.body);
       res.json(label);
     } catch (err: any) {
       logger.error('[Shipping Labels API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to generate shipping label', details: err.message });
+      res.status(500).json({ error: 'Failed to generate shipping label' });
     }
   });
 
@@ -449,25 +528,28 @@ async function startServer() {
    * POST /api/notifications/email/order-confirmation
    * Transactional Order Confirmation Dispatch
    */
-  app.post('/api/notifications/email/order-confirmation', express.json(), async (req, res) => {
+  app.post('/api/notifications/email/order-confirmation', express.json(), csrfProtection, async (req, res) => {
     try {
       const result = await emailService.sendOrderConfirmation(req.body);
       res.json(result);
     } catch (err: any) {
       logger.error('[Email Notification API] Exception', { error: err.message });
-      res.status(500).json({ error: 'Failed to send confirmation email', details: err.message });
+      res.status(500).json({ error: 'Failed to send confirmation email' });
     }
   });
 
   // Global Error Handler for API & Payload errors
   app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err) {
+      if (err.code === 'EBADCSRFTOKEN') {
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+      }
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
         logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
         return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
       }
       logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
-      return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+      return res.status(err.status || 500).json({ error: 'Internal server error' });
     }
     next();
   });
@@ -479,7 +561,10 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     // Vite middleware for development
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.NODE_ENV === 'test' ? false : undefined,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

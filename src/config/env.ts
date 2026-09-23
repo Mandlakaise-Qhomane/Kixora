@@ -37,6 +37,13 @@ export interface ServerEnvConfig {
   theCourierGuyApiKey: string;
   shiplogicApiKey: string;
   shippingWebhookSecret: string;
+  adminOrigin: string;
+  customerOrigin: string;
+}
+
+export interface ProductionEnvValidation {
+  valid: boolean;
+  errors: string[];
 }
 
 export function getEnvConfig(): ClientEnvConfig {
@@ -81,6 +88,8 @@ export function getServerConfig(): ServerEnvConfig {
       theCourierGuyApiKey: '',
       shiplogicApiKey: '',
       shippingWebhookSecret: '',
+      adminOrigin: '',
+      customerOrigin: '',
     };
   }
 
@@ -96,13 +105,88 @@ export function getServerConfig(): ServerEnvConfig {
     theCourierGuyApiKey: env.THE_COURIER_GUY_API_KEY || '',
     shiplogicApiKey: env.SHIPLOGIC_API_KEY || '',
     shippingWebhookSecret: env.SHIPPING_WEBHOOK_SECRET || '',
+    adminOrigin: env.ADMIN_ORIGIN || env.VITE_ADMIN_ORIGIN || env.VITE_ADMIN_DOMAIN || 'https://admin.kixora.com',
+    customerOrigin: env.CUSTOMER_ORIGIN || env.VITE_CUSTOMER_ORIGIN || env.VITE_CUSTOMER_DOMAIN || 'https://kixora.com',
   };
+}
+
+export function validateProductionEnv(): ProductionEnvValidation {
+  if (process.env.NODE_ENV !== 'production') {
+    return { valid: true, errors: [] };
+  }
+
+  const client = getEnvConfig();
+  const server = getServerConfig();
+  const errors: string[] = [];
+  const provider = client.paymentProviderMode;
+
+  if (provider !== 'stripe' && provider !== 'payfast') {
+    errors.push('VITE_PAYMENT_PROVIDER_MODE must be stripe or payfast in production.');
+  }
+
+  if (provider === 'stripe') {
+    if (!client.stripePublishableKey && !client.paymentPublicKey) errors.push('Stripe publishable key is required.');
+    if (!server.stripeSecretKey) errors.push('STRIPE_SECRET_KEY is required.');
+    if (!server.stripeWebhookSecret) errors.push('STRIPE_WEBHOOK_SECRET is required.');
+  }
+
+  if (provider === 'payfast') {
+    if (!client.payfastMerchantId || !client.payfastMerchantKey) errors.push('PayFast merchant credentials are required.');
+    if (!server.payfastPassphrase) errors.push('PAYFAST_PASSPHRASE is required.');
+  }
+
+  if (!server.shippingWebhookSecret) errors.push('SHIPPING_WEBHOOK_SECRET is required.');
+
+  const origins = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean);
+  if (origins.length === 0 || origins.includes('*')) {
+    errors.push('CORS_ALLOWED_ORIGINS must contain explicit origins in production.');
+  } else {
+    for (const origin of origins) {
+      try {
+        const parsed = new URL(origin);
+        if (!['http:', 'https:'].includes(parsed.protocol)) errors.push(`Invalid CORS origin: ${origin}`);
+      } catch {
+        errors.push(`Invalid CORS origin: ${origin}`);
+      }
+    }
+
+    const adminOrigin = server.adminOrigin;
+    const customerOrigin = server.customerOrigin;
+    for (const [name, origin] of [['ADMIN_ORIGIN', adminOrigin], ['CUSTOMER_ORIGIN', customerOrigin]] as const) {
+      try {
+        const parsed = new URL(origin);
+        if (parsed.protocol !== 'https:' || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+          errors.push(`${name} must be an HTTPS origin without a path, query, or hash.`);
+        }
+      } catch {
+        errors.push(`${name} must be a valid HTTPS origin.`);
+      }
+    }
+    if (adminOrigin === customerOrigin) {
+      errors.push('ADMIN_ORIGIN and CUSTOMER_ORIGIN must be different origins.');
+    }
+    if (!origins.includes(adminOrigin) || !origins.includes(customerOrigin)) {
+      errors.push('CORS_ALLOWED_ORIGINS must include both ADMIN_ORIGIN and CUSTOMER_ORIGIN.');
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 export function isPaymentConfigured(): boolean {
   const config = getEnvConfig();
-  if (config.paymentProviderMode === 'mock') return true;
+  if (config.paymentProviderMode === 'mock') {
+    const isProdBrowser = typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD;
+    const isProdServer = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
+    if (isProdBrowser || isProdServer) {
+      throw new Error('Payment configuration Error: Mock payment mode is strictly prohibited in production builds.');
+    }
+    return true;
+  }
   if (config.paymentProviderMode === 'stripe') return !!config.stripePublishableKey || !!config.paymentPublicKey;
   if (config.paymentProviderMode === 'payfast') return !!config.payfastMerchantId && !!config.payfastMerchantKey;
-  return !!config.paymentPublicKey;
+  if (config.paymentProviderMode === 'paypal') {
+    throw new Error('Payment configuration Error: PayPal is not configured.');
+  }
+  throw new Error(`Payment configuration Error: Unsupported payment provider "${config.paymentProviderMode}".`);
 }

@@ -4,38 +4,26 @@
 --              ensures impenetrable JWT claims validation.
 -- ==============================================================================
 
--- 1. Fix is_admin and is_super_admin to be more flexible (support optional UID)
-CREATE OR REPLACE FUNCTION public.is_admin(p_user_id UUID DEFAULT NULL)
+-- 1. Keep zero‑arg is_admin / is_super_admin signatures because existing RLS policies depend on them; pin search_path to public.
+CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 DECLARE
   v_role TEXT;
 BEGIN
-  -- If specific UID provided, check that profile directly
-  -- Otherwise, check current JWT claims or authenticated profile
-  IF p_user_id IS NOT NULL THEN
-    SELECT role INTO v_role FROM public.profiles WHERE id = p_user_id;
-  ELSE
-    v_role := public.get_auth_role();
-  END IF;
-
-  RETURN v_role IN ('admin', 'super_admin');
+  v_role := public.get_auth_role();
+  RETURN COALESCE(v_role IN ('admin', 'super_admin'), false);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
-CREATE OR REPLACE FUNCTION public.is_super_admin(p_user_id UUID DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN AS $$
 DECLARE
   v_role TEXT;
 BEGIN
-  IF p_user_id IS NOT NULL THEN
-    SELECT role INTO v_role FROM public.profiles WHERE id = p_user_id;
-  ELSE
-    v_role := public.get_auth_role();
-  END IF;
-
+  v_role := public.get_auth_role();
   RETURN v_role = 'super_admin';
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE SET search_path = public;
 
 -- 2. Refine Fulfillment RLS Policies (Ensuring they use the correct is_admin signature)
 DROP POLICY IF EXISTS admin_full_access_locations ON public.fulfillment_locations;

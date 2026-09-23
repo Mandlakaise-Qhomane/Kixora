@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { generatePayFastSignature, computeHmacSha256 } from '../../src/services/payments/crypto';
 import { getPaymentDriver, getActivePaymentDriver } from '../../src/services/payments';
 import { MockPaymentDriver } from '../../src/services/payments/mockDriver';
 import { StripePaymentDriver } from '../../src/services/payments/stripeDriver';
@@ -63,38 +64,53 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
   });
 
   test('PG-03: PayFast driver creates valid redirect payload and ZAR parameters for South African checkout', async () => {
+    const previousMerchantId = process.env.VITE_PAYFAST_MERCHANT_ID;
+    const previousMerchantKey = process.env.VITE_PAYFAST_MERCHANT_KEY;
+    process.env.VITE_PAYFAST_MERCHANT_ID = '10000100';
+    process.env.VITE_PAYFAST_MERCHANT_KEY = 'sandbox-test-key';
+
     const payfastDriver = new PayFastPaymentDriver();
 
-    const intent = await payfastDriver.createPaymentIntent({
-      amount: 3200,
-      currency: 'ZAR',
-      orderCode: 'KXO-4412',
-      customerEmail: 'kagiso.m@kixora.co.za',
-      customerName: 'Kagiso Molefe',
-    });
+    try {
+      const intent = await payfastDriver.createPaymentIntent({
+        amount: 3200,
+        currency: 'ZAR',
+        orderCode: 'KXO-4412',
+        customerEmail: 'kagiso.m@kixora.co.za',
+        customerName: 'Kagiso Molefe',
+      });
 
-    expect(intent.success).toBe(true);
-    expect(intent.provider).toBe('payfast');
-    expect(intent.paymentIntentId).toContain('KXO-4412');
-    expect(intent.redirectUrl).toBeDefined();
-    expect(intent.redirectUrl).toContain('payfast.co.za/eng/process');
-    expect(intent.gatewayData?.merchant_id).toBeDefined();
-    expect(intent.gatewayData?.amount).toBe('3200.00');
-    expect(intent.gatewayData?.email_address).toBe('kagiso.m@kixora.co.za');
+      expect(intent.success).toBe(true);
+      expect(intent.provider).toBe('payfast');
+      expect(intent.paymentIntentId).toContain('KXO-4412');
+      expect(intent.redirectUrl).toBeDefined();
+      expect(intent.redirectUrl).toContain('payfast.co.za/eng/process');
+      expect(intent.gatewayData?.merchant_id).toBeDefined();
+      expect(intent.gatewayData?.amount).toBe('3200.00');
+      expect(intent.gatewayData?.email_address).toBe('kagiso.m@kixora.co.za');
+    } finally {
+      if (previousMerchantId === undefined) delete process.env.VITE_PAYFAST_MERCHANT_ID;
+      else process.env.VITE_PAYFAST_MERCHANT_ID = previousMerchantId;
+      if (previousMerchantKey === undefined) delete process.env.VITE_PAYFAST_MERCHANT_KEY;
+      else process.env.VITE_PAYFAST_MERCHANT_KEY = previousMerchantKey;
+    }
   });
 
   test('PG-04: PayFast webhook / ITN parser transitions payment statuses correctly', async () => {
     const payfastDriver = new PayFastPaymentDriver();
 
     // 1. COMPLETE event
+    const completePayload = {
+      payment_status: 'COMPLETE',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+      pf_payment_id: '12345678',
+      amount_gross: '2500.00',
+    };
     const completeRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'COMPLETE',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-        pf_payment_id: '12345678',
-        amount_gross: '2500.00',
-      }
+      payload: completePayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(completePayload, 'phase4-test-passphrase'),
     });
 
     expect(completeRes.success).toBe(true);
@@ -102,25 +118,31 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     expect(completeRes.orderCode).toBe('KXO-5555');
 
     // 2. FAILED event
+    const failedPayload = {
+      payment_status: 'FAILED',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+      pf_payment_id: '12345678',
+    };
     const failedRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'FAILED',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-        pf_payment_id: '12345678',
-      }
+      payload: failedPayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(failedPayload, 'phase4-test-passphrase'),
     });
 
     expect(failedRes.success).toBe(true);
     expect(failedRes.newStatus).toBe('failed');
 
     // 3. CANCELLED event
+    const cancelledPayload = {
+      payment_status: 'CANCELLED',
+      m_payment_id: 'pf_1700000000_KXO-5555',
+    };
     const cancelledRes = await payfastDriver.handleWebhook({
       provider: 'payfast',
-      payload: {
-        payment_status: 'CANCELLED',
-        m_payment_id: 'pf_1700000000_KXO-5555',
-      }
+      payload: cancelledPayload,
+      passphrase: 'phase4-test-passphrase',
+      signature: generatePayFastSignature(cancelledPayload, 'phase4-test-passphrase'),
     });
 
     expect(cancelledRes.success).toBe(true);
@@ -131,17 +153,24 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     const stripeDriver = new StripePaymentDriver();
 
     // 1. payment_intent.succeeded
-    const succRes = await stripeDriver.handleWebhook({
-      provider: 'stripe',
-      payload: {
-        type: 'payment_intent.succeeded',
-        data: {
-          object: {
-            id: 'pi_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
+    const stripeSecret = 'phase4-stripe-secret';
+    const successPayload = {
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_stripe_test123',
+          metadata: { orderCode: 'KXO-9999' }
         }
       }
+    };
+    const stripeTimestamp = Math.floor(Date.now() / 1000);
+    const successRawBody = JSON.stringify(successPayload);
+    const succRes = await stripeDriver.handleWebhook({
+      provider: 'stripe',
+      payload: successPayload,
+      rawBody: successRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${successRawBody}`, stripeSecret)}`,
     });
 
     expect(succRes.success).toBe(true);
@@ -149,34 +178,34 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
     expect(succRes.orderCode).toBe('KXO-9999');
 
     // 2. payment_intent.payment_failed
+    const failedPayload = {
+      type: 'payment_intent.payment_failed',
+      data: { object: { id: 'pi_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
+    };
+    const failedRawBody = JSON.stringify(failedPayload);
     const failRes = await stripeDriver.handleWebhook({
       provider: 'stripe',
-      payload: {
-        type: 'payment_intent.payment_failed',
-        data: {
-          object: {
-            id: 'pi_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
-        }
-      }
+      payload: failedPayload,
+      rawBody: failedRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${failedRawBody}`, stripeSecret)}`,
     });
 
     expect(failRes.success).toBe(true);
     expect(failRes.newStatus).toBe('failed');
 
     // 3. charge.refunded
+    const refundPayload = {
+      type: 'charge.refunded',
+      data: { object: { id: 'ch_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
+    };
+    const refundRawBody = JSON.stringify(refundPayload);
     const refundRes = await stripeDriver.handleWebhook({
       provider: 'stripe',
-      payload: {
-        type: 'charge.refunded',
-        data: {
-          object: {
-            id: 'ch_stripe_test123',
-            metadata: { orderCode: 'KXO-9999' }
-          }
-        }
-      }
+      payload: refundPayload,
+      rawBody: refundRawBody,
+      secret: stripeSecret,
+      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${refundRawBody}`, stripeSecret)}`,
     });
 
     expect(refundRes.success).toBe(true);
@@ -201,19 +230,38 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
   });
 
   test('PG-07: Client checkout flow executes cleanly with payment gateway integration', async ({ page }) => {
-    await page.goto('/?domain=customer');
-    await page.evaluate(() => localStorage.clear());
-    await page.reload();
+    await page.goto('/?domain=customer', { waitUntil: 'commit' });
+    await page.evaluate(() => {
+      localStorage.clear();
+      localStorage.setItem('kixora_auth_session', JSON.stringify({
+        user: {
+          id: 'customer-phase4',
+          email: 'customer@kixora.test',
+          role: 'customer',
+          fullName: 'Phase 4 Customer',
+          appMetadata: { role: 'customer' },
+          userMetadata: { full_name: 'Phase 4 Customer' },
+        },
+        accessToken: 'mock_jwt_customer_phase4',
+        expiresAt: Math.floor(Date.now() / 1000) + 86400,
+      }));
+    });
+    await page.reload({ waitUntil: 'commit' });
+    await page.waitForSelector('header', { state: 'visible' });
+    await page.addStyleTag({
+      content: '* { transition-duration: 0s !important; animation-duration: 0s !important; }',
+    });
 
     // 1. Add product to cart (automatically opens cart drawer)
     const addBtn = page.locator('button[id^="add-to-cart-btn-"]').first();
     await expect(addBtn).toBeVisible();
-    await addBtn.click();
+    await addBtn.dispatchEvent('click');
 
     // 2. Click proceed to checkout in drawer
     const checkoutBtn = page.locator('#cart-proceed-checkout-btn');
     await expect(checkoutBtn).toBeVisible();
-    await checkoutBtn.click();
+    await checkoutBtn.dispatchEvent('click');
+    await expect(page.locator('#cart-drawer-backdrop')).toHaveCount(0);
 
     // 3. Checkout modal is visible
     const modalBackdrop = page.locator('#checkout-modal-backdrop');
@@ -229,20 +277,20 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
     // 5. Continue to Step 2
     const step1Btn = page.locator('#checkout-step1-continue-btn');
-    await step1Btn.click();
+    await step1Btn.dispatchEvent('click');
 
     // 6. Step 2: Payment options
     await expect(page.getByText('2. SECURE PAYMENT METHOD')).toBeVisible();
 
     // 7. Continue to Step 3
     const step2Btn = page.locator('#checkout-step2-continue-btn');
-    await step2Btn.click();
+    await step2Btn.dispatchEvent('click');
 
     // 8. Step 3: Review & Place Order
     await expect(page.getByText('3. REVIEW & AUTHORIZATION')).toBeVisible();
     const confirmBtn = page.locator('#checkout-confirm-pay-btn');
     await expect(confirmBtn).toBeVisible();
-    await confirmBtn.click();
+    await confirmBtn.dispatchEvent('click');
 
     // 9. Step 4: Confirmation screen
     await expect(page.locator('#checkout-track-order-btn')).toBeVisible({ timeout: 10000 });

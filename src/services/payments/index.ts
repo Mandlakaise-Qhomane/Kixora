@@ -15,19 +15,25 @@ export * from './stripeDriver';
 export * from './payfastDriver';
 
 // Singleton registry of drivers
-const drivers: Record<PaymentProviderType, PaymentGatewayDriver> = {
+const drivers: Partial<Record<PaymentProviderType, PaymentGatewayDriver>> = {
   mock: new MockPaymentDriver(),
   stripe: new StripePaymentDriver(),
   payfast: new PayFastPaymentDriver(),
-  paypal: new MockPaymentDriver(), // Fallback to mock driver for PayPal until provider configured
 };
 
 /**
  * Retrieve a payment driver by explicit provider name.
  */
 export function getPaymentDriver(provider?: PaymentProviderType): PaymentGatewayDriver {
-  if (provider && drivers[provider]) {
-    return drivers[provider];
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production' && provider === 'mock') {
+    throw new Error('Mock payment mode is strictly prohibited in production.');
+  }
+  if (provider) {
+    const driver = drivers[provider];
+    if (!driver) {
+      throw new Error(`Unsupported payment provider: ${provider}`);
+    }
+    return driver;
   }
   return getActivePaymentDriver();
 }
@@ -38,7 +44,14 @@ export function getPaymentDriver(provider?: PaymentProviderType): PaymentGateway
 export function getActivePaymentDriver(): PaymentGatewayDriver {
   const config = getEnvConfig();
   const provider = config.paymentProviderMode;
-  return drivers[provider] || drivers.mock;
+  const driver = drivers[provider];
+  if (!driver) {
+    throw new Error(`Unsupported payment provider: ${provider}`);
+  }
+  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production' && provider === 'mock') {
+    throw new Error('Mock payment mode is strictly prohibited in production.');
+  }
+  return driver;
 }
 
 /**
