@@ -18,6 +18,30 @@ import {
   RefundResponse
 } from './types';
 
+/**
+ * Phase A: Fetch a CSRF token from the server before making a mutating API request.
+ * The token endpoint is deliberately outside the protected route groups so it can
+ * issue a fresh token to the browser.
+ */
+async function fetchCsrfToken(baseUrl: string): Promise<string> {
+  const response = await fetch(`${baseUrl}/api/csrf`, {
+    method: 'GET',
+    credentials: 'same-origin',
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to retrieve CSRF token.');
+  }
+
+  const { csrfToken } = await response.json();
+  if (!csrfToken) {
+    throw new Error('CSRF token response was empty.');
+  }
+
+  return csrfToken;
+}
+
 export class StripePaymentDriver implements PaymentGatewayDriver {
   readonly provider: PaymentProviderType = 'stripe';
 
@@ -50,10 +74,16 @@ export class StripePaymentDriver implements PaymentGatewayDriver {
     try {
       // Production fix: Call server-side endpoint to create real PaymentIntent
       const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+
+      // Phase A: Fetch a CSRF token before mutating the protected endpoint
+      const csrfToken = await fetchCsrfToken(baseUrl);
+
       const response = await fetch(`${baseUrl}/api/payments/stripe/create-intent`, {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
         },
         body: JSON.stringify({
           amount: request.amount,

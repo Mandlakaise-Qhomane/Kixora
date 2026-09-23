@@ -4,6 +4,9 @@ import { createServer as createViteServer } from 'vite';
 import Stripe from 'stripe';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import csurf from 'csurf';
 import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
@@ -51,12 +54,11 @@ async function startServer() {
   // ===========================================================================
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // Origins allowed to embed the app in an <iframe>. Hosted previews (e.g. Google AI Studio)
-  // render the app inside a cross-origin frame, so framing is open outside production and
-  // restricted to 'self' plus ALLOWED_FRAME_ANCESTORS in production.
-  const frameAncestors = isProduction
-    ? ["'self'", ...(process.env.ALLOWED_FRAME_ANCESTORS || '').split(/[\s,]+/).filter(Boolean)]
-    : ['*'];
+  // Phase A: Keep the framing policy consistent across Helmet and CSP.
+  // X-Frame-Options: DENY and CSP frame-ancestors 'none' both block framing.
+  // If a legitimate production iframe use case is approved later, remove
+  // frameguard and use only CSP frame-ancestors with an explicit allowlist.
+  const frameAncestors = ["'none'"];
 
   app.use(helmet({
     contentSecurityPolicy: {
@@ -92,6 +94,90 @@ async function startServer() {
   });
 
   // ===========================================================================
+  // PHASE A: CORS allowlist (no wildcard in production)
+  // -----------------------------------------------------------------------
+  // Production must not use a wildcard. Cross-origin browser requests outside
+  // the allowlist are blocked. Same-origin requests continue to work.
+  // An explicit 403 is returned for invalid origins to make API testing
+  // deterministic (browsers enforce CORS headers; non-browser clients do not).
+  // -----------------------------------------------------------------------
+  let corsOrigin: string | string[] = '*';
+
+  if (isProduction) {
+    // Fail closed: reject wildcard in production
+    const raw = process.env.CORS_ORIGIN || '';
+    if (raw === '*') {
+      throw new Error('CORS_ORIGIN must not be "*" in production. Set CORS_ORIGIN to a comma-separated list of allowed origins.');
+    }
+    corsOrigin = raw.split(/[\s,]+/).filter(Boolean);
+  } else {
+    // Development: allow local origins
+    corsOrigin = [
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+    ];
+  }
+
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        // Allow requests with no origin (e.g., curl, mobile clients, server-to-server)
+        if (!origin) return callback(null, true);
+
+        if (isProduction) {
+          if (corsOrigin.includes(origin)) {
+            return callback(null, true);
+          }
+          // Deterministic 403 for invalid origins in production
+          const corsError = new Error('Blocked by CORS allowlist');
+          (corsError as any).status = 403;
+          return callback(corsError);
+        }
+
+        // Development: allow configured origins
+        if (typeof corsOrigin === 'string' ? origin === corsOrigin : corsOrigin.includes(origin)) {
+          return callback(null, true);
+        }
+        const corsError = new Error('Blocked by CORS allowlist');
+        (corsError as any).status = 403;
+        return callback(corsError);
+      },
+      credentials: true,
+      maxAge: 86400,
+    })
+  );
+
+  // ===========================================================================
+  // PHASE A: CSRF protection setup
+  // -----------------------------------------------------------------------
+  // cookie-parser must run before csurf to read the CSRF cookie.
+  // A token endpoint is provided for clients to retrieve a CSRF token.
+  // The protected route groups are then secured with csurf middleware.
+  // -----------------------------------------------------------------------
+  app.use(cookieParser());
+
+  // CSRF token endpoint (outside protected groups)
+  const csrfProtection = csurf({
+    cookie: {
+      key: 'csrf_secret',
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: isProduction,
+    },
+  });
+
+  app.get('/api/csrf', csrfProtection, (_req, res) => {
+    res.json({ csrfToken: _req.csrfToken() });
+  });
+
+  // Apply CSRF protection to the required route groups
+  app.use('/api/payments', csrfProtection);
+  app.use('/api/shipping', csrfProtection);
+  app.use('/api/notifications', csrfProtection);
+
+  // ===========================================================================
   // RATE LIMITING (Task 2)
   // ===========================================================================
   const apiLimiter = rateLimit({
@@ -123,8 +209,8 @@ async function startServer() {
   app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use('/api/payments/stripe/create-intent', express.json({ limit: '10kb' }));
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  app.use(express.json({ limit: '1mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -378,7 +464,7 @@ async function startServer() {
     if (err) {
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
         logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
-        return res.status(413).json({ error: 'Request payload too large. Maximum size is 50MB.' });
+        return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
       }
       logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
       return res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
