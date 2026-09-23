@@ -2,6 +2,15 @@ import { test, expect } from '@playwright/test';
 import { webhookService } from '../../src/services/webhookService';
 import { webhookIdempotency } from '../../src/services/payments/webhookIdempotency';
 import { checkoutService } from '../../src/services/checkoutService';
+import { computeHmacSha256 } from '../../src/services/payments/crypto';
+
+function signedStripeWebhook(payload: Record<string, unknown>) {
+  const secret = 'whsec_playwright_test';
+  const rawBody = JSON.stringify(payload);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = computeHmacSha256(`${timestamp}.${rawBody}`, secret);
+  return { rawBody, signatureHeader: `t=${timestamp},v1=${signature}`, secret };
+}
 
 test.describe('Phase 8: Inventory Concurrency & Race-Condition Stress Tests', () => {
 
@@ -23,14 +32,15 @@ test.describe('Phase 8: Inventory Concurrency & Race-Condition Stress Tests', ()
         }
       }
     };
+    const signed = signedStripeWebhook(payload);
 
     // Fire 5 concurrent webhook calls with the exact same payload
     const results = await Promise.all([
-      webhookService.processWebhook({ provider: 'stripe', payload }),
-      webhookService.processWebhook({ provider: 'stripe', payload }),
-      webhookService.processWebhook({ provider: 'stripe', payload }),
-      webhookService.processWebhook({ provider: 'stripe', payload }),
-      webhookService.processWebhook({ provider: 'stripe', payload }),
+      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
     ]);
 
     // All must succeed, but exactly one is primary and the rest are identified as duplicate/idempotent

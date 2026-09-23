@@ -115,7 +115,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-05: Admin domain with admin role allows full access to Admin Hub', async ({ page }) => {
     // Navigate to admin domain with admin session
-    await page.goto('http://admin.localhost:3100/');
+    await page.goto('/?domain=admin');
     await page.evaluate(() => {
       const adminSession = {
         user: {
@@ -144,7 +144,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-06: Customer role on admin domain receives 403 Forbidden', async ({ page }) => {
     // Navigate to admin domain with customer credentials
-    await page.goto('http://admin.localhost:3100/');
+    await page.goto('/?domain=admin');
     await page.evaluate(() => {
       const customerSession = {
         user: {
@@ -173,7 +173,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
 
   test('AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and can log in', async ({ page }) => {
     // Navigate to admin domain with no session
-    await page.goto('http://admin.localhost:3100/');
+    await page.goto('/?domain=admin');
     await page.evaluate(() => {
       localStorage.clear();
     });

@@ -9,6 +9,12 @@ import { paymentService } from '../../src/services/paymentService';
 // Mock global fetch for unit tests involving Stripe driver
 if (typeof global !== 'undefined') {
   (global as any).fetch = async (url: string) => {
+    if (url.includes('/api/csrf')) {
+      return {
+        ok: true,
+        json: async () => ({ csrfToken: 'test-csrf-token' })
+      };
+    }
     if (url.includes('/api/payments/stripe/create-intent')) {
       return {
         ok: true,

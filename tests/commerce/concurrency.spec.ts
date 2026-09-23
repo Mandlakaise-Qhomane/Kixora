@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { webhookService } from '../../src/services/webhookService';
 import { webhookIdempotency } from '../../src/services/payments/webhookIdempotency';
+import { computeHmacSha256 } from '../../src/services/payments/crypto';
+
+function signedStripeWebhook(payload: Record<string, unknown>) {
+  const secret = 'whsec_playwright_test';
+  const rawBody = JSON.stringify(payload);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = computeHmacSha256(`${timestamp}.${rawBody}`, secret);
+  return { rawBody, signatureHeader: `t=${timestamp},v1=${signature}`, secret };
+}
 
 test.describe('Commerce Concurrency & Idempotency Tests', () => {
 
@@ -22,11 +31,13 @@ test.describe('Commerce Concurrency & Idempotency Tests', () => {
         }
       }
     };
+    const signed = signedStripeWebhook(payload);
 
     // First processing
     const res1 = await webhookService.processWebhook({
       provider: 'stripe',
-      payload
+      payload,
+      ...signed,
     });
     expect(res1.success).toBe(true);
     expect(res1.idempotent).toBe(false);
@@ -34,7 +45,8 @@ test.describe('Commerce Concurrency & Idempotency Tests', () => {
     // Second processing (duplicate)
     const res2 = await webhookService.processWebhook({
       provider: 'stripe',
-      payload
+      payload,
+      ...signed,
     });
     expect(res2.success).toBe(true);
     expect(res2.idempotent).toBe(true);

@@ -3,10 +3,21 @@
 // Tests for CORS allowlist, CSRF protection, body size limits, and framing policy
 // ==============================================================================
 
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
 
 test.describe('Kixora Phase A: Security Hardening', () => {
-  const baseURL = 'http://localhost:3000';
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3100';
+
+  async function csrfHeaders(request: APIRequestContext) {
+    const tokenResponse = await request.get(`${baseURL}/api/csrf`);
+    const { csrfToken } = await tokenResponse.json();
+    const cookies = tokenResponse.headers()['set-cookie'] || '';
+    return {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+      'Cookie': cookies.split(';')[0],
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // 1. CORS ALLOWLIST TESTS
@@ -36,7 +47,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
     test('Same-origin request is allowed (200 or 400 for missing Stripe config)', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/payments/stripe/create-intent`, {
         headers: {
-          'Content-Type': 'application/json',
+          ...(await csrfHeaders(request)),
         },
         data: {
           amount: 1000,
@@ -53,8 +64,8 @@ test.describe('Kixora Phase A: Security Hardening', () => {
     test('Allowed development origin (localhost:5173) is permitted', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/payments/stripe/create-intent`, {
         headers: {
-          'Content-Type': 'application/json',
           'Origin': 'http://localhost:5173',
+          ...(await csrfHeaders(request)),
         },
         data: {
           amount: 1000,
@@ -71,8 +82,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
     test('Request with no Origin header is allowed (server-to-server)', async ({ request }) => {
       const response = await request.post(`${baseURL}/api/payments/stripe/create-intent`, {
         headers: {
-          'Content-Type': 'application/json',
-          // No Origin header
+          ...(await csrfHeaders(request)),
         },
         data: {
           amount: 1000,
@@ -198,7 +208,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
 
       const response = await request.post(`${baseURL}/api/shipping/rates`, {
         headers: {
-          'Content-Type': 'application/json',
+          ...(await csrfHeaders(request)),
         },
         data: largePayload,
       });
@@ -238,7 +248,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
 
       const response = await request.post(`${baseURL}/api/payments/stripe/create-intent`, {
         headers: {
-          'Content-Type': 'application/json',
+          ...(await csrfHeaders(request)),
         },
         data: mediumPayload,
       });

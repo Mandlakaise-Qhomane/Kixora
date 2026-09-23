@@ -17,6 +17,13 @@ export function inspectHostname(hostnameInput?: string, _searchParamsInput?: str
     hostnameInput ??
     (typeof window !== 'undefined' ? window.location.hostname : 'kixora.com')
   ).toLowerCase();
+  const searchParams = new URLSearchParams(
+    _searchParamsInput ?? (typeof window !== 'undefined' ? window.location.search : '')
+  );
+  const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+  const isTestAdminRoute =
+    metaEnv.VITE_PLAYWRIGHT_ADMIN === 'true' &&
+    searchParams.get('domain') === 'admin';
   const { adminDomain } = getEnvConfig();
   let configuredAdminHostname: string;
   try {
@@ -25,7 +32,7 @@ export function inspectHostname(hostnameInput?: string, _searchParamsInput?: str
     configuredAdminHostname = 'admin.kixora.com';
   }
 
-  const isAdmin = hostname === configuredAdminHostname || (
+  const isAdmin = isTestAdminRoute || hostname === configuredAdminHostname || (
     hostname === 'admin.localhost' &&
     (typeof window === 'undefined' || window.location.protocol === 'http:')
   );

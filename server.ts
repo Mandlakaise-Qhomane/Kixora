@@ -77,23 +77,6 @@ async function startServer() {
   // frameguard and use only CSP frame-ancestors with an explicit allowlist.
   const frameAncestors = ["'none'"];
 
-  const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || `${startupConfig.customerOrigin},${startupConfig.adminOrigin}`)
-    .split(',')
-    .map(origin => origin.trim())
-    .filter(Boolean);
-
-
-  app.use(cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: true
-  }));
-
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -147,11 +130,14 @@ async function startServer() {
     corsOrigin = raw.split(/[\s,]+/).filter(Boolean);
   } else {
     // Development: allow local origins
+    const localPort = process.env.PORT || '3000';
     corsOrigin = [
       'http://localhost:5173',
       'http://127.0.0.1:5173',
       'http://localhost:3000',
       'http://127.0.0.1:3000',
+      `http://localhost:${localPort}`,
+      `http://127.0.0.1:${localPort}`,
     ];
   }
 
@@ -547,6 +533,9 @@ async function startServer() {
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
         logger.warn('[Express] PayloadTooLargeError intercepted', { message: err.message });
         return res.status(413).json({ error: 'Request payload too large. Maximum size is 1MB.' });
+      }
+      if (err.message === 'Blocked by CORS allowlist') {
+        return res.status(403).json({ error: 'Blocked by CORS allowlist' });
       }
       logger.error('[Express Server Error]', { message: err.message, stack: err.stack });
       return res.status(err.status || 500).json({ error: 'Internal server error' });

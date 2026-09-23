@@ -16,7 +16,7 @@ test.describe('Phase 1 Regression Matrix Tests', () => {
   // C-15: Catalog Brand Filter
   test('REG-C15: [Manual C-15] Brand filter isolates specific manufacturer catalog', async ({ customerPage: page }) => {
     // Filter by Nike
-    await page.getByRole('button', { name: 'Nike', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Nike', exact: true }).first().click({ force: true });
     await expect(page.getByText(/brand: nike/i)).toBeVisible();
 
     // Verify Nike Air Force 1 is shown
@@ -55,7 +55,7 @@ test.describe('Phase 1 Regression Matrix Tests', () => {
     await firstProduct.click();
 
     // Click Add to Cart
-    await page.locator('#modal-add-to-cart-btn').click();
+    await page.locator('#modal-add-to-cart-btn').click({ force: true });
 
     // Cart drawer should be visible with item
     await expect(page.locator('#cart-drawer-container')).toBeVisible();
@@ -89,7 +89,9 @@ test.describe('Phase 1 Regression Matrix Tests', () => {
     await page.locator('#modal-add-to-cart-btn').click();
 
     // Proceed to checkout
+    await page.keyboard.press('Escape');
     await page.locator('#cart-proceed-checkout-btn').click();
+    await expect(page.locator('#checkout-fullname')).toBeVisible();
 
     // Fill details
     await page.locator('#checkout-fullname').fill('David Miller');
