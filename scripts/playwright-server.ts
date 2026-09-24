@@ -8,6 +8,7 @@ process.env.VITE_USE_SUPABASE_CART = 'false';
 process.env.VITE_USE_SUPABASE_WISHLIST = 'false';
 process.env.VITE_USE_SUPABASE_ORDERS = 'false';
 process.env.VITE_USE_SUPABASE_CHECKOUT = 'false';
+process.env.VITE_PAYMENT_PROVIDER_MODE = 'mock';
 process.env.VITE_CLOUDINARY_CLOUD_NAME ||= 'kixora';
 process.env.VITE_CLOUDINARY_UPLOAD_PRESET ||= 'kixora_product_images';
 process.env.VITE_PLAYWRIGHT_ADMIN = 'true';
@@ -21,3 +22,5 @@ process.env.CORS_ALLOWED_ORIGINS = [
 process.env.NODE_ENV = 'test';
 
 await import('../server.ts');
+export { };
+
