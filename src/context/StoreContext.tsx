@@ -20,7 +20,6 @@ import { wishlistRepository } from '../repositories/customer/wishlistRepository'
 import { cartRepository } from '../repositories/customer/cartRepository';
 import { orderRepository } from '../repositories/customer/orderRepository';
 import { checkoutService } from '../services/checkoutService';
-import { productRepository } from '../repositories/customer/productRepository';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AuthUser } from '../types/auth';
 import { analyticsService } from '../services/analyticsService';
