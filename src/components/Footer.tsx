@@ -31,12 +31,16 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-2 space-y-4">
-            <div className="font-display font-black text-2xl tracking-wider text-white flex items-center">
-              <span>KI</span>
-              <span className="text-[#FF7A00]">X</span>
-              <span>ORA</span>
+            <div className="font-display font-black text-3xl tracking-[0.06em] text-white flex items-center leading-none">
+              <span className="text-[#232323] [text-shadow:0_1px_0_#3a3a3a,0_2px_0_#2e2e2e,0_3px_0_#222,0_4px_8px_rgba(0,0,0,0.6)]">KI</span>
+              <span className="text-[#FF7A00] drop-shadow-[0_0_18px_rgba(255,122,0,0.75)] [text-shadow:0_0_20px_rgba(255,122,0,0.5),0_1px_0_#c45e00,0_2px_0_#a04e00,0_3px_6px_rgba(0,0,0,0.5)]">X</span>
+              <span className="text-[#232323] [text-shadow:0_1px_0_#3a3a3a,0_2px_0_#2e2e2e,0_3px_0_#222,0_4px_8px_rgba(0,0,0,0.6)]">ORA</span>
             </div>
-            <p className="text-[10px] font-mono tracking-[0.28em] text-[#888888] uppercase">Own the Culture</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="h-px w-5 bg-[#888888]/60" />
+              <p className="text-[9px] font-mono tracking-[0.30em] text-[#888888] uppercase whitespace-nowrap">Own the Culture</p>
+              <span className="h-px w-5 bg-[#888888]/60" />
+            </div>
             <p className="text-xs text-[#888888] leading-relaxed max-w-sm">
               The premier destination for authentic deadstock grails, limited collaborations, and high-heat sneaker releases. Authenticated by expert sneakerheads.
             </p>

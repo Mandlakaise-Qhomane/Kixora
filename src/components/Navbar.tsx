@@ -54,14 +54,16 @@ export const Navbar: React.FC<NavbarProps> = () => {
               aria-label="Kixora — Own the Culture"
             >
               <span className="sr-only">Kixora</span>
-              <div aria-hidden="true" className="logo-mark font-display font-extrabold text-2xl sm:text-3xl tracking-wider text-white flex items-center leading-none">
-                <span>KI</span>
-                <span className="text-[#FF7A00] drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]">X</span>
-                <span>ORA</span>
+              <div aria-hidden="true" className="logo-mark font-display font-extrabold text-2xl sm:text-3xl tracking-[0.06em] flex items-center leading-none">
+                <span className="text-[#232323] [text-shadow:0_1px_0_#3a3a3a,0_2px_0_#2e2e2e,0_3px_0_#222,0_4px_8px_rgba(0,0,0,0.6)]">KI</span>
+                <span className="text-[#FF7A00] drop-shadow-[0_0_18px_rgba(255,122,0,0.75)] [text-shadow:0_0_20px_rgba(255,122,0,0.5),0_1px_0_#c45e00,0_2px_0_#a04e00,0_3px_6px_rgba(0,0,0,0.5)]">X</span>
+                <span className="text-[#232323] [text-shadow:0_1px_0_#3a3a3a,0_2px_0_#2e2e2e,0_3px_0_#222,0_4px_8px_rgba(0,0,0,0.6)]">ORA</span>
               </div>
-              <span className="hidden sm:block mt-1 text-[9px] font-mono tracking-[0.28em] text-[#888888] uppercase">
-                Own the Culture
-              </span>
+              <div className="hidden sm:flex items-center gap-1.5 mt-1.5">
+                <span className="flex-1 h-px w-4 bg-[#888888]/60" />
+                <span className="text-[8px] font-mono tracking-[0.32em] text-[#888888] uppercase whitespace-nowrap">Own the Culture</span>
+                <span className="flex-1 h-px w-4 bg-[#888888]/60" />
+              </div>
             </button>
           </div>
 
