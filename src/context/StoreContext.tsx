@@ -1,19 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  Sneaker, 
-  CartItem, 
-  Order, 
-  Drop, 
-  PromoCode, 
-  FilterState, 
-  ViewMode, 
+import {
+  Sneaker,
+  CartItem,
+  Order,
+  Drop,
+  PromoCode,
+  FilterState,
+  ViewMode,
   OrderStatus
 } from '../types';
-import { 
-  INITIAL_SNEAKERS, 
-  INITIAL_DROPS, 
-  INITIAL_PROMOS, 
-  INITIAL_ORDERS 
+import {
+  INITIAL_SNEAKERS,
+  INITIAL_DROPS,
+  INITIAL_PROMOS,
+  INITIAL_ORDERS
 } from '../data/sneakers';
 import { authService } from '../services/authService';
 import { wishlistRepository } from '../repositories/customer/wishlistRepository';
@@ -24,6 +24,8 @@ import { productRepository } from '../repositories/customer/productRepository';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AuthUser } from '../types/auth';
 import { analyticsService } from '../services/analyticsService';
+import { catalogAdapter } from '../context/adapters/catalogAdapter';
+import { isSupabaseCatalogEnabled, isSupabaseDropsEnabled, isSupabaseCartEnabled, isSupabaseWishlistEnabled, isSupabaseOrdersEnabled } from '../config/features';
 
 export const formatPrice = (amount: number): string => {
   return `R${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -220,25 +222,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let isMounted = true;
 
     async function fetchSneakers() {
-      if (!isSupabaseConfigured()) {
-        console.info('[StoreContext] Supabase not configured, skipping DB fetch.');
+      if (!isSupabaseCatalogEnabled()) {
+        console.info('[StoreContext] Catalog flag off, using local seed data.');
         return;
       }
       try {
-        const data = await productRepository.getProducts();
-        if (isMounted && data.length > 0) {
+        const data = await catalogAdapter.loadCatalog(INITIAL_SNEAKERS);
+        if (isMounted && data && data.length > 0) {
           setSneakers(data);
         }
       } catch (err) {
-        console.warn('[StoreContext] Failed to fetch sneakers from DB, using initial data:', err);
+        console.warn('[StoreContext] Catalog adapter failed, using initial data:', err);
       }
     }
 
     fetchSneakers();
 
+    // Fetch drops from DB when flag enabled
+    async function fetchDrops() {
+      if (!isSupabaseDropsEnabled()) {
+        console.info('[StoreContext] Drops flag off, using local seed data.');
+        return;
+      }
+      try {
+        const data = await catalogAdapter.loadDrops(INITIAL_DROPS);
+        if (isMounted && data && data.length > 0) {
+          setDrops(data);
+        }
+      } catch (err) {
+        console.warn('[StoreContext] Drops adapter failed, using initial data:', err);
+      }
+    }
+    fetchDrops();
+
     // Subscribe to inventory updates
     let inventoryChannel: any = null;
-    if (isSupabaseConfigured()) {
+    if (isSupabaseCatalogEnabled() && isSupabaseConfigured()) {
       inventoryChannel = supabase
         .channel('inventory-realtime')
         .on(
@@ -253,7 +272,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
               return {
                 ...sneaker,
-                sizes: sneaker.sizes.map(sz => 
+                sizes: sneaker.sizes.map(sz =>
                   sz.id === product_size_id ? { ...sz, stock: availableStock } : sz
                 )
               };
@@ -276,7 +295,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let isMounted = true;
 
     async function syncCustomerData() {
-      if (currentUser?.id && isSupabaseConfigured()) {
+      if (currentUser?.id && isSupabaseConfigured() && (isSupabaseCartEnabled() || isSupabaseWishlistEnabled() || isSupabaseOrdersEnabled())) {
         try {
           // 1. Check for guest wishlist items to migrate
           const guestWishlistRaw = localStorage.getItem('kixora_wishlist_v2');
