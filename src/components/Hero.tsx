@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { 
-  ArrowRight, 
-  ShieldCheck, 
-  Truck, 
-  RotateCcw, 
-  Lock, 
-  ShoppingBag, 
-  Mail, 
+import {
+  ArrowRight,
+  ShieldCheck,
+  Truck,
+  RotateCcw,
+  Lock,
+  ShoppingBag,
+  Mail,
   Check
 } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -63,7 +63,7 @@ export const Hero: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Main Hero Grid matching Reference Image */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
-          
+
           {/* Left Column: Hero Typography & CTA */}
           <div className="lg:col-span-4 space-y-6 z-10">
             <div className="space-y-3">
@@ -71,16 +71,17 @@ export const Hero: React.FC = () => {
                 NEW DROP
               </span>
 
-              <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white leading-[1.05] tracking-tight">
-                BUILT FOR <span className="text-[#FF7A00] drop-shadow-[0_0_25px_rgba(255,122,0,0.45)]">THE CULTURE</span>
+              <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white leading-[0.95] tracking-tight">
+                BUILT FOR<br />
+                <span className="text-[#FF7A00] drop-shadow-[0_0_30px_rgba(255,122,0,0.5)]">THE CULTURE</span>
               </h1>
 
               <p className="text-sm sm:text-base text-[#888888] font-sans leading-relaxed max-w-sm pt-2">
-                Premium sneakers. Curated selection. Unmatched style.
+                Discover authentic sneakers. Curated collections. Unmatched style.
               </p>
             </div>
 
-            {/* CTA Action Buttons matching reference image */}
+            {/* Single primary CTA — SHOP NOW only */}
             <div className="flex items-center gap-4 pt-2">
               <button
                 id="hero-shop-now-btn"
@@ -88,38 +89,58 @@ export const Hero: React.FC = () => {
                   const el = document.getElementById('catalog-section');
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="px-7 py-3.5 bg-[#FF7A00] hover:bg-[#E56E00] text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-lg flex items-center gap-2 shadow-lg shadow-[#FF7A00]/25 transition-all duration-200 hover:scale-[1.02]"
+                className="px-8 py-3.5 bg-[#FF7A00] hover:bg-[#E56E00] text-black font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-lg flex items-center gap-2 shadow-lg shadow-[#FF7A00]/30 transition-all duration-200 hover:scale-[1.03] active:scale-[0.98]"
               >
                 <span>SHOP NOW</span>
                 <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                id="hero-explore-btn"
-                onClick={() => openSneakerModal(heroSneaker)}
-                className="px-7 py-3.5 bg-[#1A1A1A] hover:bg-[#232323] text-white font-bold text-xs sm:text-sm uppercase tracking-wider rounded-lg border border-[#2C2C2C] hover:border-[#444444] transition-all duration-200"
-              >
-                <span>EXPLORE</span>
               </button>
             </div>
           </div>
 
           {/* Center Column: 3D Centerpiece Showcase with Glowing Rock Platform */}
           <div className="lg:col-span-4 flex items-center justify-center relative py-6 sm:py-10">
-            {/* Glowing circular neon ring matching reference image */}
+            {/* Glowing elliptical neon platform — multi-layer depth */}
             <div className="relative w-72 sm:w-80 lg:w-96 aspect-square flex items-center justify-center">
-              {/* Rock platform shadow base */}
-              <div className="absolute bottom-6 w-3/4 h-16 bg-black/80 rounded-full blur-xl" />
+              {/* Deep shadow base — ground contact */}
+              <div className="absolute bottom-4 w-4/5 h-10 bg-black/90 rounded-full blur-2xl" />
 
-              {/* Glowing Orange Ring */}
-              <div className="absolute bottom-10 w-64 sm:w-72 h-36 rounded-[100%] border-2 border-[#FF7A00] opacity-90 glow-ring rotate-[-12deg]" />
-              
-              {/* Volcanic Rock Texture Mockup under shoe */}
-              <div className="absolute bottom-8 w-60 h-24 bg-gradient-to-t from-black via-[#1c1c1c] to-[#2a2a2a] rounded-[100%] border border-[#333333] shadow-2xl rotate-[-6deg]" />
+              {/* Outer diffuse glow halo */}
+              <div
+                className="absolute bottom-8 rounded-[100%] rotate-[-8deg]"
+                style={{
+                  width: '78%',
+                  height: '22%',
+                  background: 'radial-gradient(ellipse, rgba(255,122,0,0.35) 0%, rgba(255,122,0,0.05) 100%)',
+                  filter: 'blur(6px)',
+                }}
+              />
 
-              {/* Central Floating Sneaker (Interactive Hover Tilt) */}
+              {/* Outer neon ring */}
+              <div
+                className="absolute bottom-10 rounded-[100%] border border-[#FF7A00]/50 rotate-[-10deg]"
+                style={{
+                  width: '76%',
+                  height: '22%',
+                  boxShadow: '0 0 18px 4px rgba(255,122,0,0.3), inset 0 0 8px rgba(255,122,0,0.15)',
+                }}
+              />
+
+              {/* Inner bright neon ring */}
+              <div
+                className="absolute bottom-11 rounded-[100%] border-2 border-[#FF7A00] rotate-[-10deg]"
+                style={{
+                  width: '62%',
+                  height: '16%',
+                  boxShadow: '0 0 30px 6px rgba(255,122,0,0.6), inset 0 0 12px rgba(255,122,0,0.4)',
+                }}
+              />
+
+              {/* Platform surface — volcanic rock */}
+              <div className="absolute bottom-9 w-52 h-16 bg-gradient-to-t from-[#0a0a0a] via-[#1a1a1a] to-[#242424] rounded-[100%] border border-[#2a2a2a] shadow-2xl rotate-[-5deg]" />
+
+              {/* Central Floating Sneaker */}
               <motion.div
-                whileHover={{ scale: 1.06, rotate: -4, y: -8 }}
+                whileHover={{ scale: 1.06, rotate: -4, y: -10 }}
                 transition={{ type: 'spring', stiffness: 200, damping: 15 }}
                 className="relative z-20 cursor-pointer"
                 onClick={() => openSneakerModal(heroSneaker)}
@@ -127,7 +148,7 @@ export const Hero: React.FC = () => {
                 <img
                   src={angleViews[activeCardIndex].image}
                   alt={heroSneaker.name}
-                  className="w-72 sm:w-80 lg:w-96 object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.9)] filter select-none transition-all duration-300"
+                  className="w-72 sm:w-80 lg:w-96 object-contain drop-shadow-[0_28px_40px_rgba(0,0,0,0.95)] filter select-none transition-all duration-300"
                 />
               </motion.div>
             </div>
@@ -152,11 +173,10 @@ export const Hero: React.FC = () => {
                     onMouseEnter={() => setActiveCardIndex(idx)}
                     onClick={() => setActiveCardIndex(idx)}
                     whileHover={{ y: -3 }}
-                    className={`p-2.5 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between relative group ${
-                      isActive
-                        ? 'bg-[#1E1E1E] border-2 border-[#FF7A00] shadow-lg shadow-[#FF7A00]/20'
-                        : 'bg-[#181818] border border-[#2C2C2C] hover:border-[#444444]'
-                    }`}
+                    className={`p-2.5 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between relative group ${isActive
+                      ? 'bg-[#1E1E1E] border-2 border-[#FF7A00] shadow-lg shadow-[#FF7A00]/20'
+                      : 'bg-[#181818] border border-[#2C2C2C] hover:border-[#444444]'
+                      }`}
                   >
                     {/* Sneaker Thumbnail */}
                     <div className="aspect-square w-full flex items-center justify-center p-1 relative overflow-hidden">
@@ -175,7 +195,7 @@ export const Hero: React.FC = () => {
                       <div className="text-[9px] text-[#888888] truncate">
                         "Shattered Backboard"
                       </div>
-                      
+
                       <div className="flex items-center justify-between pt-1">
                         <span className="font-mono text-[10px] font-bold text-[#F5F5F5]">
                           R2,999.00

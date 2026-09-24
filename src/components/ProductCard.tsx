@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { Sneaker } from '../types';
 import { ShoppingBag, Heart, Star } from 'lucide-react';
@@ -13,6 +13,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
   const { addToCart, toggleWishlist, wishlist, openSneakerModal, setIsCartOpen } = useStore();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const isWishlisted = wishlist.includes(sneaker.id);
   const inStockSizes = sneaker.sizes.filter(s => s.stock > 0);
@@ -26,18 +28,45 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
     setIsCartOpen(true);
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width  - 0.5; // -0.5 to 0.5
+    const y = (e.clientY - rect.top)  / rect.height - 0.5;
+    setTilt({ x: y * -10, y: x * 10 }); // rotateX from vertical, rotateY from horizontal
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setCurrentImageIndex(0);
+    setTilt({ x: 0, y: 0 });
+  };
+
   return (
+    <div
+      ref={cardRef}
+      style={{ perspective: '800px' }}
+      className="group"
+    >
     <motion.div
       id={`product-card-${sneaker.id}`}
-      whileHover={{ y: -5 }}
-      transition={{ duration: 0.2 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setCurrentImageIndex(0);
+      animate={{
+        rotateX: tilt.x,
+        rotateY: tilt.y,
+        y: isHovered ? -5 : 0,
+        scale: isHovered ? 1.01 : 1,
       }}
+      transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
       onClick={() => openSneakerModal(sneaker)}
-      className="product-card group bg-[#1A1A1A] hover:bg-[#1E1E1E] border border-[#282828] hover:border-[#FF7A00]/60 rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-all duration-300 relative shadow-xl hover:shadow-2xl hover:shadow-[#FF7A00]/10"
+      style={{ transformStyle: 'preserve-3d' }}
+      className={`product-card bg-[#1A1A1A] border rounded-2xl p-4 flex flex-col justify-between cursor-pointer transition-colors duration-300 relative shadow-xl ${
+        isHovered
+          ? 'border-[#FF7A00] bg-[#1E1E1E] shadow-[#FF7A00]/15 shadow-2xl'
+          : 'border-[#282828] hover:border-[#FF7A00]/60'
+      }`}
     >
       {/* Top badges & Wishlist */}
       <div className="flex items-center justify-between z-10">
@@ -152,7 +181,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
             className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
               isSoldOut
                 ? 'bg-[#252525] text-[#555555] cursor-not-allowed'
-                : 'bg-[#FF7A00] hover:bg-[#E56E00] text-black shadow-md shadow-[#FF7A00]/25 hover:scale-105'
+                : 'bg-[#FF7A00] hover:bg-[#E56E00] text-black shadow-md shadow-[#FF7A00]/30 hover:shadow-lg hover:shadow-[#FF7A00]/50 hover:scale-110 active:scale-95'
             }`}
             title={isSoldOut ? 'Sold Out' : 'Quick Add to Vault Cart'}
           >
@@ -161,5 +190,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({ sneaker }) => {
         </div>
       </div>
     </motion.div>
+    </div>
   );
 };

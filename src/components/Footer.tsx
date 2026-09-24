@@ -114,7 +114,6 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2 text-xs">
               <li><button onClick={() => setCurrentView('tracking')} className="hover:text-white">12-Point Inspection</button></li>
               <li><button onClick={() => setCurrentView('tracking')} className="hover:text-white">Track Your Order</button></li>
-              <li><button onClick={() => setCurrentView('admin')} className="hover:text-[#FF7A00] font-mono">Admin Portal</button></li>
             </ul>
           </div>
         </div>

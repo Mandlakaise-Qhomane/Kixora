@@ -25,12 +25,34 @@ export const ProductModal: React.FC = () => {
 
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomedSrc, setZoomedSrc] = useState('');
 
   if (!selectedSneaker) return null;
 
   const isWishlisted = wishlist.includes(selectedSneaker.id);
   const inStockSizes = selectedSneaker.sizes.filter(s => s.stock > 0);
   const isSoldOut = inStockSizes.length === 0;
+
+  const openZoom = (src: string) => {
+    setZoomedSrc(src);
+    setIsZoomed(true);
+  };
+
+  const closeZoom = () => setIsZoomed(false);
+
+  const sizeStockClass = (stock: number, isSelected: boolean, isOut: boolean) => {
+    if (isOut) return 'bg-[#181818] text-[#444444] border border-[#222222] cursor-not-allowed line-through';
+    if (isSelected) return 'bg-[#FF7A00] text-black font-extrabold border-2 border-[#FF7A00] shadow-md shadow-[#FF7A00]/30';
+    if (stock <= 3) return 'bg-[#1C1C1C] text-[#F5A623] border border-[#F5A623]/60 hover:border-[#F5A623]';
+    return 'bg-[#1C1C1C] text-[#DDDDDD] border border-[#2D2D2D] hover:border-[#10B981]/60 hover:bg-[#1e2e26]';
+  };
+
+  const sizeDotClass = (stock: number, isOut: boolean) => {
+    if (isOut) return null;
+    if (stock <= 3) return 'bg-[#F5A623]'; // amber
+    return 'bg-[#10B981]'; // green
+  };
 
   const handleSizeClick = (size: number, stock: number) => {
     if (stock > 0) {
@@ -94,7 +116,7 @@ export const ProductModal: React.FC = () => {
               </span>
             </div>
 
-            {/* Main Interactive Angle Preview */}
+            {/* Main Interactive Angle Preview — click to zoom */}
             <div className="relative aspect-4/3 my-6 flex items-center justify-center">
               <motion.img
                 key={activeImageIndex}
@@ -104,7 +126,8 @@ export const ProductModal: React.FC = () => {
                 src={getOptimizedImageUrl(selectedSneaker.images[activeImageIndex] || selectedSneaker.images[0] || selectedSneaker.image, { width: 800, quality: 'auto' })}
                 alt={selectedSneaker.name}
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.9)]"
+                onClick={() => openZoom(getOptimizedImageUrl(selectedSneaker.images[activeImageIndex] || selectedSneaker.images[0] || selectedSneaker.image, { width: 1400, quality: 'auto' }))}
+                className="w-full h-full object-contain filter drop-shadow-[0_20px_25px_rgba(0,0,0,0.9)] cursor-zoom-in transition-transform duration-200 hover:scale-[1.03]"
               />
 
               {/* Prev / Next Angle Arrows */}
@@ -212,28 +235,30 @@ export const ProductModal: React.FC = () => {
                   </span>
                 </div>
 
+                {/* Stock legend */}
+                <div className="flex items-center gap-3 text-[10px] font-mono text-[#666666] pb-1">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#10B981] inline-block" />In Stock</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#F5A623] inline-block" />Low Stock</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#444444] inline-block" />Sold Out</span>
+                </div>
+
                 <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
                   {selectedSneaker.sizes.map(sz => {
                     const isSelected = selectedSize === sz.size;
                     const isOut = sz.stock === 0;
+                    const dotColor = sizeDotClass(sz.stock, isOut);
 
                     return (
                       <button
                         key={sz.size}
                         disabled={isOut}
-                        aria-label={`US ${sz.size}`}
+                        aria-label={`US ${sz.size}${isOut ? ' – out of stock' : sz.stock <= 3 ? ` – only ${sz.stock} left` : ''}`}
                         onClick={() => handleSizeClick(sz.size, sz.stock)}
-                        className={`py-2 rounded-lg font-mono text-xs font-bold transition-all relative ${
-                          isOut
-                            ? 'bg-[#181818] text-[#444444] border border-[#222222] cursor-not-allowed line-through'
-                            : isSelected
-                            ? 'bg-[#FF7A00] text-black font-extrabold shadow-md shadow-[#FF7A00]/25'
-                            : 'bg-[#1C1C1C] text-[#DDDDDD] hover:bg-[#282828] border border-[#2D2D2D]'
-                        }`}
+                        className={`py-2 rounded-lg font-mono text-xs font-bold transition-all relative ${sizeStockClass(sz.stock, isSelected, isOut)}`}
                       >
                         <span>US {sz.size}</span>
-                        {!isOut && sz.stock <= 3 && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#FF7A00]" />
+                        {dotColor && (
+                          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${dotColor}`} />
                         )}
                       </button>
                     );
@@ -277,6 +302,35 @@ export const ProductModal: React.FC = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Image zoom lightbox */}
+      {isZoomed && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/95 backdrop-blur-sm cursor-zoom-out"
+          onClick={closeZoom}
+          onKeyDown={(e) => e.key === 'Escape' && closeZoom()}
+          role="dialog"
+          aria-label="Zoomed product image"
+        >
+          <img
+            src={zoomedSrc}
+            alt={selectedSneaker.name}
+            referrerPolicy="no-referrer"
+            className="max-w-[90vw] max-h-[90vh] object-contain drop-shadow-[0_30px_60px_rgba(0,0,0,1)] select-none"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-[#222222]/90 text-[#888888] hover:text-white border border-[#333333] transition-colors"
+            onClick={closeZoom}
+            aria-label="Close zoom"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="absolute bottom-6 text-[11px] font-mono text-[#555555] tracking-wider">
+            Click anywhere or press ESC to close
+          </div>
+        </div>
+      )}
     </div>
   );
 };
