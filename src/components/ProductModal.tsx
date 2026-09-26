@@ -36,7 +36,7 @@ export const ProductModal: React.FC = () => {
 
   useEffect(() => {
     if (selectedSneaker) void preloadSneaker3DViewer();
-  }, [selectedSneaker?.id]);
+  }, [selectedSneaker]);
 
   if (!selectedSneaker) return null;
 

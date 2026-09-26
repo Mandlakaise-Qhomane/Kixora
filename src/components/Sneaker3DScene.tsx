@@ -14,7 +14,7 @@ type Sneaker3DViewerProps = {
   onViewerError?: () => void;
 };
 
-function SneakerModel({ url, lowPower, onError }: { url: string; lowPower: boolean; onError?: () => void }) {
+function SneakerModel({ url, lowPower }: { url: string; lowPower: boolean }) {
   const { scene } = useGLTF(url);
   const model = useMemo(() => {
     const clone = scene.clone(true);
@@ -74,7 +74,7 @@ export default function Sneaker3DScene({ modelUrl, name, autoRotate = false, com
         <directionalLight position={[-4, 3, -2]} intensity={0.9} />
         <Suspense fallback={null}>
           <group rotation={[0.05, 0, 0]}>
-          <SneakerModel url={modelUrl} lowPower={lowPower} onError={onViewerError ?? (() => undefined)} />
+          <SneakerModel url={modelUrl} lowPower={lowPower} />
           </group>
           {!compact && !lowPower ? <ContactShadows position={[0, -1.45, 0]} opacity={0.45} scale={5} blur={2.5} far={2.5} resolution={256} /> : null}
           <Environment preset="studio" />

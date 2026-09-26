@@ -20,6 +20,7 @@ type Sneaker3DViewerProps = {
   autoRotate?: boolean;
   compact?: boolean;
   onImageChange?: (index: number) => void;
+  onViewerError?: () => void;
 };
 
 function TurntableFallback({ images, fallbackImage, name, compact, onImageChange }: Pick<Sneaker3DViewerProps, 'images' | 'fallbackImage' | 'name' | 'compact' | 'onImageChange'>) {
@@ -77,12 +78,15 @@ export default function Sneaker3DViewer(props: Sneaker3DViewerProps) {
   const [viewerFailed, setViewerFailed] = useState(false);
 
   useEffect(() => {
-    try {
-      const canvas = document.createElement('canvas');
-      setWebgl(Boolean(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))));
-    } catch {
-      setWebgl(false);
-    }
+    const hasWebGL = (() => {
+      try {
+        const canvas = document.createElement('canvas');
+        return Boolean(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+      } catch {
+        return false;
+      }
+    })();
+    setWebgl(hasWebGL);
   }, []);
 
   useEffect(() => {

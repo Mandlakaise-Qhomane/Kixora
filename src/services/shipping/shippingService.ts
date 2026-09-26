@@ -37,8 +37,13 @@ export class ShippingService {
    * Calculates live and fallback shipping quotes across available couriers
    */
   async calculateRates(request: ShippingRateRequest): Promise<ShippingRateQuote[]> {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('Shipping is unavailable in production until an authenticated carrier integration is configured.');
+    // Check if shipping is configured for production use
+    const isConfigured = process.env.NODE_ENV !== 'production' || 
+      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
+    
+    if (!isConfigured) {
+      console.warn('[ShippingService] Shipping rates unavailable - carrier integration not configured');
+      return [];
     }
     const quotes: ShippingRateQuote[] = [];
 
@@ -58,8 +63,23 @@ export class ShippingService {
    * Generates waybill label and registers the tracking record in Supabase
    */
   async createShipmentLabel(request: ShippingLabelRequest): Promise<ShippingLabelResult> {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('Shipping labels are unavailable in production until an authenticated carrier integration is configured.');
+    // Check if shipping is configured for production use
+    const isConfigured = process.env.NODE_ENV !== 'production' || 
+      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
+    
+    if (!isConfigured) {
+      console.warn('[ShippingService] Shipping labels unavailable - carrier integration not configured');
+      return {
+        success: false,
+        waybillId: '',
+        trackingNumber: '',
+        carrier: '',
+        carrierId: request.carrierId || 'the_courier_guy',
+        labelUrl: '',
+        trackingUrl: '',
+        estimatedDeliveryDate: '',
+        error: 'Shipping carrier integration not configured',
+      };
     }
     const driver = this.getDriver(request.carrierId);
     const labelResult = await driver.generateLabel(request);
@@ -114,8 +134,22 @@ export class ShippingService {
    * Retrieves tracking history and status for a given tracking number
    */
   async getTracking(trackingNumber: string, carrierId?: CarrierProviderId): Promise<CarrierTrackingResult> {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('Shipping tracking is unavailable in production until an authenticated carrier integration is configured.');
+    // Check if shipping is configured for production use
+    const isConfigured = process.env.NODE_ENV !== 'production' || 
+      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
+    
+    if (!isConfigured) {
+      console.warn('[ShippingService] Shipping tracking unavailable - carrier integration not configured');
+      return {
+        trackingNumber,
+        carrier: 'unknown',
+        status: 'PENDING_PICKUP',
+        internalStatus: 'Pending',
+        origin: 'unknown',
+        destination: 'unknown',
+        events: [],
+        error: 'Shipping carrier integration not configured',
+      };
     }
     const driver = this.getDriver(carrierId);
     return driver.getTracking(trackingNumber);
