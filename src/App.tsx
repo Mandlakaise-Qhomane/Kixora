@@ -24,71 +24,12 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { filterSneakers } from './utils/filterSneakers';
 
 const MainStorefront: React.FC<{ onOpenMobileFilters: () => void }> = ({ onOpenMobileFilters }) => {
   const { sneakers, filters, setFilters, resetFilters } = useStore();
 
-  // Filter and Sort Logic
-  const filteredSneakers = useMemo(() => {
-    return sneakers
-      .filter(sneaker => {
-        // Search
-        if (filters.search.trim()) {
-          const q = filters.search.toLowerCase();
-          const matchName = sneaker.name.toLowerCase().includes(q);
-          const matchBrand = sneaker.brand.toLowerCase().includes(q);
-          const matchSku = sneaker.sku.toLowerCase().includes(q);
-          const matchColor = sneaker.colorway.toLowerCase().includes(q);
-          if (!matchName && !matchBrand && !matchSku && !matchColor) return false;
-        }
-
-        // Brand
-        if (filters.brand !== 'All') {
-          const brandMatch = 
-            sneaker.brand.toLowerCase() === filters.brand.toLowerCase() ||
-            (filters.brand === 'Travis Scott' && (sneaker.name.toLowerCase().includes('travis scott') || sneaker.tags?.some(t => t.toLowerCase().includes('travis') || t.toLowerCase().includes('collab'))));
-          if (!brandMatch) {
-            return false;
-          }
-        }
-
-        // Category
-        if (filters.category !== 'All' && sneaker.category !== filters.category) {
-          return false;
-        }
-
-        // Gender
-        if (filters.gender !== 'All' && sneaker.gender !== filters.gender && sneaker.gender !== 'Unisex') {
-          return false;
-        }
-
-        // Price
-        if (sneaker.price > filters.maxPrice) {
-          return false;
-        }
-
-        // Size
-        if (filters.selectedSize !== null) {
-          const matchedSize = sneaker.sizes.find(s => s.size === filters.selectedSize);
-          if (!matchedSize || matchedSize.stock === 0) return false;
-        }
-
-        // In stock only
-        if (filters.inStockOnly) {
-          const totalStock = sneaker.sizes.reduce((sum, s) => sum + s.stock, 0);
-          if (totalStock === 0) return false;
-        }
-
-        return true;
-      })
-      .sort((a, b) => {
-        if (filters.sortBy === 'price-asc') return a.price - b.price;
-        if (filters.sortBy === 'price-desc') return b.price - a.price;
-        if (filters.sortBy === 'rating') return b.rating - a.rating;
-        if (filters.sortBy === 'newest') return (b.releaseYear || 2024) - (a.releaseYear || 2024);
-        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-      });
-  }, [sneakers, filters]);
+  const filteredSneakers = useMemo(() => filterSneakers(sneakers, filters), [sneakers, filters]);
 
   return (
     <div className="space-y-12">

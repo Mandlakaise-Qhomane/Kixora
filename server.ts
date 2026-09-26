@@ -123,10 +123,10 @@ async function startServer() {
   let corsOrigin: string | string[] = '*';
 
   if (isProduction) {
-    // Fail closed: reject wildcard in production
-    const raw = process.env.CORS_ORIGIN || '';
-    if (raw === '*') {
-      throw new Error('CORS_ORIGIN must not be "*" in production. Set CORS_ORIGIN to a comma-separated list of allowed origins.');
+    // Fail closed: reject wildcard and empty allowlists in production.
+    const raw = process.env.CORS_ALLOWED_ORIGINS || '';
+    if (!raw || raw === '*' || raw.trim() === '') {
+      throw new Error('CORS_ALLOWED_ORIGINS must contain explicit origins in production. Do not use "*" or leave it empty.');
     }
     corsOrigin = raw.split(/[\s,]+/).filter(Boolean);
   } else {

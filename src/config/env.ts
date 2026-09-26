@@ -135,7 +135,10 @@ export function validateProductionEnv(): ProductionEnvValidation {
     if (!server.payfastPassphrase) errors.push('PAYFAST_PASSPHRASE is required.');
   }
 
-  if (!server.shippingWebhookSecret) errors.push('SHIPPING_WEBHOOK_SECRET is required.');
+  const shippingEnabled = process.env.ENABLE_SHIPPING === 'true' || process.env.VITE_ENABLE_SHIPPING === 'true';
+  if (shippingEnabled && !server.shippingWebhookSecret) {
+    errors.push('SHIPPING_WEBHOOK_SECRET is required when shipping is enabled.');
+  }
 
   const origins = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean);
   if (origins.length === 0 || origins.includes('*')) {

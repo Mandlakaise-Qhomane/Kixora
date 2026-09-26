@@ -88,6 +88,19 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     expect(sessionAfterSignOut).toBeNull();
   });
 
+  test('AUTH-03b: mock sign-in never grants admin based on email content', async () => {
+    const loginResult = await authService.signIn({
+      email: 'admin@foo.com',
+      password: 'SecurePassword123!',
+    });
+
+    expect(loginResult.user).not.toBeNull();
+    expect(loginResult.user?.role).toBe('customer');
+    expect(loginResult.user?.email).toBe('admin@foo.com');
+
+    await authService.signOut();
+  });
+
   test('AUTH-04: Customer domain blocks unauthorized access to Admin Dashboard (404 View)', async ({ page }) => {
     // Navigate to customer domain with customer session
     await page.goto('/');
