@@ -37,6 +37,9 @@
     "three": "^0.186.1",
     "tsx": "^4.23.13"
   },
+  "overrides": {
+    "cookie": "^0.7.2"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
