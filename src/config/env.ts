@@ -1,4 +1,5 @@
 // Kixora Production Environment Configuration & Validation
+import { validateCorsAllowlistForProduction } from './cors';
 
 /**
  * Client-safe configuration. These variables are safe to expose to the browser.
@@ -137,7 +138,9 @@ export function validateProductionEnv(): ProductionEnvValidation {
 
   if (!server.shippingWebhookSecret) errors.push('SHIPPING_WEBHOOK_SECRET is required.');
 
-  const origins = (process.env.CORS_ALLOWED_ORIGINS || '').split(',').map(origin => origin.trim()).filter(Boolean);
+  // Shared source of truth with server.ts: CORS_ALLOWED_ORIGINS parsing and
+  // wildcard rejection live in src/config/cors.ts.
+  const { origins } = validateCorsAllowlistForProduction(process.env.CORS_ALLOWED_ORIGINS);
   if (origins.length === 0 || origins.includes('*')) {
     errors.push('CORS_ALLOWED_ORIGINS must contain explicit origins in production.');
   } else {

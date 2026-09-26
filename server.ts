@@ -20,6 +20,8 @@ import { supabase, isSupabaseConfigured } from './src/lib/supabase';
  * Handles secure webhook ingress for Stripe and PayFast, 
  * provides SPA routing, and integrates Vite for development.
  */
+import { validateCorsAllowlistForProduction } from './src/config/cors';
+
 async function startServer() {
   const productionEnv = validateProductionEnv();
   if (!productionEnv.valid) {
@@ -123,12 +125,14 @@ async function startServer() {
   let corsOrigin: string | string[] = '*';
 
   if (isProduction) {
-    // Fail closed: reject wildcard in production
-    const raw = process.env.CORS_ORIGIN || '';
-    if (raw === '*') {
-      throw new Error('CORS_ORIGIN must not be "*" in production. Set CORS_ORIGIN to a comma-separated list of allowed origins.');
+    // Fail closed: CORS_ALLOWED_ORIGINS is the single source of truth (same
+    // name validated by src/config/env.ts). Reject wildcard in production.
+    const raw = process.env.CORS_ALLOWED_ORIGINS || '';
+    const { origins, errors } = validateCorsAllowlistForProduction(raw);
+    if (errors.length > 0) {
+      throw new Error(`${errors.join(' ')} Set CORS_ALLOWED_ORIGINS to a comma-separated list of allowed origins.`);
     }
-    corsOrigin = raw.split(/[\s,]+/).filter(Boolean);
+    corsOrigin = origins;
   } else {
     // Development: allow local origins
     const localPort = process.env.PORT || '3000';
