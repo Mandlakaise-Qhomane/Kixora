@@ -268,8 +268,30 @@ async function startServer() {
   });
 
   // Health Check
-  app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', domain: 'kixora-production' });
+  app.get('/api/health', async (_req, res) => {
+    const checks: Record<string, string> = {
+      api: 'ok',
+      database: 'not_configured',
+    };
+
+    try {
+      if (isSupabaseConfigured()) {
+        const { error } = await supabase.from('products').select('id').limit(1);
+        checks.database = error ? 'degraded' : 'ok';
+      }
+    } catch (error: any) {
+      checks.database = 'degraded';
+      logger.warn('[Health] Supabase connectivity check failed', {
+        error: error?.message || 'unknown_error',
+      });
+    }
+
+    const isHealthy = checks.database !== 'degraded';
+    return res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? 'ok' : 'degraded',
+      domain: 'kixora-production',
+      checks,
+    });
   });
 
   app.get('/api/ready', (_req, res) => {

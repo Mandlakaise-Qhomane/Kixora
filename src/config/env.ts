@@ -46,6 +46,11 @@ export interface ProductionEnvValidation {
   errors: string[];
 }
 
+export interface ObservabilityConfig {
+  sentryDsn: string;
+  environment: string;
+}
+
 export function getEnvConfig(): ClientEnvConfig {
   const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
   const procEnv = (typeof process !== 'undefined' && process.env) || {};
@@ -174,6 +179,14 @@ export function validateProductionEnv(): ProductionEnvValidation {
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+export function getObservabilityConfig(): ObservabilityConfig {
+  const env = typeof process !== 'undefined' ? process.env : {};
+  return {
+    sentryDsn: env.SENTRY_DSN || env.VITE_SENTRY_DSN || '',
+    environment: env.SENTRY_ENVIRONMENT || env.NODE_ENV || 'development',
+  };
 }
 
 export function isPaymentConfigured(): boolean {

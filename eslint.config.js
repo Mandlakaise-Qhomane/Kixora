@@ -3,7 +3,15 @@ import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
 
 export default tseslint.config(
-  { ignores: ["dist", "test-results", "playwright-report"] },
+  {
+    ignores: [
+      "dist",
+      "test-results",
+      "playwright-report",
+      ".kilo",
+      "**/.kilo/**",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
