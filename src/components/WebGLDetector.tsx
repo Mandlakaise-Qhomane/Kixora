@@ -1,4 +1,4 @@
-import { useState } from 'react';
+               import { useState } from 'react';
 
 function detectWebGLSupport(): boolean {
     if (typeof document === 'undefined') return false;
