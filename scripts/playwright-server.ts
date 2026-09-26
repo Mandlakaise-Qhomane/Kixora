@@ -46,6 +46,12 @@ process.env.CORS_ALLOWED_ORIGINS = [
 ].join(',');
 process.env.NODE_ENV = 'test';
 
+// server.ts listens on `process.env.PORT` (default 3000), while Playwright
+// probes `PLAYWRIGHT_PORT`. Without this bridge the server bound 3000 even when
+// the gate asked for another port (release-gate.mjs defaults to 3100), so the
+// webServer probe timed out after 120s and the release gate failed.
+process.env.PORT = port;
+
 await import('../server.ts');
 export { };
 
