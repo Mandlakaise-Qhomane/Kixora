@@ -11,4 +11,9 @@ test-results/
 lint_results.json
 test_output.txt
 playwright_output.txt
-test-results/
+lint_output.txt
+migration-drift-diff.txt
+
+# Agent worktrees: `.kilo/worktrees/*` are full nested checkouts of this
+# repository. Committing them duplicates the whole tree into the repo.
+.kilo/

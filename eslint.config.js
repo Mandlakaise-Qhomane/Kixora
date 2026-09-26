@@ -7,13 +7,28 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Directories that must never be linted. `.kilo/**` is critical: the agent
+// worktrees under `.kilo/worktrees/*` are full nested checkouts of this repo,
+// and linting them duplicated every file (and made the parser resolve several
+// competing tsconfig candidates), which broke CI.
+const IGNORED_PATHS = [
+  ".kilo/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/coverage/**",
+  "**/playwright-report/**",
+  "**/test-results/**",
+];
+
 export default tseslint.config(
-  { ignores: ["dist", "test-results", "playwright-report", ".kilo"] },
+  { ignores: IGNORED_PATHS },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
+        // Pin the root so the TypeScript parser always resolves ./tsconfig.json
+        // from this directory instead of guessing from each linted file.
         tsconfigRootDir: __dirname,
       },
     },
