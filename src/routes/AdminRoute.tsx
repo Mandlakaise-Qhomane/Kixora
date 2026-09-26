@@ -91,10 +91,11 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
             )}
 
             <div>
-              <label className="block text-[11px] font-mono text-[#888888] uppercase tracking-wider mb-1.5">
+              <label htmlFor="admin-email" className="block text-[11px] font-mono text-[#888888] uppercase tracking-wider mb-1.5">
                 Staff Email
               </label>
               <input
+                id="admin-email"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -105,10 +106,11 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
             </div>
 
             <div>
-              <label className="block text-[11px] font-mono text-[#888888] uppercase tracking-wider mb-1.5">
+              <label htmlFor="admin-password" className="block text-[11px] font-mono text-[#888888] uppercase tracking-wider mb-1.5">
                 Security Passcode
               </label>
               <input
+                id="admin-password"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

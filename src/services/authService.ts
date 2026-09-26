@@ -174,21 +174,25 @@ export const authService = {
       }
     }
 
-    if (import.meta.env.PROD) {
-      return { user: null, session: null, error: "Authentication service unavailable. Please try again later." };
+    const isProduction = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD) ||
+      (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
+
+    if (isProduction) {
+      return { user: null, session: null, error: 'Authentication service unavailable. Please try again later.' };
     }
 
-    // Mock fallback authentication
-    const isAdminEmail = email.toLowerCase().includes('admin') || email.toLowerCase() === 'admin@kixora.com';
-    const role: UserRole = isAdminEmail ? 'admin' : 'customer';
+    // Mock fallback authentication: explicit staff credential is allowed,
+    // but generic admin-like emails (e.g. admin@foo.com) should never elevate.
+    const isExplicitAdminLogin = email.trim().toLowerCase() === 'admin@kixora.com' && password === 'StaffPassword123';
+    const role: UserRole = isExplicitAdminLogin ? 'admin' : 'customer';
 
     const mockUser: AuthUser = {
-      id: isAdminEmail ? 'admin-001' : `user-${Date.now()}`,
+      id: isExplicitAdminLogin ? 'admin-001' : `user-${Date.now()}`,
       email,
       role,
-      fullName: isAdminEmail ? 'Vault Administrator' : 'Kixora Collector',
+      fullName: isExplicitAdminLogin ? 'Vault Administrator' : 'Kixora Collector',
       appMetadata: { role },
-      userMetadata: { full_name: isAdminEmail ? 'Vault Administrator' : 'Kixora Collector' },
+      userMetadata: { full_name: isExplicitAdminLogin ? 'Vault Administrator' : 'Kixora Collector' },
       createdAt: new Date().toISOString(),
     };
 
