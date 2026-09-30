@@ -42,7 +42,7 @@ export class ShippingService {
       Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
     
     if (!isConfigured) {
-      console.warn('[ShippingService] Shipping rates unavailable - carrier integration not configured');
+      // Silently return empty rates when not configured
       return [];
     }
     const quotes: ShippingRateQuote[] = [];
@@ -51,8 +51,8 @@ export class ShippingService {
       try {
         const driverQuotes = await driver.calculateRates(request);
         quotes.push(...driverQuotes);
-      } catch (err) {
-        console.warn(`[ShippingService] Failed to get quotes from ${driver.providerName}:`, err);
+      } catch {
+        // Silently handle errors when carrier integration fails
       }
     }
 
@@ -68,7 +68,6 @@ export class ShippingService {
       Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
     
     if (!isConfigured) {
-      console.warn('[ShippingService] Shipping labels unavailable - carrier integration not configured');
       return {
         success: false,
         waybillId: '',
@@ -122,8 +121,8 @@ export class ShippingService {
             description: `Shipment label generated with ${labelResult.carrier}. Tracking: ${labelResult.trackingNumber}`,
           });
 
-      } catch (dbErr) {
-        console.warn('[ShippingService] Failed to persist shipment in Supabase:', dbErr);
+      } catch {
+        // Silently handle database errors
       }
     }
 
@@ -139,7 +138,6 @@ export class ShippingService {
       Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
     
     if (!isConfigured) {
-      console.warn('[ShippingService] Shipping tracking unavailable - carrier integration not configured');
       return {
         trackingNumber,
         carrier: 'unknown',

@@ -126,8 +126,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_sneakers_v2');
       return saved ? JSON.parse(saved) : INITIAL_SNEAKERS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing sneakers from localStorage:', e);
+    } catch {
       return INITIAL_SNEAKERS;
     }
   });
@@ -136,8 +135,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_drops_v2');
       return saved ? JSON.parse(saved) : INITIAL_DROPS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing drops from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_DROPS;
     }
   });
@@ -146,8 +145,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_promos_v2');
       return saved ? JSON.parse(saved) : INITIAL_PROMOS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing promos from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_PROMOS;
     }
   });
@@ -156,8 +155,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_orders_v2');
       return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing orders from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_ORDERS;
     }
   });
@@ -179,8 +178,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           quantity: 1
         }
       ];
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing cart from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return [];
     }
   });
@@ -189,8 +188,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_wishlist_v2');
       return saved ? JSON.parse(saved) : ['kixo-shattered-backboard-01', 'kixo-aj4-black-cat-04'];
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing wishlist from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return [];
     }
   });
@@ -232,8 +231,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (isMounted && data && data.length > 0) {
           setSneakers(data);
         }
-      } catch (err) {
-        console.warn('[StoreContext] Catalog adapter failed, using initial data:', err);
+      } catch {
+        // Silently handle adapter failures
       }
     }
 
@@ -250,8 +249,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (isMounted && data && data.length > 0) {
           setDrops(data);
         }
-      } catch (err) {
-        console.warn('[StoreContext] Drops adapter failed, using initial data:', err);
+      } catch {
+        // Silently handle adapter failures
       }
     }
     fetchDrops();
@@ -309,8 +308,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 await wishlistRepository.mergeGuestWishlist(currentUser.id, guestIds);
                 localStorage.removeItem('kixora_wishlist_v2');
               }
-            } catch (e) {
-              console.warn('[StoreContext] Could not parse guest wishlist for merge:', e);
+            } catch {
+              // Silently handle merge errors
             }
           }
 
@@ -333,8 +332,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 await cartRepository.mergeGuestCart(currentUser.id, guestCartItems);
                 localStorage.removeItem('kixora_cart_v2');
               }
-            } catch (e) {
-              console.warn('[StoreContext] Could not parse guest cart for merge:', e);
+            } catch {
+              // Silently handle merge errors
             }
           }
 
@@ -361,8 +360,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               return combined;
             });
           }
-        } catch (err) {
-          console.warn('[StoreContext] Supabase customer sync fallback:', err);
+        } catch {
+          // Silently handle sync fallback
         }
       } else {
         // Guest mode: load from localStorage
@@ -370,16 +369,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedWishlist) {
           try {
             setWishlist(JSON.parse(savedWishlist));
-          } catch (e) {
-            console.warn('[StoreContext] Failed to parse wishlist from localStorage', e);
+          } catch {
+            // Silently handle parsing errors
           }
         }
         const savedCart = localStorage.getItem('kixora_cart_v2');
         if (savedCart) {
           try {
             setCart(JSON.parse(savedCart));
-          } catch (e) {
-            console.warn('[StoreContext] Failed to parse cart from localStorage', e);
+          } catch {
+            // Silently handle parsing errors
           }
         }
       }
@@ -836,7 +835,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOrders(serverOrders);
       }
     } catch (err) {
-      console.warn('[StoreContext.refreshOrders] Error:', err);
+      // Silently handle refresh errors
     }
   };
 
