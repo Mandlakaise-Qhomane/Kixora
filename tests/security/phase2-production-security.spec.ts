@@ -37,20 +37,22 @@ test.describe('Phase 2: Production Security Gates', () => {
     }
   });
 
-  test('rejects mock payment mode and missing production secrets', () => {
+  test('rejects mock payment mode and keeps shipping deferred unless explicitly enabled', () => {
     const result = validateProductionEnv();
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('VITE_PAYMENT_PROVIDER_MODE must be stripe or payfast in production.');
-    expect(result.errors).toContain('SHIPPING_WEBHOOK_SECRET is required.');
+    expect(result.errors).not.toContain('SHIPPING_WEBHOOK_SECRET is required when shipping is enabled.');
+    expect(result.errors).toContain('CORS_ALLOWED_ORIGINS must contain explicit origins in production.');
   });
 
-  test('accepts a complete Stripe production configuration', () => {
+  test('accepts a complete PayFast production configuration', () => {
     Object.assign(process.env, {
-      VITE_PAYMENT_PROVIDER_MODE: 'stripe',
-      VITE_STRIPE_PUBLISHABLE_KEY: 'pk_live_test',
-      STRIPE_SECRET_KEY: 'sk_live_test',
-      STRIPE_WEBHOOK_SECRET: 'whsec_test',
-      SHIPPING_WEBHOOK_SECRET: 'shipping_test',
+      VITE_PAYMENT_PROVIDER_MODE: 'payfast',
+      VITE_PAYFAST_MERCHANT_ID: '10000100',
+      VITE_PAYFAST_MERCHANT_KEY: 'sandbox-test-key',
+      PAYFAST_PASSPHRASE: 'phase4-test-passphrase',
+      CUSTOMER_ORIGIN: 'https://kixora.com',
+      ADMIN_ORIGIN: 'https://admin.kixora.com',
       CORS_ALLOWED_ORIGINS: 'https://kixora.com,https://admin.kixora.com',
     });
 

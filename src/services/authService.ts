@@ -174,27 +174,29 @@ export const authService = {
       }
     }
 
-    if (import.meta.env.PROD) {
-      return { user: null, session: null, error: "Authentication service unavailable. Please try again later." };
+    const isProduction = (typeof import.meta !== 'undefined' && (import.meta as any).env?.PROD) ||
+      (typeof process !== 'undefined' && process.env?.NODE_ENV === 'production');
+
+    if (isProduction) {
+      return { user: null, session: null, error: 'Authentication service unavailable. Please try again later.' };
     }
 
-    // Mock fallback authentication
-    const isAdminEmail = email.toLowerCase().includes('admin') || email.toLowerCase() === 'admin@kixora.com';
-    const role: UserRole = isAdminEmail ? 'admin' : 'customer';
+    // Local mock fallback: customer-only. Email content MUST NOT grant privileges.
+    const role: UserRole = 'customer';
 
     const mockUser: AuthUser = {
-      id: isAdminEmail ? 'admin-001' : `user-${Date.now()}`,
+      id: `user-${Date.now()}`,
       email,
       role,
-      fullName: isAdminEmail ? 'Vault Administrator' : 'Kixora Collector',
+      fullName: 'Kixora Collector',
       appMetadata: { role },
-      userMetadata: { full_name: isAdminEmail ? 'Vault Administrator' : 'Kixora Collector' },
+      userMetadata: { full_name: 'Kixora Collector' },
       createdAt: new Date().toISOString(),
     };
 
     const mockSession: AuthSession = {
       user: mockUser,
-      accessToken: `mock_jwt_${role}_${Date.now()}`,
+      accessToken: `mock_jwt_${Date.now()}`,
       expiresAt: Math.floor(Date.now() / 1000) + 86400,
     };
 

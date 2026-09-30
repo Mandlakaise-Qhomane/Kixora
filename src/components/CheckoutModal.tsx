@@ -253,9 +253,8 @@ export const CheckoutModal: React.FC = () => {
 
               <div className="space-y-3">
                 {[
-                  { id: 'Credit / Debit Card (3D Secure)', desc: 'Visa, Mastercard, American Express with biometric authentication' },
-                  { id: 'Instant EFT / Ozow', desc: 'Instant zero-fee bank clearing from all major SA banks (PayFast)' },
-                  { id: 'Apple Pay / Google Pay', desc: 'One-touch encrypted mobile checkout' }
+                  { id: 'PayFast Secure Checkout', desc: 'Card, wallet, and EFT checkout powered by PayFast' },
+                  { id: 'PayFast Instant EFT', desc: 'Fast zero-fee bank transfer for SA customers' }
                 ].map(opt => (
                   <div
                     key={opt.id}
