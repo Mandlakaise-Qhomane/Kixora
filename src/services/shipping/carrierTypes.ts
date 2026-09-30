@@ -101,6 +101,11 @@ export interface CarrierTrackingResult {
   origin: string;
   destination: string;
   events: CarrierTrackingScan[];
+  /**
+   * Set when the carrier integration is unavailable and the service fails closed,
+   * so callers can surface a degraded-tracking reason instead of real milestones.
+   */
+  error?: string;
   rawPayload?: any;
 }
 

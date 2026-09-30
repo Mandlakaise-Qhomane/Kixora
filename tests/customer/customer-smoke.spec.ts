@@ -8,7 +8,7 @@ test.describe('Customer Smoke Tests', () => {
     await expect(brand).toBeVisible();
 
     // 2. Verify Hero title
-    const heroTitle = page.getByText(/built for the culture/i);
+    const heroTitle = page.getByRole('heading', { name: /built for the culture/i });
     await expect(heroTitle).toBeVisible();
 
     // 3. Verify trust pillars exist
@@ -23,7 +23,7 @@ test.describe('Customer Smoke Tests', () => {
 
     // Navigate back to Store via Home
     await page.locator('#nav-link-home').click();
-    await expect(page.getByText(/built for the culture/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /built for the culture/i })).toBeVisible();
   });
 
   test('CS-03: Catalog filtering by brand, search, and price slider', async ({ customerPage: page }) => {

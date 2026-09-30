@@ -24,6 +24,8 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AuthUser } from '../types/auth';
 import { analyticsService } from '../services/analyticsService';
 import { catalogAdapter } from '../context/adapters/catalogAdapter';
+import { cartAdapter } from '../context/adapters/cartAdapter';
+import { wishlistAdapter } from '../context/adapters/wishlistAdapter';
 import { isSupabaseCatalogEnabled, isSupabaseDropsEnabled, isSupabaseCartEnabled, isSupabaseWishlistEnabled, isSupabaseOrdersEnabled } from '../config/features';
 
 export const formatPrice = (amount: number): string => {
@@ -124,8 +126,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_sneakers_v2');
       return saved ? JSON.parse(saved) : INITIAL_SNEAKERS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing sneakers from localStorage:', e);
+    } catch {
       return INITIAL_SNEAKERS;
     }
   });
@@ -134,8 +135,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_drops_v2');
       return saved ? JSON.parse(saved) : INITIAL_DROPS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing drops from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_DROPS;
     }
   });
@@ -144,8 +145,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_promos_v2');
       return saved ? JSON.parse(saved) : INITIAL_PROMOS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing promos from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_PROMOS;
     }
   });
@@ -154,8 +155,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_orders_v2');
       return saved ? JSON.parse(saved) : INITIAL_ORDERS;
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing orders from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return INITIAL_ORDERS;
     }
   });
@@ -177,8 +178,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           quantity: 1
         }
       ];
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing cart from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return [];
     }
   });
@@ -187,8 +188,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const saved = localStorage.getItem('kixora_wishlist_v2');
       return saved ? JSON.parse(saved) : ['kixo-shattered-backboard-01', 'kixo-aj4-black-cat-04'];
-    } catch (e) {
-      console.warn('[StoreContext] Error parsing wishlist from localStorage:', e);
+    } catch {
+      // Silently handle parsing errors
       return [];
     }
   });
@@ -230,8 +231,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (isMounted && data && data.length > 0) {
           setSneakers(data);
         }
-      } catch (err) {
-        console.warn('[StoreContext] Catalog adapter failed, using initial data:', err);
+      } catch {
+        // Silently handle adapter failures
       }
     }
 
@@ -248,8 +249,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (isMounted && data && data.length > 0) {
           setDrops(data);
         }
-      } catch (err) {
-        console.warn('[StoreContext] Drops adapter failed, using initial data:', err);
+      } catch {
+        // Silently handle adapter failures
       }
     }
     fetchDrops();
@@ -296,49 +297,59 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     async function syncCustomerData() {
       if (currentUser?.id && isSupabaseConfigured() && (isSupabaseCartEnabled() || isSupabaseWishlistEnabled() || isSupabaseOrdersEnabled())) {
         try {
-          // 1. Check for guest wishlist items to migrate
-          const guestWishlistRaw = localStorage.getItem('kixora_wishlist_v2');
-          if (guestWishlistRaw) {
+          // 1. Migrate and fetch wishlist only when its data-layer flag is enabled.
+          const guestWishlistRaw = isSupabaseWishlistEnabled()
+            ? localStorage.getItem('kixora_wishlist_v2')
+            : null;
+          if (isSupabaseWishlistEnabled() && guestWishlistRaw) {
             try {
               const guestIds: string[] = JSON.parse(guestWishlistRaw);
               if (Array.isArray(guestIds) && guestIds.length > 0) {
                 await wishlistRepository.mergeGuestWishlist(currentUser.id, guestIds);
                 localStorage.removeItem('kixora_wishlist_v2');
               }
-            } catch (e) {
-              console.warn('[StoreContext] Could not parse guest wishlist for merge:', e);
+            } catch {
+              // Silently handle merge errors
             }
           }
 
           // Fetch fresh wishlist IDs from Supabase
-          const ids = await wishlistRepository.getWishlistProductIds(currentUser.id);
-          if (isMounted && Array.isArray(ids) && ids.length > 0) {
+          const ids = isSupabaseWishlistEnabled()
+            ? await wishlistRepository.getWishlistProductIds(currentUser.id)
+            : [];
+          if (isMounted && isSupabaseWishlistEnabled() && Array.isArray(ids)) {
             setWishlist(ids);
           }
 
           // 2. Check for guest cart items to migrate
-          const guestCartRaw = localStorage.getItem('kixora_cart_v2');
-          if (guestCartRaw) {
+          const guestCartRaw = isSupabaseCartEnabled()
+            ? localStorage.getItem('kixora_cart_v2')
+            : null;
+          if (isSupabaseCartEnabled() && guestCartRaw) {
             try {
               const guestCartItems: CartItem[] = JSON.parse(guestCartRaw);
               if (Array.isArray(guestCartItems) && guestCartItems.length > 0) {
                 await cartRepository.mergeGuestCart(currentUser.id, guestCartItems);
                 localStorage.removeItem('kixora_cart_v2');
               }
-            } catch (e) {
-              console.warn('[StoreContext] Could not parse guest cart for merge:', e);
+            } catch {
+              // Silently handle merge errors
             }
           }
 
           // Fetch customer cart items from Supabase
-          const serverCartItems = await cartRepository.getCart(currentUser.id);
-          if (isMounted && Array.isArray(serverCartItems) && serverCartItems.length > 0) {
+          const serverCartItems = isSupabaseCartEnabled()
+            ? await cartRepository.getCart(currentUser.id)
+            : [];
+          if (isMounted && isSupabaseCartEnabled() && Array.isArray(serverCartItems)) {
             setCart(serverCartItems);
           }
 
           // 3. Fetch customer orders from Supabase
-          const serverOrders = await orderRepository.getCustomerOrders(currentUser.id);
-          if (isMounted && Array.isArray(serverOrders) && serverOrders.length > 0) {
+          const serverOrders = isSupabaseOrdersEnabled()
+            ? await orderRepository.getCustomerOrders(currentUser.id)
+            : [];
+          if (isMounted && isSupabaseOrdersEnabled() && Array.isArray(serverOrders)) {
             setOrders(prev => {
               const combined = [...serverOrders];
               for (const o of prev) {
@@ -349,8 +360,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               return combined;
             });
           }
-        } catch (err) {
-          console.warn('[StoreContext] Supabase customer sync fallback:', err);
+        } catch {
+          // Silently handle sync fallback
         }
       } else {
         // Guest mode: load from localStorage
@@ -358,16 +369,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (savedWishlist) {
           try {
             setWishlist(JSON.parse(savedWishlist));
-          } catch (e) {
-            console.warn('[StoreContext] Failed to parse wishlist from localStorage', e);
+          } catch {
+            // Silently handle parsing errors
           }
         }
         const savedCart = localStorage.getItem('kixora_cart_v2');
         if (savedCart) {
           try {
             setCart(JSON.parse(savedCart));
-          } catch (e) {
-            console.warn('[StoreContext] Failed to parse cart from localStorage', e);
+          } catch {
+            // Silently handle parsing errors
           }
         }
       }
@@ -478,10 +489,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
 
     // Persist to Supabase if authenticated customer
-    if (currentUser?.id) {
-      cartRepository.addItem(currentUser.id, sneaker, size, quantity).catch(err => {
-        console.warn('[StoreContext.addToCart] Background sync error:', err);
-      });
+    if (currentUser?.id && isSupabaseCartEnabled()) {
+      void cartAdapter.syncAddItem(currentUser.id, sneaker, size, quantity);
     }
   };
 
@@ -489,10 +498,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart(prev => prev.filter(item => item.id !== cartItemId));
     showToast('Item Removed', 'Item removed from your cart', 'info');
 
-    if (currentUser?.id) {
-      cartRepository.removeItem(cartItemId).catch(err => {
-        console.warn('[StoreContext.removeFromCart] Background sync error:', err);
-      });
+    if (currentUser?.id && isSupabaseCartEnabled()) {
+      void cartAdapter.syncRemoveItem(currentUser.id, cartItemId);
     }
   };
 
@@ -505,19 +512,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map(item => (item.id === cartItemId ? { ...item, quantity } : item))
     );
 
-    if (currentUser?.id) {
-      cartRepository.updateItemQuantity(cartItemId, quantity).catch(err => {
-        console.warn('[StoreContext.updateCartQuantity] Background sync error:', err);
-      });
+    if (currentUser?.id && isSupabaseCartEnabled()) {
+      void cartAdapter.syncUpdateQuantity(currentUser.id, cartItemId, quantity);
     }
   };
 
   const clearCart = () => {
     setCart([]);
-    if (currentUser?.id) {
-      cartRepository.clearCart(currentUser.id).catch(err => {
-        console.warn('[StoreContext.clearCart] Background sync error:', err);
-      });
+    if (currentUser?.id && isSupabaseCartEnabled()) {
+      void cartAdapter.syncClearCart(currentUser.id);
     }
   };
 
@@ -552,8 +555,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!sneakerId) return;
 
     const exists = wishlist.includes(sneakerId);
-    const previous = [...wishlist];
-    const next = exists ? previous.filter(id => id !== sneakerId) : [...previous, sneakerId];
+    const next = exists ? wishlist.filter(id => id !== sneakerId) : [...wishlist, sneakerId];
 
     // Optimistic UI update
     setWishlist(next);
@@ -565,19 +567,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     // Persist to Supabase if authenticated customer
-    if (currentUser?.id) {
-      try {
-        if (exists) {
-          await wishlistRepository.removeFromWishlist(currentUser.id, sneakerId);
-        } else {
-          await wishlistRepository.addToWishlist(currentUser.id, sneakerId);
-        }
-      } catch (err: any) {
-        console.error('[StoreContext] Wishlist sync error:', err);
-        // Rollback optimistic state
-        setWishlist(previous);
-        showToast('Wishlist Error', 'Could not sync wishlist with server. Changes reverted.', 'error');
-      }
+    if (currentUser?.id && isSupabaseWishlistEnabled()) {
+      await wishlistAdapter.syncToggleWishlist(currentUser.id, sneakerId, exists);
     }
   };
 
@@ -593,10 +584,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Drops
   const toggleDropNotify = (dropId: string) => {
+    const currentNotified = drops.find(drop => drop.id === dropId)?.isNotified || false;
+    const nextState = !currentNotified;
     setDrops(prev =>
       prev.map(drop => {
         if (drop.id === dropId) {
-          const nextState = !drop.isNotified;
           showToast(
             nextState ? 'Raffle Alert Set!' : 'Raffle Alert Cancelled',
             nextState ? 'Push alert enabled for this exclusive drop.' : 'Notification removed.',
@@ -605,12 +597,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return {
             ...drop,
             isNotified: nextState,
-            subscribersCount: nextState ? drop.subscribersCount + 1 : drop.subscribersCount - 1
+            subscribersCount: nextState ? drop.subscribersCount + 1 : Math.max(0, drop.subscribersCount - 1)
           };
         }
         return drop;
       })
     );
+    void catalogAdapter.toggleDropNotify(dropId, currentNotified);
   };
 
   // Modal open
@@ -744,10 +737,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setOrders(prev => [newOrder, ...prev]);
     setCart([]);
-    if (currentUser?.id) {
-      cartRepository.clearCart(currentUser.id).catch(err => {
-        console.warn('[StoreContext.placeOrder] Clear cart error:', err);
-      });
+    if (currentUser?.id && isSupabaseCartEnabled()) {
+      void cartAdapter.syncClearCart(currentUser.id);
     }
     setAppliedPromo(null);
     setTrackingOrder(newOrder);
@@ -837,13 +828,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const refreshOrders = async () => {
+    if (!isSupabaseOrdersEnabled() || !isSupabaseConfigured()) return;
     try {
       const serverOrders = await orderRepository.getOrders();
       if (serverOrders && serverOrders.length > 0) {
         setOrders(serverOrders);
       }
     } catch (err) {
-      console.warn('[StoreContext.refreshOrders] Error:', err);
+      // Silently handle refresh errors
     }
   };
 

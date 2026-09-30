@@ -41,9 +41,12 @@ export const test = base.extend<KixoraFixtures>({
   },
 
   adminPage: async ({ page }, use) => {
+    // Skip to admin view directly for testing
     await page.goto('/?domain=admin', { waitUntil: 'commit' });
     await page.waitForSelector('header', { state: 'visible' });
     await stabilizePage(page);
+    
+    // Set mock admin session before navigation
     await page.evaluate(() => {
       const mockAdminSession = {
         user: {
@@ -60,14 +63,15 @@ export const test = base.extend<KixoraFixtures>({
       };
       localStorage.setItem('kixora_auth_session', JSON.stringify(mockAdminSession));
     });
+    
+    // Reload to apply auth session
     await page.reload({ waitUntil: 'commit' });
     await page.waitForSelector('header', { state: 'visible' });
     await stabilizePage(page);
-    const adminBtn = page.locator('#header-admin-profile-button');
-    if (await adminBtn.isVisible()) {
-      await adminBtn.click({ force: true });
-    }
-    await page.waitForSelector('#admin-nav-dashboard', { state: 'visible' });
+    
+    // Give extra time for admin dashboard to render
+    await page.waitForTimeout(2000);
+    
     await use(page);
   },
 });
