@@ -35,7 +35,7 @@ It is **not** production-ready and it does **not** yet match the design board ex
 3. Payments default to `mock`.
 4. Admin UI ships in the same public bundle as the store.
 5. Helmet `frameguard: deny` conflicts with custom `frameAncestors`.
-6. Global JSON body limit is still 50mb. `csurf` is installed but not wired. No `CORS_ORIGIN` allowlist.
+6. Global JSON body limit is still 50mb. `csrf-csrf` is wired on payment, shipping, and notification routes. No `CORS_ORIGIN` allowlist.
 7. No real 3D pipeline (Three.js / `.glb`).
 8. No PWA service worker or install prompt.
 9. Cloudinary URLs assume cloud name `kixora` — assets may 404.

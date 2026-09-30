@@ -3,19 +3,25 @@
 // Tests for CORS allowlist, CSRF protection, body size limits, and framing policy
 // ==============================================================================
 
-import { test, expect, APIRequestContext } from '@playwright/test';
+import { test, expect, APIRequestContext, APIResponse } from '@playwright/test';
 
 test.describe('Kixora Phase A: Security Hardening', () => {
   const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000';
 
+  function csrfCookieHeader(response: APIResponse) {
+    return response.headersArray()
+      .filter(({ name }) => name.toLowerCase() === 'set-cookie')
+      .map(({ value }) => value.split(';', 1)[0])
+      .join('; ');
+  }
+
   async function csrfHeaders(request: APIRequestContext) {
     const tokenResponse = await request.get(`${baseURL}/api/csrf`);
     const { csrfToken } = await tokenResponse.json();
-    const cookies = tokenResponse.headers()['set-cookie'] || '';
     return {
       'Content-Type': 'application/json',
       'X-CSRF-Token': csrfToken,
-      'Cookie': cookies.split(';')[0],
+      'Cookie': csrfCookieHeader(tokenResponse),
     };
   }
 
@@ -114,7 +120,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
         },
       });
 
-      // csurf returns 403 for missing/invalid CSRF token on protected routes
+      // Missing or invalid CSRF tokens are rejected on protected routes.
       expect(response.status()).toBe(403);
     });
 
@@ -131,8 +137,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
       expect(csrfToken).toBeTruthy();
 
       // Extract the CSRF cookie from the response
-      const cookies = tokenResponse.headers()['set-cookie'] || '';
-      const csrfCookie = cookies.split(';')[0]; // Get the first cookie
+      const csrfCookie = csrfCookieHeader(tokenResponse);
 
       // Now make a request to shipping with the valid token
       const response = await request.post(`${baseURL}/api/shipping/rates`, {
@@ -155,8 +160,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
       const tokenResponse = await request.get(`${baseURL}/api/csrf`);
       expect(tokenResponse.status()).toBe(200);
       const { csrfToken } = await tokenResponse.json();
-      const cookies = tokenResponse.headers()['set-cookie'] || '';
-      const csrfCookie = cookies.split(';')[0];
+      const csrfCookie = csrfCookieHeader(tokenResponse);
 
       const response = await request.post(`${baseURL}/api/notifications/email/order-confirmation`, {
         headers: {
@@ -187,7 +191,10 @@ test.describe('Kixora Phase A: Security Hardening', () => {
 
     test('CSRF cookie is HttpOnly and Secure in production', async ({ request }) => {
       const response = await request.get(`${baseURL}/api/csrf`);
-      const cookies = response.headers()['set-cookie'] || '';
+      const cookies = response.headersArray()
+        .filter(({ name }) => name.toLowerCase() === 'set-cookie')
+        .map(({ value }) => value)
+        .join(';');
 
       // In development, secure may be false; in production it should be true
       // At minimum, HttpOnly should always be present
@@ -306,8 +313,7 @@ test.describe('Kixora Phase A: Security Hardening', () => {
       // Get a valid CSRF token first
       const tokenResponse = await request.get(`${baseURL}/api/csrf`);
       const { csrfToken } = await tokenResponse.json();
-      const cookies = tokenResponse.headers()['set-cookie'] || '';
-      const csrfCookie = cookies.split(';')[0];
+      const csrfCookie = csrfCookieHeader(tokenResponse);
 
       const response = await request.post(`${baseURL}/api/payments/stripe/create-intent`, {
         headers: {

@@ -1,4 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIResponse } from '@playwright/test';
+
+function csrfCookieHeader(response: APIResponse) {
+  return response.headersArray()
+    .filter(({ name }) => name.toLowerCase() === 'set-cookie')
+    .map(({ value }) => value.split(';', 1)[0])
+    .join('; ');
+}
 
 test.describe('Phase A: Security Hardening', () => {
   const baseUrl = 'http://127.0.0.1:3000';
@@ -35,13 +42,12 @@ test.describe('Phase A: Security Hardening', () => {
     // 1. Get token and cookie
     const csrfRes = await request.get(`${baseUrl}/api/csrf-token`);
     const csrfData = await csrfRes.json();
-    const cookies = csrfRes.headers()['set-cookie'];
 
     // 2. Post with token
     const response = await request.post(`${baseUrl}/api/payments/stripe/create-intent`, {
       headers: {
         'CSRF-Token': csrfData.csrfToken,
-        'Cookie': cookies || '' // Pass cookie back
+        'Cookie': csrfCookieHeader(csrfRes),
       },
       data: { 
         amount: 100,

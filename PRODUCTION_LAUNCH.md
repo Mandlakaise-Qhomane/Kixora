@@ -19,13 +19,14 @@
 | `PAYFAST_PASSPHRASE` | Server Only | Salt passphrase for MD5 ITN signature verification | YES |
 | `THE_COURIER_GUY_API_KEY` | Server Only | The Courier Guy REST API credentials | YES |
 | `SHIPPING_WEBHOOK_SECRET` | Server Only | HMAC-SHA256 secret for carrier webhook signatures | YES |
+| `CSRF_SECRET` | Server Only | Cryptographically random HMAC secret for CSRF token signing | YES |
 | `RESEND_API_KEY` | Server Only | Transactional email delivery service API key | YES |
 | `CUSTOMER_ORIGIN` | Server Only | Exact storefront origin | YES |
 | `ADMIN_ORIGIN` | Server Only | Exact admin origin; must differ from customer origin | YES |
 | `CORS_ALLOWED_ORIGINS` | Server Only | Comma-separated exact allowlist containing both origins | YES |
 
 ### Environment & Secrets Hygiene Rules
-1. **Zero Client Secrets**: No server secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYFAST_PASSPHRASE`, `SHIPPING_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are bundled into client-facing artifacts or prefixed with `VITE_`.
+1. **Zero Client Secrets**: No server secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PAYFAST_PASSPHRASE`, `SHIPPING_WEBHOOK_SECRET`, `CSRF_SECRET`, `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) are bundled into client-facing artifacts or prefixed with `VITE_`.
 2. **Server-Side Proxy**: All external mutations, payment initialization, carrier communication, and transactional emails execute strictly through `/api/*` routes.
 
 ---

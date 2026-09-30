@@ -38,6 +38,7 @@ export interface ServerEnvConfig {
   theCourierGuyApiKey: string;
   shiplogicApiKey: string;
   shippingWebhookSecret: string;
+  csrfSecret: string;
   adminOrigin: string;
   customerOrigin: string;
 }
@@ -89,6 +90,7 @@ export function getServerConfig(): ServerEnvConfig {
       theCourierGuyApiKey: '',
       shiplogicApiKey: '',
       shippingWebhookSecret: '',
+      csrfSecret: '',
       adminOrigin: '',
       customerOrigin: '',
     };
@@ -106,6 +108,7 @@ export function getServerConfig(): ServerEnvConfig {
     theCourierGuyApiKey: env.THE_COURIER_GUY_API_KEY || '',
     shiplogicApiKey: env.SHIPLOGIC_API_KEY || '',
     shippingWebhookSecret: env.SHIPPING_WEBHOOK_SECRET || '',
+    csrfSecret: env.CSRF_SECRET || '',
     adminOrigin: env.ADMIN_ORIGIN || env.VITE_ADMIN_ORIGIN || env.VITE_ADMIN_DOMAIN || 'https://admin.kixora.com',
     customerOrigin: env.CUSTOMER_ORIGIN || env.VITE_CUSTOMER_ORIGIN || env.VITE_CUSTOMER_DOMAIN || 'https://kixora.com',
   };
@@ -120,6 +123,10 @@ export function validateProductionEnv(): ProductionEnvValidation {
   const server = getServerConfig();
   const errors: string[] = [];
   const provider = client.paymentProviderMode;
+
+  if (server.csrfSecret.length < 32) {
+    errors.push('CSRF_SECRET must be at least 32 characters.');
+  }
 
   if (provider !== 'stripe' && provider !== 'payfast') {
     errors.push('VITE_PAYMENT_PROVIDER_MODE must be stripe or payfast in production.');

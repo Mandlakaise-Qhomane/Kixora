@@ -15,6 +15,7 @@ const envKeys = [
   'STRIPE_WEBHOOK_SECRET',
   'PAYFAST_PASSPHRASE',
   'SHIPPING_WEBHOOK_SECRET',
+  'CSRF_SECRET',
   'CORS_ALLOWED_ORIGINS',
 ] as const;
 
@@ -41,6 +42,7 @@ test.describe('Phase 2: Production Security Gates', () => {
     const result = validateProductionEnv();
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('VITE_PAYMENT_PROVIDER_MODE must be stripe or payfast in production.');
+    expect(result.errors).toContain('CSRF_SECRET must be at least 32 characters.');
     expect(result.errors).not.toContain('SHIPPING_WEBHOOK_SECRET is required when shipping is enabled.');
     expect(result.errors).toContain('CORS_ALLOWED_ORIGINS must contain explicit origins in production.');
   });
@@ -51,6 +53,7 @@ test.describe('Phase 2: Production Security Gates', () => {
       VITE_PAYFAST_MERCHANT_ID: '10000100',
       VITE_PAYFAST_MERCHANT_KEY: 'sandbox-test-key',
       PAYFAST_PASSPHRASE: 'phase4-test-passphrase',
+      CSRF_SECRET: 'phase4-test-csrf-secret-0123456789abcdef',
       CUSTOMER_ORIGIN: 'https://kixora.com',
       ADMIN_ORIGIN: 'https://admin.kixora.com',
       CORS_ALLOWED_ORIGINS: 'https://kixora.com,https://admin.kixora.com',

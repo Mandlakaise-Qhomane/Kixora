@@ -1,4 +1,5 @@
 import express from 'express';
+import { randomBytes } from 'node:crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import Stripe from 'stripe';
@@ -6,7 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import csurf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
 import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
@@ -178,19 +179,44 @@ async function startServer() {
   // ===========================================================================
   // PHASE A: CSRF protection setup
   // -----------------------------------------------------------------------
-  // cookie-parser must run before csurf to read the CSRF cookie.
+  // cookie-parser must run before CSRF middleware to read the cookies.
   // A token endpoint is provided for clients to retrieve a CSRF token.
-  // The protected route groups are then secured with csurf middleware.
+  // The protected route groups are then secured with CSRF middleware.
   // -----------------------------------------------------------------------
   app.use(cookieParser());
 
+  const csrfSessionCookieOptions = {
+    httpOnly: true,
+    sameSite: 'strict' as const,
+    secure: isProduction,
+    maxAge: 60 * 60 * 24 * 1000,
+    path: '/',
+  };
+  app.use((req, res, next) => {
+    if (!req.cookies.csrf_session) {
+      const sessionIdentifier = randomBytes(32).toString('hex');
+      req.cookies.csrf_session = sessionIdentifier;
+      res.cookie('csrf_session', sessionIdentifier, csrfSessionCookieOptions);
+    }
+    next();
+  });
+
   // CSRF token endpoint (outside protected groups)
-  const csrfProtection = csurf({
-    cookie: {
-      key: 'csrf_secret',
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: isProduction,
+  const csrfSecret = startupConfig.csrfSecret || randomBytes(32).toString('hex');
+  const { doubleCsrfProtection: csrfProtection, generateCsrfToken } = doubleCsrf({
+    getSecret: () => csrfSecret,
+    getSessionIdentifier: (req) => req.cookies.csrf_session ?? '',
+    cookieName: 'csrf_secret',
+    cookieOptions: csrfSessionCookieOptions,
+    ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+    getCsrfTokenFromRequest: (req) => {
+      const token = req.headers['x-csrf-token'] ?? req.headers['csrf-token'];
+      return Array.isArray(token) ? token[0] : token;
+    },
+    errorConfig: {
+      statusCode: 403,
+      message: 'Invalid CSRF token',
+      code: 'EBADCSRFTOKEN',
     },
   });
 
@@ -200,8 +226,8 @@ async function startServer() {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-  app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
-    res.json({ csrfToken: _req.csrfToken() });
+  app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (req, res) => {
+    res.json({ csrfToken: generateCsrfToken(req, res) });
   });
 
   // Apply CSRF protection to the required route groups
@@ -567,7 +593,7 @@ async function startServer() {
   // Global Error Handler for API & Payload errors
   app.use((err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if (err) {
-      if (err.code === 'EBADCSRFTOKEN') {
+      if (err.code === 'EBADCSRFTOKEN' || err.message === 'Invalid CSRF token') {
         return res.status(403).json({ error: 'Invalid CSRF token' });
       }
       if (err.type === 'entity.too.large' || err.status === 413 || err.name === 'PayloadTooLargeError') {
