@@ -27,6 +27,7 @@ import { catalogAdapter } from '../context/adapters/catalogAdapter';
 import { cartAdapter } from '../context/adapters/cartAdapter';
 import { wishlistAdapter } from '../context/adapters/wishlistAdapter';
 import { isSupabaseCatalogEnabled, isSupabaseDropsEnabled, isSupabaseCartEnabled, isSupabaseWishlistEnabled, isSupabaseOrdersEnabled } from '../config/features';
+import { inspectHostname } from '../routes/DomainGuard';
 
 export const formatPrice = (amount: number): string => {
   return `R${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -392,7 +393,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [currentUser?.id]);
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [currentView, setCurrentView] = useState<ViewMode>('store');
+  const [currentView, setCurrentView] = useState<ViewMode>(() =>
+    inspectHostname().isAdminDomain ? 'admin' : 'store'
+  );
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState<boolean>(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState<boolean>(false);

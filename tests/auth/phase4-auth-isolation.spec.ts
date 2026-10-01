@@ -184,7 +184,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     await expect(page.getByText(/403: access forbidden/i)).toBeVisible();
   });
 
-  test('AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and can log in', async ({ page }) => {
+  test('AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and mock login cannot grant admin', async ({ page }) => {
     // Navigate to admin domain with no session
     await page.goto('/?domain=admin');
     await page.evaluate(() => {
@@ -192,22 +192,22 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     });
     await page.reload();
 
-    // Click admin button
-    const adminBtn = page.locator('#header-admin-profile-button');
-    await expect(adminBtn).toBeVisible();
-    await adminBtn.click();
+    // Admin domain opens the hub directly. Only use the header toggle if the form is not up yet.
+    const form = page.locator('#admin-route-forbidden');
+    if (!(await form.isVisible())) {
+      await page.locator('#header-admin-profile-button').click();
+    }
 
-    // Verify Vault Admin Authentication form appears
-    await expect(page.locator('#admin-route-forbidden')).toBeVisible();
+    await expect(form).toBeVisible();
     await expect(page.getByText(/vault admin authentication/i)).toBeVisible();
 
-    // Fill admin credentials
+    // Fill admin-looking credentials. Mock auth must stay customer-only (see AUTH-03b).
     await page.getByPlaceholder('admin@kixora.com').fill('admin@kixora.com');
     await page.getByPlaceholder('••••••••••••').fill('StaffPassword123');
     await page.getByRole('button', { name: /authenticate to admin console/i }).click();
 
-    // Verify successful login loads admin dashboard
-    await expect(page.locator('#admin-nav-dashboard')).toBeVisible();
+    await expect(page.getByText(/403: access forbidden/i)).toBeVisible();
+    await expect(page.locator('#admin-nav-dashboard')).toHaveCount(0);
   });
 
 });

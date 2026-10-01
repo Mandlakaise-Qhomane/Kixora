@@ -1,6 +1,7 @@
 import { Sneaker, Drop, PromoCode, Order } from '../types';
 
-const sneakerModelBaseUrl = import.meta.env.VITE_SNEAKER_MODEL_BASE_URL?.replace(/\/$/, '');
+const metaEnv = (typeof import.meta !== 'undefined' && (import.meta as any).env) || {};
+const sneakerModelBaseUrl = metaEnv.VITE_SNEAKER_MODEL_BASE_URL?.replace(/\/$/, '');
 const sneakerModelUrl = (filename: string) => sneakerModelBaseUrl ? `${sneakerModelBaseUrl}/${filename}.glb` : undefined;
 
 export const INITIAL_SNEAKERS: Sneaker[] = [

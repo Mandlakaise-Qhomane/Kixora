@@ -32,7 +32,7 @@ export const useGoogleAuth = (scopes: string[]): GoogleAuthHook => {
 
     setIsLoading(true);
     const client = window.google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id',
+      client_id: ((typeof import.meta !== 'undefined' && (import.meta as any).env) || {}).VITE_GOOGLE_CLIENT_ID || 'dummy-client-id',
       scope: scopes.join(' '),
       callback: (response: any) => {
         setIsLoading(false);

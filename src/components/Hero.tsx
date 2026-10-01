@@ -64,7 +64,8 @@ export const Hero: React.FC = () => {
               </span>
 
               <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-white leading-[0.95] tracking-tight">
-                BUILT FOR<br />
+                BUILT FOR{' '}
+                <br />
                 <span className="text-[#FF7A00] drop-shadow-[0_0_30px_rgba(255,122,0,0.5)]">THE CULTURE</span>
               </h1>
 

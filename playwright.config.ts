@@ -5,6 +5,9 @@ const baseURL = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests',
+  // Unit and component tests live beside the e2e specs and are owned by Vitest.
+  // Playwright's default match includes *.test.ts, which crashes on vi.mock.
+  testMatch: '**/*.spec.ts',
   fullyParallel: false,
   workers: 1,
   timeout: 60000,
