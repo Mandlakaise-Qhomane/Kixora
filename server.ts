@@ -1,19 +1,19 @@
 import express from 'express';
 import path from 'path';
+import crypto from 'node:crypto';
 import { createServer as createViteServer } from 'vite';
 import Stripe from 'stripe';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import csurf from 'csurf';
 import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
 import { emailService } from './src/services/email/emailService';
 import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
-import { supabase, isSupabaseConfigured } from './src/lib/supabase';
+import { supabase, supabaseAdmin, hasSupabaseServiceRole, isSupabaseConfigured } from './src/lib/supabase';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -22,7 +22,38 @@ import { supabase, isSupabaseConfigured } from './src/lib/supabase';
  */
 import { validateCorsAllowlistForProduction } from './src/config/cors';
 
-async function startServer() {
+const CSRF_SECRET_COOKIE = 'csrf_secret';
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function createCsrfToken(secret: string): string {
+  const nonce = crypto.randomBytes(24).toString('base64url');
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(nonce)
+    .digest('base64url');
+  return `${nonce}.${signature}`;
+}
+
+function isValidCsrfToken(secret: string, token: string): boolean {
+  const [nonce, signature] = token.split('.');
+  if (!nonce || !signature) {
+    return false;
+  }
+
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(nonce)
+    .digest();
+
+  const actual = Buffer.from(signature, 'base64url');
+  if (actual.length !== expected.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(actual, expected);
+}
+
+async function createApp() {
   const productionEnv = validateProductionEnv();
   if (!productionEnv.valid) {
     throw new Error(`Invalid production environment:\n- ${productionEnv.errors.join('\n- ')}`);
@@ -33,6 +64,7 @@ async function startServer() {
   const host = process.env.HOST ?? '0.0.0.0';
   const startupConfig = getServerConfig();
   const clientConfig = getEnvConfig();
+  app.set('trust proxy', process.env.TRUST_PROXY ?? 1);
   logger.info('[Startup] Configuration validated', {
     environment: process.env.NODE_ENV || 'development',
     paymentProvider: clientConfig.paymentProviderMode,
@@ -84,7 +116,13 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://www.google-analytics.com", "https://accounts.google.com"],
+        scriptSrc: [
+          "'self'",
+          ...(isProduction ? [] : ["'unsafe-inline'", "'unsafe-eval'"]),
+          'https://js.stripe.com',
+          'https://www.google-analytics.com',
+          'https://accounts.google.com',
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://*.stripe.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com", "https://*.googleusercontent.com"],
         connectSrc: [
@@ -184,15 +222,38 @@ async function startServer() {
   // -----------------------------------------------------------------------
   app.use(cookieParser());
 
-  // CSRF token endpoint (outside protected groups)
-  const csrfProtection = csurf({
-    cookie: {
-      key: 'csrf_secret',
+  const issueCsrfSecret = (req: express.Request, res: express.Response): string => {
+    const existing = req.cookies?.[CSRF_SECRET_COOKIE];
+    if (existing) {
+      return existing;
+    }
+
+    const secret = crypto.randomBytes(32).toString('base64url');
+    res.cookie(CSRF_SECRET_COOKIE, secret, {
       httpOnly: true,
       sameSite: 'strict',
       secure: isProduction,
-    },
-  });
+      path: '/',
+    });
+    return secret;
+  };
+
+  const csrfProtection = (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    if (CSRF_SAFE_METHODS.has(req.method)) {
+      return next();
+    }
+
+    const secret = req.cookies?.[CSRF_SECRET_COOKIE];
+    const tokenHeader = req.get('x-csrf-token') || req.get('csrf-token');
+    if (!secret || !tokenHeader || !isValidCsrfToken(secret, tokenHeader)) {
+      const csrfError = new Error('Invalid CSRF token');
+      (csrfError as Error & { code?: string; status?: number }).code = 'EBADCSRFTOKEN';
+      (csrfError as Error & { code?: string; status?: number }).status = 403;
+      return next(csrfError);
+    }
+
+    next();
+  };
 
   // Parse request bodies before CSRF validation so oversized requests return 413.
   app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
@@ -200,8 +261,9 @@ async function startServer() {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-  app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
-    res.json({ csrfToken: _req.csrfToken() });
+  app.get(['/api/csrf', '/api/csrf-token'], (req, res) => {
+    const secret = issueCsrfSecret(req, res);
+    res.json({ csrfToken: createCsrfToken(secret) });
   });
 
   // Apply CSRF protection to the required route groups
@@ -258,11 +320,11 @@ async function startServer() {
             <meta property="og:description" content="Exclusive authenticated sneaker drops." />
             <meta property="og:image" content="https://kixora.com/og-image-default.png" />
             <meta name="twitter:card" content="summary_large_image" />
+            <meta http-equiv="refresh" content="0;url=/?product=${productId}" />
           </head>
           <body>
             <h1>Kixora</h1>
             <p>Loading sneaker details...</p>
-            <script>window.location.href = "/?product=${productId}";</script>
           </body>
         </html>
       `;
@@ -271,33 +333,50 @@ async function startServer() {
     next();
   });
 
+  async function getDependencyHealth() {
+    const checks = {
+      database: 'unknown',
+      supabase: 'unknown',
+    } as Record<string, 'healthy' | 'unhealthy' | 'not_configured' | 'unknown'>;
+
+    if (!isSupabaseConfigured()) {
+      checks.database = 'not_configured';
+      checks.supabase = 'not_configured';
+      return checks;
+    }
+
+    try {
+      const healthClient = supabaseAdmin || supabase;
+      const databaseProbe = healthClient
+        .from('profiles')
+        .select('id', { head: true, count: 'exact' })
+        .limit(1);
+
+      const supabaseProbe = hasSupabaseServiceRole() && supabaseAdmin
+        ? supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 })
+        : Promise.resolve({ error: null as { message?: string } | null });
+
+      const [dbResult, supabaseResult] = await Promise.all([databaseProbe, supabaseProbe]);
+      checks.database = dbResult.error ? 'unhealthy' : 'healthy';
+      checks.supabase = supabaseResult.error ? 'unhealthy' : 'healthy';
+    } catch {
+      checks.database = 'unhealthy';
+      checks.supabase = 'unhealthy';
+    }
+
+    return checks;
+  }
+
   // Health Check
   app.get('/api/health', async (_req, res) => {
+    const checks = await getDependencyHealth();
     const health = {
       status: 'ok',
       domain: process.env.NODE_ENV === 'production' ? 'kixora-production' : 'kixora-development',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      checks: {
-        database: 'unknown',
-        supabase: 'unknown',
-      }
+      checks,
     };
-
-    // Check database connectivity if Supabase is configured
-    if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('profiles').select('id').limit(1);
-        health.checks.database = error ? 'unhealthy' : 'healthy';
-        health.checks.supabase = error ? 'unhealthy' : 'healthy';
-      } catch {
-        health.checks.database = 'unhealthy';
-        health.checks.supabase = 'unhealthy';
-      }
-    } else {
-      health.checks.database = 'not_configured';
-      health.checks.supabase = 'not_configured';
-    }
 
     // Set overall status based on checks
     const allHealthy = Object.values(health.checks).every(check => 
@@ -325,10 +404,6 @@ async function startServer() {
       status: 'ready',
       checks: {
         configuration: true,
-        paymentProvider: clientConfig.paymentProviderMode,
-        stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
-        payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
-        shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
       },
     });
   });
@@ -614,12 +689,22 @@ async function startServer() {
     console.log('Production static assets and SPA fallback enabled.');
   }
 
+  return { app, host, port };
+}
+
+async function startServer() {
+  const { app, host, port } = await createApp();
+
   app.listen(port, host, () => {
     console.log(`Server listening on http://${host}:${port}`);
   });
 }
 
+if (process.env.KIXORA_DISABLE_AUTO_START !== 'true') {
   startServer().catch((err) => {
   logger.error('Failed to start server', { error: err.message });
   process.exit(1);
-});
+  });
+}
+
+export { createApp, startServer };

@@ -5,6 +5,7 @@ const procEnv = (typeof process !== 'undefined' && process.env) || {};
 
 const supabaseUrl = metaEnv.VITE_SUPABASE_URL || procEnv.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
 const supabaseAnonKey = metaEnv.VITE_SUPABASE_ANON_KEY || procEnv.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+const supabaseServiceRoleKey = procEnv.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export const isSupabaseConfigured = (): boolean => {
   return Boolean(
@@ -16,3 +17,16 @@ export const isSupabaseConfigured = (): boolean => {
 };
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const hasSupabaseServiceRole = (): boolean => {
+  return Boolean(isSupabaseConfigured() && supabaseServiceRoleKey);
+};
+
+export const supabaseAdmin = hasSupabaseServiceRole()
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
