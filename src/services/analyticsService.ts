@@ -45,11 +45,8 @@ class AnalyticsService {
       properties: sanitizedMetadata,
     };
 
-    // 3. Dispatch (Mocking production analytics provider dispatch)
-    if (this.isProduction) {
-      // In a real app: fetch('https://analytics.kixora.com/collect', { method: 'POST', body: JSON.stringify(payload) })
-      console.log('[PRODUCTION-ANALYTICS]:', JSON.stringify(payload));
-    } else {
+    // Keep diagnostics in development until a production analytics provider is configured.
+    if (!this.isProduction) {
       console.log('[DEV-ANALYTICS]:', payload);
     }
   }
