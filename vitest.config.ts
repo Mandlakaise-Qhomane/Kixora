@@ -12,11 +12,24 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/main.tsx'],
-      // Unit coverage is a thin slice (config, utils, a few components).
-      // End-to-end behavior is covered by Playwright. These floors match the
-      // current unit run so CI fails on a regression instead of an unreachable 70%.
+      // Scope vitest coverage to ONLY files that have unit or component
+      // tests today. Coverage for Supabase layers (repositories/services/
+      // hooks/adapters/StoreContext) and untested components are measured
+      // via Playwright E2E runs instead.
+      // Expand this list as you add more tests/unit coverage in tests/unit
+      // and tests/component directories.
+      include: [
+        'src/utils/filterSneakers.ts',
+        'src/utils/roleUtils.ts',
+        'src/config/env.ts',
+        'src/config/cors.ts',
+        'src/routes/AdminRoute.tsx',
+        'src/components/Toast.tsx',
+      ],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/main.tsx',
+      ],
       thresholds: {
         statements: 2,
         branches: 4,

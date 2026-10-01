@@ -834,7 +834,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (serverOrders && serverOrders.length > 0) {
         setOrders(serverOrders);
       }
-    } catch {
+    } catch (_err) {
       // Silently handle refresh errors
     }
   };
