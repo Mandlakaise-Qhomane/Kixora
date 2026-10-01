@@ -579,7 +579,7 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-    console.log('Vite development middleware mounted.');
+    logger.info('Vite development middleware mounted.');
   } else {
     // Static file serving for production
     const distPath = path.join(process.cwd(), 'dist');
@@ -593,11 +593,11 @@ async function startServer() {
       }
       res.sendFile(path.join(distPath, 'index.html'));
     });
-    console.log('Production static assets and SPA fallback enabled.');
+    logger.info('Production static assets and SPA fallback enabled.');
   }
 
   app.listen(port, host, () => {
-    console.log(`Server listening on http://${host}:${port}`);
+    logger.info(`Server listening on http://${host}:${port}`, { host, port });
   });
 }
 
