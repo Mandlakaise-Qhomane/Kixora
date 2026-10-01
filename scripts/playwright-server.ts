@@ -1,9 +1,31 @@
 const port = process.env.PLAYWRIGHT_PORT || '3000';
+const useStagingSupabase = process.env.PLAYWRIGHT_USE_STAGING_SUPABASE === 'true';
+
+if (useStagingSupabase) {
+  const requiredStagingVariables = [
+    'PLAYWRIGHT_SUPABASE_URL',
+    'PLAYWRIGHT_SUPABASE_ANON_KEY',
+    'PLAYWRIGHT_ADMIN_EMAIL',
+    'PLAYWRIGHT_ADMIN_PASSWORD',
+  ];
+  const missingVariables = requiredStagingVariables.filter((name) => !process.env[name]);
+  if (missingVariables.length > 0) {
+    throw new Error(`Staging Playwright auth requires: ${missingVariables.join(', ')}`);
+  }
+
+  process.env.VITE_SUPABASE_URL = process.env.PLAYWRIGHT_SUPABASE_URL;
+  process.env.VITE_SUPABASE_ANON_KEY = process.env.PLAYWRIGHT_SUPABASE_ANON_KEY;
+  process.env.VITE_USE_SUPABASE_AUTH = 'true';
+  process.env.VITE_USE_SUPABASE_ADMIN ||= 'true';
+} else {
+  process.env.VITE_SUPABASE_URL = `http://127.0.0.1:${port}`;
+  process.env.VITE_SUPABASE_ANON_KEY = 'playwright-anon-key';
+  process.env.VITE_USE_SUPABASE_AUTH = 'false';
+  process.env.VITE_USE_SUPABASE_ADMIN = 'false';
+}
+
 process.env.PORT = port;
-process.env.VITE_SUPABASE_URL = `http://127.0.0.1:${port}`;
-process.env.VITE_SUPABASE_ANON_KEY = 'playwright-anon-key';
 process.env.VITE_USE_SUPABASE_CATALOG = 'true';
-process.env.VITE_USE_SUPABASE_AUTH = 'false';
 process.env.VITE_USE_SUPABASE_CART = 'false';
 process.env.VITE_USE_SUPABASE_WISHLIST = 'false';
 process.env.VITE_USE_SUPABASE_ORDERS = 'false';
