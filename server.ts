@@ -197,7 +197,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
   app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
-    res.json({ csrfToken: _req.csrfToken() });
+    res.json({ csrfToken: (_req as express.Request & { csrfToken: () => string }).csrfToken() });
   });
 
   // Apply CSRF protection to the required route groups
