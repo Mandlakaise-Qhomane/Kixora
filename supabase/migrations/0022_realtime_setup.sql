@@ -1,5 +1,5 @@
 -- ==============================================================================
--- KIXORA DATABASE MIGRATION: 0019 - REALTIME INFRASTRUCTURE SETUP
+-- KIXORA DATABASE MIGRATION: 0020 - REALTIME INFRASTRUCTURE SETUP
 -- Description: Enables Supabase Realtime for inventory and order tracking.
 -- ==============================================================================
 

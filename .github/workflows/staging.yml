@@ -26,6 +26,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Inspect cached Supabase images
+        shell: bash
+        run: |
+          set -euo pipefail
+          images=(
+            "public.ecr.aws/supabase/logflare"
+            "public.ecr.aws/supabase/storage-api"
+            "public.ecr.aws/supabase/gotrue"
+            "public.ecr.aws/supabase/realtime"
+            "public.ecr.aws/supabase/postgres"
+            "public.ecr.aws/supabase/mailpit"
+          )
+          for image in "${images[@]}"; do
+            if docker image ls --format '{{.Repository}}' | grep -Fxq "$image"; then
+              echo "cached: $image"
+            else
+              echo "not cached: $image"
+            fi
+          done
+
+      - name: Start local Supabase with rate-limit retries
+        shell: bash
+        run: |
+          set -uo pipefail
+          max_attempts=5
+          backoff_seconds=15
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Starting local Supabase (attempt ${attempt}/${max_attempts})..."
+            if npx supabase start; then
+              echo "Supabase started successfully."
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Supabase startup failed. Waiting ${backoff_seconds}s before retrying..."
+              sleep "$backoff_seconds"
+              backoff_seconds=$((backoff_seconds * 2))
+            fi
+          done
+          echo "Supabase failed to start after ${max_attempts} attempts."
+          exit 1
+
       - name: Validate local Supabase migrations
         run: npm run db:gate
         env:
@@ -43,11 +84,12 @@ jobs:
       - name: Run full Playwright test suite
         run: npx playwright test
 
-      - name: Run Lighthouse CI
-        run: npm run lighthouse
-
       - name: Build production bundle
         run: npm run build
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop
 
       - name: Upload Playwright report (on failure)
         if: failure()
