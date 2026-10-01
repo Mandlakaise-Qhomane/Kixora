@@ -11,9 +11,15 @@ test.describe('Customer Smoke Tests', () => {
     const heroTitle = page.getByRole('heading', { name: /built for the culture/i });
     await expect(heroTitle).toBeVisible();
 
+    const hero = page.locator('#homepage-hero');
+    await expect(hero.getByRole('button', { name: 'SHOP NOW' })).toHaveCount(1);
+    await expect(hero.getByRole('button', { name: /preview view/i })).toHaveCount(2);
+
     // 3. Verify trust pillars exist
     await expect(page.getByText(/100% deadstock/i).first()).toBeVisible();
     await expect(page.getByText(/fast dispatch/i).first()).toBeVisible();
+    await expect(page.getByText(/secure payments/i).first()).toBeVisible();
+    await expect(page.getByText(/easy returns/i).first()).toBeVisible();
   });
 
   test('CS-02: Header navigation routes between views seamlessly', async ({ customerPage: page }) => {

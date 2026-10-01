@@ -1,7 +1,9 @@
 node_modules/
 build/
 dist/
+.vite/
 coverage/
+.lighthouseci/
 .DS_Store
 *.log
 .env*
@@ -17,3 +19,4 @@ migration-drift-diff.txt
 # Agent worktrees: `.kilo/worktrees/*` are full nested checkouts of this
 # repository. Committing them duplicates the whole tree into the repo.
 .kilo/
+playwright-report/
