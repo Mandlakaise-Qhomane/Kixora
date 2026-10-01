@@ -106,7 +106,7 @@ jobs:
         continue-on-error: false
 
       - name: Run unit and component tests
-        run: npm run test:coverage
+        run: npm run test
         continue-on-error: false
 
       - name: Run full Playwright test suite
