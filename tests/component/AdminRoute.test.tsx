@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminRoute } from '../../src/routes/AdminRoute';
 
-// Move mock to module level
 vi.mock('../../src/hooks/useAuth', () => ({
   useAuth: vi.fn(),
 }));
@@ -24,6 +23,8 @@ describe('AdminRoute', () => {
       isLoading: false,
       signIn: mockSignIn,
     });
+
+    mockSignIn.mockReset();
   });
 
   it('shows the admin authentication form for anonymous users', () => {
