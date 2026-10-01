@@ -1,3 +1,5 @@
+// server.ts — must be the first lines in the file
+import 'dotenv/config';
 import express from 'express';
 import { randomBytes } from 'node:crypto';
 import path from 'path';
