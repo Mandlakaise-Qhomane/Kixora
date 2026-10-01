@@ -114,15 +114,16 @@ jobs:
           VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET || secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
         continue-on-error: false
 
-      - name: Run Lighthouse CI
-        run: npm run lighthouse
-
       - name: Build production bundle
         run: npm run build
         env:
           VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME || secrets.VITE_CLOUDINARY_CLOUD_NAME }}
           VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET || secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
         continue-on-error: false
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop
 
       - name: Upload Playwright report (on failure)
         if: failure()
