@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Build and dev server only. Unit tests load vitest.config.ts.
 export default defineConfig({
   plugins: [react()],
   server: {
