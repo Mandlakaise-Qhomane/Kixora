@@ -6,7 +6,8 @@
 import { test, expect, APIRequestContext } from '@playwright/test';
 
 test.describe('Kixora Phase A: Security Hardening', () => {
-  const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:3000';
+  const port = process.env.PLAYWRIGHT_PORT || '3000';
+  const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
 
   async function csrfHeaders(request: APIRequestContext) {
     const tokenResponse = await request.get(`${baseURL}/api/csrf`);

@@ -97,7 +97,7 @@ test.describe('Admin Smoke Tests', () => {
     await backBtn.click();
 
     // Verify storefront is rendered
-    await expect(page.getByText(/built for the culture/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /built for the culture/i })).toBeVisible();
   });
 
 });

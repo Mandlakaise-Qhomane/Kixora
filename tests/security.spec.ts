@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Phase A: Security Hardening', () => {
-  const baseUrl = 'http://127.0.0.1:3000';
+  const port = process.env.PLAYWRIGHT_PORT || '3000';
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
 
   test('CORS: Cross-origin request blocked (non-allowlisted)', async ({ request }) => {
     const response = await request.get(`${baseUrl}/api/health`, {

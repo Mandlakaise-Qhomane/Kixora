@@ -34,6 +34,7 @@ for (const name of flagNames) {
   process.env[name] = useStagingSupabase ? (process.env[name] || 'false') : 'false';
 }
 process.env.VITE_PAYMENT_PROVIDER_MODE = 'mock';
+process.env.VITE_SNEAKER_MODEL_BASE_URL = '';
 process.env.VITE_CLOUDINARY_CLOUD_NAME ||= 'kixora';
 process.env.VITE_CLOUDINARY_UPLOAD_PRESET ||= 'kixora_product_images';
 process.env.VITE_PLAYWRIGHT_ADMIN = 'true';
@@ -54,4 +55,3 @@ process.env.PORT = port;
 
 await import('../server.ts');
 export { };
-

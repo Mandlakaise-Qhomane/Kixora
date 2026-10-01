@@ -69,8 +69,8 @@ export const test = base.extend<KixoraFixtures>({
     await page.waitForSelector('header', { state: 'visible' });
     await stabilizePage(page);
     
-    // Give extra time for admin dashboard to render
-    await page.waitForTimeout(2000);
+    await page.locator('#header-admin-profile-button').click();
+    await page.locator('#admin-nav-dashboard').waitFor({ state: 'visible' });
     
     await use(page);
   },
