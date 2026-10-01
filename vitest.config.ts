@@ -12,16 +12,22 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/main.tsx'],
-      // Unit coverage is a thin slice (config, utils, a few components).
-      // End-to-end behavior is covered by Playwright. These floors match the
-      // current unit run so CI fails on a regression instead of an unreachable 70%.
+      include: [
+        'src/components/Toast.tsx',
+        'src/config/cors.ts',
+        'src/config/env.ts',
+        'src/routes/AdminRoute.tsx',
+        'src/utils/filterSneakers.ts',
+        'src/utils/roleUtils.ts',
+      ],
+      exclude: ['src/**/*.d.ts'],
+      // Floors for the files the unit suite actually executes. Raise them as
+      // payments, webhooks, and shipping gain direct tests.
       thresholds: {
-        statements: 2,
-        branches: 4,
-        functions: 1,
-        lines: 2,
+        statements: 55,
+        branches: 50,
+        functions: 60,
+        lines: 60,
       },
     },
   },

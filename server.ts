@@ -6,7 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import csurf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
 import { webhookService } from './src/services/webhookService';
 import { shippingService } from './src/services/shipping/shippingService';
 import { trackingWebhookService } from './src/services/shipping/trackingWebhookService';
@@ -184,15 +184,32 @@ async function startServer() {
   // -----------------------------------------------------------------------
   app.use(cookieParser());
 
-  // CSRF token endpoint (outside protected groups)
-  const csrfProtection = csurf({
-    cookie: {
-      key: 'csrf_secret',
+  const { generateCsrfToken, doubleCsrfProtection } = doubleCsrf({
+    getSecret: () => process.env.CSRF_SECRET || 'kixora-dev-csrf-secret',
+    getSessionIdentifier: () => 'kixora',
+    cookieName: 'csrf_secret',
+    cookieOptions: {
       httpOnly: true,
       sameSite: 'strict',
       secure: isProduction,
+      path: '/',
+    },
+    size: 64,
+    getCsrfTokenFromRequest: (req) => {
+      const header = req.headers['x-csrf-token'] || req.headers['csrf-token'] || req.headers['x-xsrf-token'];
+      return Array.isArray(header) ? header[0] : header;
     },
   });
+
+  const csrfProtection: express.RequestHandler = (req, res, next) => {
+    doubleCsrfProtection(req, res, (err) => {
+      if (err) {
+        (err as any).code = 'EBADCSRFTOKEN';
+        (err as any).status = 403;
+      }
+      next(err);
+    });
+  };
 
   // Parse request bodies before CSRF validation so oversized requests return 413.
   app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
@@ -200,8 +217,8 @@ async function startServer() {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-  app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
-    res.json({ csrfToken: _req.csrfToken() });
+  app.get(['/api/csrf', '/api/csrf-token'], (req, res) => {
+    res.json({ csrfToken: generateCsrfToken(req, res) });
   });
 
   // Apply CSRF protection to the required route groups

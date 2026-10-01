@@ -1,30 +1,32 @@
 # syntax=docker/dockerfile:1
 
-# ---- Builder Stage ----
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Install build dependencies
-COPY package*.json .
-RUN npm ci --omit=dev && npm install -g bun && bun install
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy source files
 COPY . .
-
-# Build the application
 RUN npm run build
+RUN npm prune --omit=dev
 
-# ---- Runtime Stage ----
-FROM node:22-slim AS runtime
+FROM node:22-alpine AS runtime
 WORKDIR /app
 
-# Copy only production dependencies and built assets
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOST=0.0.0.0
+
+RUN addgroup -S nodejs && adduser -S nodejs -G nodejs
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 
-# Expose application port (adjust if needed)
+USER nodejs
 EXPOSE 3000
 
-# Start the server
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 CMD ["node", "dist/server.cjs"]

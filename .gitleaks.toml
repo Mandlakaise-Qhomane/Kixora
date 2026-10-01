@@ -1,0 +1,8 @@
+title = "Kixora secret scan"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Firebase web API key. Restrict it by HTTP referrer in Google Cloud. It is not a service-account private key."
+paths = ['''firebase-applet-config\.json''']

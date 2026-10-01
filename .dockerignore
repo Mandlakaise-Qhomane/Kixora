@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.github
+coverage
+playwright-report
+test-results
+.env
+.env.*
+!.env.example
+*.md
+.kilo
+.lighthouseci
+bun.lock

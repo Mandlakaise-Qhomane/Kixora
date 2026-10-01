@@ -7,5 +7,6 @@
   "messagingSenderId": "510186754622",
   "measurementId": "",
   "oAuthClientId": "510186754622-hbhdep1fpi0bghojob8g3smgd6intird.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "recaptchaSiteKey": "",
+  "note": "Web API key only. Restrict it by HTTP referrer in Google Cloud. Never commit a service-account private key."
 }

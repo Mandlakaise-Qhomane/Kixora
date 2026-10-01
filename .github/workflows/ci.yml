@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  workflow_call:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Log in to Docker Hub (optional)
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Start local Supabase with rate-limit retries
+        shell: bash
+        run: |
+          set -uo pipefail
+          max_attempts=5
+          backoff_seconds=15
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "Starting local Supabase (attempt ${attempt}/${max_attempts})..."
+            if npx supabase start; then
+              echo "Supabase started successfully."
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Supabase startup failed. Waiting ${backoff_seconds}s before retrying..."
+              sleep "$backoff_seconds"
+              backoff_seconds=$((backoff_seconds * 2))
+            fi
+          done
+          echo "Supabase failed to start after ${max_attempts} attempts."
+          exit 1
+
+      - name: Validate local Supabase migrations
+        run: npm run db:gate
+        env:
+          REQUIRE_SUPABASE: 'true'
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: ESLint strict mode (zero warnings allowed)
+        run: npx eslint . --max-warnings 0
+
+      - name: Run unit and component tests
+        run: npm run test:coverage
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME || secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET || secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+
+      - name: Stop local Supabase
+        if: always()
+        run: npx supabase stop
+
+  e2e:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright shard ${{ matrix.shard }}/4
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+        env:
+          VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME || secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET || secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+
+      - name: Upload Playwright report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_id }}-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 30
+
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run npm audit (fail on high/critical)
+        run: npm audit --audit-level=high
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml

@@ -38,11 +38,11 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
       "react-hooks/rules-of-hooks": "off", // Disabled due to false positives in Playwright fixtures
-      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/exhaustive-deps": "error",
       "react-hooks/set-state-in-effect": "off", // Disabled for valid state reset patterns
-      "prefer-const": "warn",
+      "prefer-const": "error",
     },
   }
 );

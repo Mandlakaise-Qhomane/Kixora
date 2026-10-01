@@ -1,4 +1,9 @@
 node_modules/
+
+# npm is the only package manager. Do not commit a second lockfile.
+bun.lock
+bun.lockb
+
 build/
 dist/
 .vite/
