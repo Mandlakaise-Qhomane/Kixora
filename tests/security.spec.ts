@@ -23,7 +23,7 @@ test.describe('Phase A: Security Hardening', () => {
   });
 
   test('CSRF: POST to /api/payments without token is rejected', async ({ request }) => {
-    const response = await request.post(`${baseUrl}/api/payments/stripe/create-intent`, {
+    const response = await request.post(`${baseUrl}/api/payments/payfast/initialize`, {
       data: { amount: 100 }
     });
     // Expected to be forbidden because no CSRF token
@@ -39,7 +39,7 @@ test.describe('Phase A: Security Hardening', () => {
     const cookies = csrfRes.headers()['set-cookie'];
 
     // 2. Post with token
-    const response = await request.post(`${baseUrl}/api/payments/stripe/create-intent`, {
+    const response = await request.post(`${baseUrl}/api/payments/payfast/initialize`, {
       headers: {
         'CSRF-Token': csrfData.csrfToken,
         'Cookie': cookies || '' // Pass cookie back
@@ -51,7 +51,7 @@ test.describe('Phase A: Security Hardening', () => {
       }
     });
     
-    // Status 500 is expected if Stripe is not configured, but 403 means CSRF failed.
+    // A non-403 response confirms the supplied CSRF token was accepted.
     // Since we provided the token, it shouldn't be 403.
     expect(response.status()).not.toBe(403);
   });

@@ -8,7 +8,7 @@ import {
   ShippingLabelResult,
   CarrierTrackingResult,
 } from './carrierTypes';
-import { TheCourierGuyDriver, VaultExpressDriver } from './carrierDrivers';
+import { TheCourierGuyDriver } from './carrierDrivers';
 
 export class ShippingService {
   private drivers: Map<CarrierProviderId, ShippingCarrierDriver> = new Map();
@@ -16,7 +16,6 @@ export class ShippingService {
 
   constructor() {
     this.registerDriver(new TheCourierGuyDriver());
-    this.registerDriver(new VaultExpressDriver());
   }
 
   registerDriver(driver: ShippingCarrierDriver) {
@@ -27,8 +26,7 @@ export class ShippingService {
     const id = providerId || this.defaultProvider;
     const driver = this.drivers.get(id);
     if (!driver) {
-      // Fallback to vault express
-      return this.drivers.get('vault_express') || new VaultExpressDriver();
+      throw new Error(`Unsupported shipping carrier: ${id}`);
     }
     return driver;
   }
@@ -37,13 +35,8 @@ export class ShippingService {
    * Calculates live and fallback shipping quotes across available couriers
    */
   async calculateRates(request: ShippingRateRequest): Promise<ShippingRateQuote[]> {
-    // Check if shipping is configured for production use
-    const isConfigured = process.env.NODE_ENV !== 'production' || 
-      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
-    
-    if (!isConfigured) {
-      // Silently return empty rates when not configured
-      return [];
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('The Courier Guy API integration is not implemented; production rates are unavailable.');
     }
     const quotes: ShippingRateQuote[] = [];
 
@@ -63,22 +56,8 @@ export class ShippingService {
    * Generates waybill label and registers the tracking record in Supabase
    */
   async createShipmentLabel(request: ShippingLabelRequest): Promise<ShippingLabelResult> {
-    // Check if shipping is configured for production use
-    const isConfigured = process.env.NODE_ENV !== 'production' || 
-      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
-    
-    if (!isConfigured) {
-      return {
-        success: false,
-        waybillId: '',
-        trackingNumber: '',
-        carrier: '',
-        carrierId: request.carrierId || 'the_courier_guy',
-        labelUrl: '',
-        trackingUrl: '',
-        estimatedDeliveryDate: '',
-        error: 'Shipping carrier integration not configured',
-      };
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('The Courier Guy API integration is not implemented; production labels are unavailable.');
     }
     const driver = this.getDriver(request.carrierId);
     const labelResult = await driver.generateLabel(request);
@@ -133,20 +112,16 @@ export class ShippingService {
    * Retrieves tracking history and status for a given tracking number
    */
   async getTracking(trackingNumber: string, carrierId?: CarrierProviderId): Promise<CarrierTrackingResult> {
-    // Check if shipping is configured for production use
-    const isConfigured = process.env.NODE_ENV !== 'production' || 
-      Boolean(process.env.THE_COURIER_GUY_API_KEY || process.env.SHIPLOGIC_API_KEY);
-    
-    if (!isConfigured) {
+    if (process.env.NODE_ENV === 'production') {
       return {
         trackingNumber,
-        carrier: 'unknown',
+        carrier: 'The Courier Guy',
         status: 'PENDING_PICKUP',
         internalStatus: 'Pending',
-        origin: 'unknown',
-        destination: 'unknown',
+        origin: '',
+        destination: '',
         events: [],
-        error: 'Shipping carrier integration not configured',
+        error: 'The Courier Guy API integration is not implemented; production tracking is unavailable.',
       };
     }
     const driver = this.getDriver(carrierId);

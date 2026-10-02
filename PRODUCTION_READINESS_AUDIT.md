@@ -30,7 +30,7 @@ This audit therefore remains a “not verified for production” decision until 
 
 - Mock-mode validation is complete and passing:
   - Playwright mock-mode execution was run with the project’s safe server bootstrap and production-safe defaults
-  - the suite passed in controlled mock mode with no live Supabase or live Stripe dependency
+  - the suite passed in controlled mock mode with no live Supabase or payment-provider dependency
   - this is a strong sign that the app is operationally stable in QA and offline-safe scenarios
 
 - Local integration validation passed:
@@ -104,7 +104,7 @@ Not verified:
 - refund processing
 
 Why:
-- payment drivers exist in [src/services/payments/payfastDriver.ts](src/services/payments/payfastDriver.ts) and [src/services/payments/stripeDriver.ts](src/services/payments/stripeDriver.ts)
+- PayFast is the selected payment provider; The Courier Guy is the selected carrier. Live staging validation remains outstanding.
 - but production verification is still missing
 - code alone is not sufficient proof
 
@@ -274,7 +274,7 @@ Suggested proof:
    - confirm storage restrictions
 
 4. Payment sandbox validation
-   - validate PayFast/Stripe provider flows end-to-end
+   - validate PayFast sandbox-to-production flows end-to-end
    - confirm webhook signature and duplicate handling
 
 5. Inventory concurrency validation

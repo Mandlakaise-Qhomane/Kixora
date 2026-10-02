@@ -2,14 +2,11 @@ import { test, expect } from '@playwright/test';
 import { webhookService } from '../../src/services/webhookService';
 import { webhookIdempotency } from '../../src/services/payments/webhookIdempotency';
 import { checkoutService } from '../../src/services/checkoutService';
-import { computeHmacSha256 } from '../../src/services/payments/crypto';
+import { generatePayFastSignature } from '../../src/services/payments/crypto';
 
-function signedStripeWebhook(payload: Record<string, unknown>) {
-  const secret = 'whsec_playwright_test';
-  const rawBody = JSON.stringify(payload);
-  const timestamp = Math.floor(Date.now() / 1000);
-  const signature = computeHmacSha256(`${timestamp}.${rawBody}`, secret);
-  return { rawBody, signatureHeader: `t=${timestamp},v1=${signature}`, secret };
+function signedPayFastWebhook(payload: Record<string, unknown>) {
+  const passphrase = 'playwright_payfast_test';
+  return { signature: generatePayFastSignature(payload, passphrase), passphrase };
 }
 
 test.describe('Phase 8: Inventory Concurrency & Race-Condition Stress Tests', () => {
@@ -23,24 +20,21 @@ test.describe('Phase 8: Inventory Concurrency & Race-Condition Stress Tests', ()
     const orderCode = 'KX-STRESS-100';
 
     const payload = {
-      id: eventId,
-      type: 'payment_intent.succeeded',
-      data: {
-        object: {
-          id: 'pi_stress_001',
-          metadata: { orderCode }
-        }
-      }
+      m_payment_id: eventId,
+      pf_payment_id: 'pf_stress_001',
+      payment_status: 'COMPLETE',
+      custom_str1: orderCode,
+      amount_gross: '28500.00',
     };
-    const signed = signedStripeWebhook(payload);
+    const signed = signedPayFastWebhook(payload);
 
     // Fire 5 concurrent webhook calls with the exact same payload
     const results = await Promise.all([
-      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
-      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
-      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
-      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
-      webhookService.processWebhook({ provider: 'stripe', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'payfast', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'payfast', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'payfast', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'payfast', payload, ...signed }),
+      webhookService.processWebhook({ provider: 'payfast', payload, ...signed }),
     ]);
 
     // All must succeed, but exactly one is primary and the rest are identified as duplicate/idempotent

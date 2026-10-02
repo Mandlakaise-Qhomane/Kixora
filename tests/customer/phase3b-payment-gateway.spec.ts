@@ -1,44 +1,17 @@
 import { test, expect } from '@playwright/test';
-import { generatePayFastSignature, computeHmacSha256 } from '../../src/services/payments/crypto';
+import { generatePayFastSignature } from '../../src/services/payments/crypto';
 import { getPaymentDriver, getActivePaymentDriver } from '../../src/services/payments';
 import { MockPaymentDriver } from '../../src/services/payments/mockDriver';
-import { StripePaymentDriver } from '../../src/services/payments/stripeDriver';
 import { PayFastPaymentDriver } from '../../src/services/payments/payfastDriver';
 import { paymentService } from '../../src/services/paymentService';
 
-// Mock global fetch for unit tests involving Stripe driver
-if (typeof global !== 'undefined') {
-  (global as any).fetch = async (url: string) => {
-    if (url.includes('/api/csrf')) {
-      return {
-        ok: true,
-        json: async () => ({ csrfToken: 'test-csrf-token' })
-      };
-    }
-    if (url.includes('/api/payments/stripe/create-intent')) {
-      return {
-        ok: true,
-        json: async () => ({
-          clientSecret: 'pi_stripe_test_secret_12345',
-          paymentIntentId: 'pi_stripe_test_id_67890'
-        })
-      };
-    }
-    return { ok: false, status: 404, json: async () => ({ error: 'Not found' }) };
-  };
-}
-
 test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
-  test('PG-01: Gateway driver factory resolves correct driver instance for mock, stripe, and payfast', async () => {
+  test('PG-01: Gateway driver factory resolves mock and PayFast drivers', async () => {
     const mockDriver = getPaymentDriver('mock');
     expect(mockDriver).toBeInstanceOf(MockPaymentDriver);
     expect(mockDriver.provider).toBe('mock');
     expect(mockDriver.isConfigured()).toBe(true);
-
-    const stripeDriver = getPaymentDriver('stripe');
-    expect(stripeDriver).toBeInstanceOf(StripePaymentDriver);
-    expect(stripeDriver.provider).toBe('stripe');
 
     const payfastDriver = getPaymentDriver('payfast');
     expect(payfastDriver).toBeInstanceOf(PayFastPaymentDriver);
@@ -46,27 +19,7 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
     const activeDriver = getActivePaymentDriver();
     expect(activeDriver).toBeDefined();
-    expect(['mock', 'stripe', 'payfast', 'paypal']).toContain(activeDriver.provider);
-  });
-
-  test('PG-02: Stripe driver creates payment intent with minor units and client secret format', async () => {
-    const stripeDriver = new StripePaymentDriver();
-
-    const intent = await stripeDriver.createPaymentIntent({
-      amount: 4500,
-      currency: 'ZAR',
-      orderCode: 'KXO-7892',
-      customerEmail: 'collector@kixora.com',
-      metadata: { release: 'Travis Scott Fragment' }
-    });
-
-    expect(intent.success).toBe(true);
-    expect(intent.provider).toBe('stripe');
-    expect(intent.paymentIntentId).toMatch(/^pi_stripe_/);
-    expect(intent.clientSecret).toMatch(/^pi_stripe_.*_secret_/);
-    expect(intent.status).toBe('pending');
-    expect(intent.gatewayData?.amount).toBe(4500);
-    expect(intent.gatewayData?.currency).toBe('ZAR');
+    expect(['mock', 'payfast']).toContain(activeDriver.provider);
   });
 
   test('PG-03: PayFast driver creates valid redirect payload and ZAR parameters for South African checkout', async () => {
@@ -153,69 +106,6 @@ test.describe('Phase 3B: Real Payment Gateway Integration & Drivers', () => {
 
     expect(cancelledRes.success).toBe(true);
     expect(cancelledRes.newStatus).toBe('cancelled');
-  });
-
-  test('PG-05: Stripe webhook parser handles succeeded, failed, processing, and refund events', async () => {
-    const stripeDriver = new StripePaymentDriver();
-
-    // 1. payment_intent.succeeded
-    const stripeSecret = 'phase4-stripe-secret';
-    const successPayload = {
-      type: 'payment_intent.succeeded',
-      data: {
-        object: {
-          id: 'pi_stripe_test123',
-          metadata: { orderCode: 'KXO-9999' }
-        }
-      }
-    };
-    const stripeTimestamp = Math.floor(Date.now() / 1000);
-    const successRawBody = JSON.stringify(successPayload);
-    const succRes = await stripeDriver.handleWebhook({
-      provider: 'stripe',
-      payload: successPayload,
-      rawBody: successRawBody,
-      secret: stripeSecret,
-      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${successRawBody}`, stripeSecret)}`,
-    });
-
-    expect(succRes.success).toBe(true);
-    expect(succRes.newStatus).toBe('paid');
-    expect(succRes.orderCode).toBe('KXO-9999');
-
-    // 2. payment_intent.payment_failed
-    const failedPayload = {
-      type: 'payment_intent.payment_failed',
-      data: { object: { id: 'pi_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
-    };
-    const failedRawBody = JSON.stringify(failedPayload);
-    const failRes = await stripeDriver.handleWebhook({
-      provider: 'stripe',
-      payload: failedPayload,
-      rawBody: failedRawBody,
-      secret: stripeSecret,
-      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${failedRawBody}`, stripeSecret)}`,
-    });
-
-    expect(failRes.success).toBe(true);
-    expect(failRes.newStatus).toBe('failed');
-
-    // 3. charge.refunded
-    const refundPayload = {
-      type: 'charge.refunded',
-      data: { object: { id: 'ch_stripe_test123', metadata: { orderCode: 'KXO-9999' } } }
-    };
-    const refundRawBody = JSON.stringify(refundPayload);
-    const refundRes = await stripeDriver.handleWebhook({
-      provider: 'stripe',
-      payload: refundPayload,
-      rawBody: refundRawBody,
-      secret: stripeSecret,
-      signatureHeader: `t=${stripeTimestamp},v1=${computeHmacSha256(`${stripeTimestamp}.${refundRawBody}`, stripeSecret)}`,
-    });
-
-    expect(refundRes.success).toBe(true);
-    expect(refundRes.newStatus).toBe('refunded');
   });
 
   test('PG-06: paymentService delegates to active driver and processes refunds', async () => {
