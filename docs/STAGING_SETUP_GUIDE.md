@@ -57,15 +57,16 @@ This guide provides step-by-step instructions for setting up the Kixora staging 
    VITE_USE_SUPABASE_ADMIN=true
    VITE_USE_SUPABASE_AUTH=true
 
-   # Payment (staging mode)
-   VITE_PAYMENT_PROVIDER_MODE=stripe
-   VITE_STRIPE_PUBLISHABLE_KEY=pk_test_<your-stripe-key>
-   STRIPE_SECRET_KEY=sk_test_<your-stripe-secret>
-   STRIPE_WEBHOOK_SECRET=whsec_<your-webhook-secret>
+   # Payments (PayFast sandbox)
+   VITE_PAYMENT_PROVIDER_MODE=payfast
+   VITE_PAYFAST_MERCHANT_ID=<your-payfast-sandbox-merchant-id>
+   VITE_PAYFAST_MERCHANT_KEY=<your-payfast-sandbox-merchant-key>
+   VITE_PAYFAST_SANDBOX=true
+   PAYFAST_PASSPHRASE=<your-payfast-sandbox-passphrase>
 
-   # Shipping (staging - optional)
-   THE_COURIER_GUY_API_KEY=<your-test-key>
-   SHIPPING_WEBHOOK_SECRET=<your-webhook-secret>
+   # Shipping (The Courier Guy staging/sandbox)
+   THE_COURIER_GUY_API_KEY=<your-courier-guy-test-key>
+   SHIPPING_WEBHOOK_SECRET=<your-carrier-webhook-secret>
 
    # Email (staging)
    RESEND_API_KEY=re_<your-resend-key>
@@ -239,8 +240,10 @@ After staging is set up:
 1. Run full test suite against staging
 2. Perform manual QA of critical user flows
 3. Test payment gateway in staging mode
-4. Test shipping integration (if configured)
-5. Prepare production deployment runbook
+4. Test PayFast in sandbox mode and verify its ITN webhook handling
+5. Verify whether The Courier Guy has provided sandbox credentials/API access; do not treat the current simulated rates, labels, or tracking as a live integration.
+6. Complete and test the real Courier Guy API and webhook flow before production sign-off.
+7. Prepare production deployment runbook
 
 ## Contact
 

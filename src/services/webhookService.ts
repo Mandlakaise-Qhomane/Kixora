@@ -84,7 +84,6 @@ export const webhookService = {
 
       // 2. Determine unique Event ID for idempotency
       const eventId = input.eventIdOverride ||
-        (driverRes.gatewayMetadata?.stripeEventId) ||
         (typeof payload === 'object' && payload?.id) ||
         (typeof payload === 'object' && payload?.m_payment_id) ||
         undefined;
@@ -158,30 +157,6 @@ export const webhookService = {
   },
 
   /**
-   * Helper to verify and process Stripe webhooks with raw body and signature header.
-   */
-  async verifyAndProcessStripeWebhook(
-    rawBody: string,
-    signatureHeader: string,
-    secret?: string
-  ): Promise<WebhookReconciliationResult> {
-    let parsedPayload: any = null;
-    try {
-      parsedPayload = JSON.parse(rawBody);
-    } catch {
-      // Handled in driver
-    }
-
-    return this.processWebhook({
-      provider: 'stripe',
-      payload: parsedPayload,
-      rawBody,
-      signatureHeader,
-      secret
-    });
-  },
-
-  /**
    * Helper to verify and process PayFast ITN webhooks with payload and signature.
    */
   async verifyAndProcessPayFastWebhook(
@@ -248,9 +223,7 @@ export const webhookService = {
       }
 
       if (newStatus === 'paid') {
-        const receivedAmount = provider === 'stripe'
-          ? gatewayMetadata?.amountReceived
-          : gatewayMetadata?.amountGross;
+        const receivedAmount = gatewayMetadata?.amountGross;
         if (typeof receivedAmount !== 'number' || !Number.isFinite(receivedAmount) ||
             Math.abs(receivedAmount - Number(order.total)) > 0.01) {
           return { success: false, error: 'Payment amount does not match the order total.' };

@@ -2,7 +2,7 @@
  * Kixora Carrier Shipping & Tracking Types
  */
 
-export type CarrierProviderId = 'the_courier_guy' | 'shiplogic' | 'vault_express' | 'dhl_express';
+export type CarrierProviderId = 'the_courier_guy';
 
 export type CarrierMilestone = 
   | 'PENDING_PICKUP'

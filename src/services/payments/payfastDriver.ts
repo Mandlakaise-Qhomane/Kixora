@@ -184,6 +184,7 @@ export class PayFastPaymentDriver implements PaymentGatewayDriver {
       amountGross: raw.amount_gross ? parseFloat(raw.amount_gross) : undefined,
       amountFee: raw.amount_fee ? parseFloat(raw.amount_fee) : undefined,
       amountNet: raw.amount_net ? parseFloat(raw.amount_net) : undefined,
+      currency: raw.currency || 'ZAR',
       paymentStatus
     };
 

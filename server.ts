@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import Stripe from 'stripe';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cors from 'cors';
@@ -17,7 +16,7 @@ import { supabase, isSupabaseConfigured } from './src/lib/supabase';
 
 /**
  * Kixora Production Server (Express + Vite)
- * Handles secure webhook ingress for Stripe and PayFast, 
+ * Handles secure webhook ingress for PayFast and carrier tracking,
  * provides SPA routing, and integrates Vite for development.
  */
 import { validateCorsAllowlistForProduction } from './src/config/cors';
@@ -38,7 +37,6 @@ async function startServer() {
     paymentProvider: clientConfig.paymentProviderMode,
     payfastSandbox: clientConfig.payfastSandbox,
     corsOriginCount: (process.env.CORS_ALLOWED_ORIGINS || 'https://kixora.com').split(',').filter(Boolean).length,
-    stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
     payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
     shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
   });
@@ -84,18 +82,18 @@ async function startServer() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://www.google-analytics.com", "https://accounts.google.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.google-analytics.com", "https://accounts.google.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
-        imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://*.stripe.com", "https://res.cloudinary.com", "https://v5.airtableusercontent.com", "https://*.googleusercontent.com"],
+        imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://res.cloudinary.com", "https://v5.airtableusercontent.com", "https://*.googleusercontent.com"],
         connectSrc: [
           "'self'",
-          "https://*.supabase.co", "https://*.stripe.com", "wss://*.supabase.co",
+          "https://*.supabase.co", "wss://*.supabase.co",
           "https://api.cloudinary.com", "https://res.cloudinary.com",
           "https://www.google-analytics.com", "https://accounts.google.com",
           ...(isProduction ? [] : ['ws:', 'wss:']),
         ],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        frameSrc: ["'self'", "https://js.stripe.com", "https://accounts.google.com"],
+        frameSrc: ["'self'", "https://accounts.google.com"],
         frameAncestors,
         objectSrc: ["'none'"],
         ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
@@ -195,7 +193,6 @@ async function startServer() {
   });
 
   // Parse request bodies before CSRF validation so oversized requests return 413.
-  app.use('/api/webhooks/stripe', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -227,15 +224,15 @@ async function startServer() {
   });
 
   const checkoutLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000, // 1 hour
-    max: 5, // Limit each IP to 5 checkout initiations per hour
+    windowMs: 60 * 60 * 1000,
+    max: 5,
     message: { error: 'Too many checkout attempts, please contact support if you are having issues.' }
   });
 
   // Apply limiters
   app.use('/api/', apiLimiter);
   app.use('/api/auth/', authLimiter);
-  app.use('/api/payments/stripe/create-intent', checkoutLimiter);
+  app.use('/api/payments/', checkoutLimiter);
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -326,7 +323,6 @@ async function startServer() {
       checks: {
         configuration: true,
         paymentProvider: clientConfig.paymentProviderMode,
-        stripeWebhookConfigured: Boolean(startupConfig.stripeWebhookSecret),
         payfastWebhookConfigured: Boolean(startupConfig.payfastPassphrase),
         shippingWebhookConfigured: Boolean(startupConfig.shippingWebhookSecret),
       },
@@ -340,109 +336,8 @@ async function startServer() {
   }
 
   // ===========================================================================
-  // STRIPE PAYMENT INTENT (Production Blocker Fix)
-  // ===========================================================================
-
-  const { stripeSecretKey } = getServerConfig();
-  const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
-
-  app.post('/api/payments/stripe/create-intent', csrfProtection, async (req, res) => {
-    if (!stripe) {
-      logger.error('[Stripe] Missing STRIPE_SECRET_KEY');
-      return res.status(500).json({ error: 'Stripe is not configured on the server.' });
-    }
-
-    const { orderCode, customerEmail } = req.body;
-    if (!orderCode || !customerEmail || !isSupabaseConfigured()) {
-      return res.status(400).json({ error: 'A persisted order is required to initialize payment.' });
-    }
-
-    try {
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('id, order_code, total, payment_reference, customer_snapshot')
-        .eq('order_code', orderCode)
-        .maybeSingle();
-      if (orderError || !order) {
-        return res.status(404).json({ error: 'Order not found.' });
-      }
-      const persistedEmail = (order.customer_snapshot as any)?.email;
-      if (persistedEmail && String(persistedEmail).toLowerCase() !== String(customerEmail).toLowerCase()) {
-        return res.status(403).json({ error: 'Payment customer does not own this order.' });
-      }
-      if (!Number.isFinite(Number(order.total)) || Number(order.total) <= 0) {
-        return res.status(422).json({ error: 'Order has no payable total.' });
-      }
-      logger.info(`[Stripe] Creating intent for order ${orderCode}`, {
-        orderCode,
-        amount: order.total,
-        currency: 'ZAR'
-      });
-      const intent = await stripe.paymentIntents.create({
-        amount: Math.round(Number(order.total) * 100),
-        currency: 'zar',
-        metadata: {
-          orderCode
-        },
-        receipt_email: customerEmail,
-        description: `Kixora Order ${orderCode}`
-      });
-
-      res.json({
-        clientSecret: intent.client_secret,
-        paymentIntentId: intent.id
-      });
-    } catch (err: any) {
-      // Use structured logger
-      logger.error('[Stripe Intent Error]', {
-        message: err.message,
-        orderCode
-      });
-      res.status(500).json({ error: 'Payment initialization failed.' });
-    }
-  });
-
-  // ===========================================================================
   // SECURE WEBHOOK INGRESS (Production Blocker Fix)
   // ===========================================================================
-
-  /**
-   * POST /api/webhooks/stripe
-   * Stripe Signature Verification & Reconciliation
-   */
-  app.post('/api/webhooks/stripe', async (req, res) => {
-    const signatureHeader = req.headers['stripe-signature'];
-    const { stripeWebhookSecret } = getServerConfig();
-
-    if (!signatureHeader) {
-      return res.status(400).json({ error: 'Missing stripe-signature header' });
-    }
-
-    const rawBody = req.body.toString('utf-8');
-
-    try {
-      logger.info('[Stripe Webhook] Received event');
-      const result = await webhookService.verifyAndProcessStripeWebhook(
-        rawBody,
-        signatureHeader as string,
-        stripeWebhookSecret
-      );
-      
-      if (result.success) {
-        logger.info(`[Stripe Webhook] Successfully processed: ${result.event}`, {
-          orderCode: result.orderCode,
-          event: result.event
-        });
-        res.status(200).json({ received: true });
-      } else {
-        logger.warn(`[Stripe Webhook] Verification failed`, { error: result.error });
-        res.status(400).json({ error: 'Webhook verification failed' });
-      }
-    } catch (err: any) {
-      logger.error('[Stripe Webhook] Exception', { error: err.message });
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  });
 
   /**
    * POST /api/webhooks/payfast

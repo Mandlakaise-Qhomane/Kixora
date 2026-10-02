@@ -184,7 +184,7 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     await expect(page.getByText(/403: access forbidden/i)).toBeVisible();
   });
 
-  test('AUTH-07: Unauthenticated user on admin domain sees Admin Authentication form and can log in', async ({ page }) => {
+  test('AUTH-07: Mock admin sign-in cannot elevate an unauthenticated user', async ({ page }) => {
     // Navigate to admin domain with no session
     await page.goto('/?domain=admin');
     await page.evaluate(() => {
@@ -206,8 +206,10 @@ test.describe('Phase 4: Real Authentication, Role Synchronization & Domain Isola
     await page.getByPlaceholder('••••••••••••').fill('StaffPassword123');
     await page.getByRole('button', { name: /authenticate to admin console/i }).click();
 
-    // Verify successful login loads admin dashboard
-    await expect(page.locator('#admin-nav-dashboard')).toBeVisible();
+    // Mock authentication is customer-only; staff access requires an authoritative admin role.
+    await expect(page.locator('#admin-route-forbidden')).toBeVisible();
+    await expect(page.getByText(/403: access forbidden/i)).toBeVisible();
+    await expect(page.locator('#admin-nav-dashboard')).not.toBeVisible();
   });
 
 });
