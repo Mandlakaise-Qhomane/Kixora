@@ -16,6 +16,7 @@ import { healthCheck } from './src/lib/healthCheck';
 import { getSupabaseAdmin } from './src/lib/supabaseAdmin';
 import { authorizePayFastOrder, initiatePayFastCheckout } from './src/services/payments/payfastCheckout';
 import { buildCspImageSources } from './src/config/cspImageSources';
+import { mountProductionStaticAssets } from './src/server/staticAssets';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -581,16 +582,7 @@ async function startServer() {
   } else {
     // Static file serving for production
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    
-    // SPA Fallback
-    app.get('/{*splat}', (req, res) => {
-      // Avoid intercepting API routes that might have failed above
-      if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'API route not found' });
-      }
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    mountProductionStaticAssets(app, distPath);
     console.log('Production static assets and SPA fallback enabled.');
   }
 
