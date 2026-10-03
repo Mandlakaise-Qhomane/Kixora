@@ -98,6 +98,7 @@ async function startServer() {
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         frameSrc: ["'self'", "https://accounts.google.com"],
         frameAncestors,
+        formAction: ["'self'", "https://sandbox.payfast.co.za", "https://www.payfast.co.za"],
         objectSrc: ["'none'"],
         ...(isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
       },
