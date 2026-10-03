@@ -64,7 +64,7 @@ export function getEnvConfig(): ClientEnvConfig {
     customerDomain: readEnv('VITE_CUSTOMER_DOMAIN') || 'https://kixora.com',
     adminDomain: readEnv('VITE_ADMIN_DOMAIN') || 'https://admin.kixora.com',
     googleClientId: readEnv('VITE_GOOGLE_CLIENT_ID') || '',
-    cloudinaryCloudName: readEnv('VITE_CLOUDINARY_CLOUD_NAME') || 'kixora',
+    cloudinaryCloudName: readEnv('VITE_CLOUDINARY_CLOUD_NAME') || 'vevnhwj6',
     cloudinaryUploadPreset: readEnv('VITE_CLOUDINARY_UPLOAD_PRESET') || 'kixora_product_images',
     cloudinaryApiKey: readEnv('VITE_CLOUDINARY_API_KEY') || '',
   };
