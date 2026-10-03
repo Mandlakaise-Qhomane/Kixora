@@ -12,7 +12,7 @@ import { trackingWebhookService } from './src/services/shipping/trackingWebhookS
 import { emailService } from './src/services/email/emailService';
 import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
-import { supabase, isSupabaseConfigured } from './src/lib/supabase';
+import { healthCheck } from './src/lib/healthCheck';
 import { getSupabaseAdmin } from './src/lib/supabaseAdmin';
 import { authorizePayFastOrder, initiatePayFastCheckout } from './src/services/payments/payfastCheckout';
 
@@ -30,6 +30,7 @@ async function startServer() {
   }
 
   const app = express();
+  app.set('trust proxy', 1);
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '0.0.0.0';
   const startupConfig = getServerConfig();
@@ -276,46 +277,7 @@ async function startServer() {
     next();
   });
 
-  // Health Check
-  app.get('/api/health', async (_req, res) => {
-    const health = {
-      status: 'ok',
-      domain: process.env.NODE_ENV === 'production' ? 'kixora-production' : 'kixora-development',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      checks: {
-        database: 'unknown',
-        supabase: 'unknown',
-      }
-    };
-
-    // Check database connectivity if Supabase is configured
-    if (isSupabaseConfigured()) {
-      try {
-        const { error } = await supabase.from('profiles').select('id').limit(1);
-        health.checks.database = error ? 'unhealthy' : 'healthy';
-        health.checks.supabase = error ? 'unhealthy' : 'healthy';
-      } catch {
-        health.checks.database = 'unhealthy';
-        health.checks.supabase = 'unhealthy';
-      }
-    } else {
-      health.checks.database = 'not_configured';
-      health.checks.supabase = 'not_configured';
-    }
-
-    // Set overall status based on checks
-    const allHealthy = Object.values(health.checks).every(check => 
-      check === 'healthy' || check === 'not_configured'
-    );
-    
-    if (!allHealthy) {
-      health.status = 'degraded';
-      return res.status(503).json(health);
-    }
-
-    res.json(health);
-  });
+  app.get('/api/health', healthCheck);
 
   app.get('/api/ready', (_req, res) => {
     const config = validateProductionEnv();
