@@ -192,6 +192,15 @@ export const checkoutService = {
         };
       }
 
+      if (payfastMode && (!data || data.payment_status !== 'pending' || typeof data.order_code !== 'string')) {
+        console.error('[checkoutService.placeOrderAtomic] PayFast order was not confirmed as pending.');
+        return {
+          success: false,
+          error: 'Unable to verify the pending order before starting payment.',
+          errorCode: 'ORDER_NOT_PENDING',
+        };
+      }
+
       if (!payfastMode) {
         emailService.sendOrderConfirmation({
           orderCode: data.order_code,

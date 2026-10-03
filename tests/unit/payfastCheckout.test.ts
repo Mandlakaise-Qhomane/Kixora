@@ -60,6 +60,19 @@ describe('PayFast signatures', () => {
 });
 
 describe('PayFast checkout initiation', () => {
+  it('does not initialize payment until the order row is available', async () => {
+    const result = await initiatePayFastCheckout(
+      { orderCode: 'KXO-9062', guestAccessToken: 'guest-token-secret' },
+      {
+        ...makeDependencies(),
+        findOrder: async () => ({ order: null }),
+      }
+    );
+
+    expect(result.status).toBe(404);
+    expect(result.body).toEqual({ error: 'Order not found.' });
+  });
+
   it('rejects an authenticated user who does not own the order', async () => {
     const result = await initiatePayFastCheckout(
       { orderCode: 'KXO-1234', authorization: 'Bearer other-user-token' },
@@ -91,19 +104,21 @@ describe('PayFast checkout initiation', () => {
   });
 
   it('uses the database amount and real order code, ignoring a client amount', async () => {
+    const order = makeOrder({ order_code: 'KXO-9062' });
+    const dependencies = makeDependencies(order);
     const result = await initiatePayFastCheckout(
       {
-        orderCode: 'KXO-1234',
+        orderCode: 'KXO-9062',
         guestAccessToken: 'guest-token-secret',
         amount: '0.01',
       },
-      makeDependencies()
+      dependencies
     );
 
     expect(result.status).toBe(200);
     if (!('processUrl' in result.body)) throw new Error('Expected PayFast initialization to succeed.');
     expect(result.body.processUrl).toBe('https://sandbox.payfast.co.za/eng/process');
-    expect(result.body.fields.m_payment_id).toBe('KXO-1234');
+    expect(result.body.fields.m_payment_id).toBe('KXO-9062');
     expect(result.body.fields.amount).toBe('1250.50');
     expect(result.body.fields.notify_url).toBe('https://shop.example.test/api/webhooks/payfast');
     expect(verifyPayFastSignature(result.body.fields, result.body.fields.signature, CONFIG.passphrase).valid).toBe(true);

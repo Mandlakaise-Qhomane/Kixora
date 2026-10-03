@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { getOptimizedImageUrl } from '../lib/cloudinary';
+import { submitPayFastForm } from '../utils/payfastForm';
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -119,27 +120,26 @@ export const CheckoutModal: React.FC = () => {
           headers,
           body: JSON.stringify({ orderCode, guestAccessToken }),
         });
-        const initiatePayload = await initiateResponse.json();
+        const initiatePayload: unknown = await initiateResponse.json();
         if (!initiateResponse.ok) {
-          throw new Error(initiatePayload.error || 'Unable to initialize PayFast checkout.');
+          const errorMessage = typeof initiatePayload === 'object'
+            && initiatePayload !== null
+            && 'error' in initiatePayload
+            && typeof initiatePayload.error === 'string'
+            ? initiatePayload.error
+            : 'Unable to initialize PayFast checkout.';
+          throw new Error(errorMessage);
         }
-        if (typeof initiatePayload.processUrl !== 'string' || !initiatePayload.fields) {
+        if (
+          typeof initiatePayload !== 'object'
+          || initiatePayload === null
+          || !('processUrl' in initiatePayload)
+          || !('fields' in initiatePayload)
+        ) {
           throw new Error('PayFast returned an invalid checkout response.');
         }
 
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = initiatePayload.processUrl;
-        form.style.display = 'none';
-        Object.entries(initiatePayload.fields as Record<string, string>).forEach(([name, value]) => {
-          const field = document.createElement('input');
-          field.type = 'hidden';
-          field.name = name;
-          field.value = value;
-          form.appendChild(field);
-        });
-        document.body.appendChild(form);
-        form.submit();
+        submitPayFastForm(initiatePayload.processUrl, initiatePayload.fields);
         return;
       }
 
@@ -171,9 +171,15 @@ export const CheckoutModal: React.FC = () => {
         setPlacedOrder(newOrder);
         setStep(4 as any);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('[CheckoutModal.handleCompleteOrder] Order failed:', err);
-      setPaymentError(err.message || 'Payment authorization was unsuccessful. Please retry payment.');
+      setPaymentError(
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : 'Payment authorization was unsuccessful. Please retry payment.'
+      );
     } finally {
       setIsSubmitting(false);
     }
