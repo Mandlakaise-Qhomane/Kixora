@@ -13,6 +13,8 @@ import { emailService } from './src/services/email/emailService';
 import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
 import { supabase, isSupabaseConfigured } from './src/lib/supabase';
+import { getSupabaseAdmin } from './src/lib/supabaseAdmin';
+import { authorizePayFastOrder, initiatePayFastCheckout } from './src/services/payments/payfastCheckout';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -194,6 +196,13 @@ async function startServer() {
 
   // Parse request bodies before CSRF validation so oversized requests return 413.
   app.use('/api/webhooks/tracking', express.raw({ type: 'application/json', limit: '10mb' }));
+  app.use('/api/webhooks/payfast', express.urlencoded({
+    extended: false,
+    limit: '10mb',
+    verify: (req, _res, buffer) => {
+      (req as express.Request & { rawBody?: string }).rawBody = buffer.toString('utf-8');
+    },
+  }));
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
@@ -232,7 +241,6 @@ async function startServer() {
   // Apply limiters
   app.use('/api/', apiLimiter);
   app.use('/api/auth/', authLimiter);
-  app.use('/api/payments/', checkoutLimiter);
 
   // ===========================================================================
   // SOCIAL MEDIA CRAWLER INTERCEPTOR (Task 7)
@@ -339,16 +347,129 @@ async function startServer() {
   // SECURE WEBHOOK INGRESS (Production Blocker Fix)
   // ===========================================================================
 
+  app.post('/api/payments/payfast/initiate', checkoutLimiter, async (req, res) => {
+    try {
+      const admin = getSupabaseAdmin();
+      const result = await initiatePayFastCheckout({
+        ...(req.body || {}),
+        authorization: req.header('authorization'),
+      }, {
+        findOrder: async orderCode => {
+          const { data, error } = await admin
+            .from('orders')
+            .select('order_code, user_id, guest_access_token, payment_status, total, customer_snapshot')
+            .eq('order_code', orderCode)
+            .maybeSingle();
+          return { order: data, error };
+        },
+        getUserId: async accessToken => {
+          const { data, error } = await admin.auth.getUser(accessToken);
+          return error ? null : data.user?.id || null;
+        },
+      });
+
+      res.status(result.status).json(result.body);
+    } catch (err: unknown) {
+      logger.error('[PayFast Initiation] Failed to prepare checkout', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      res.status(500).json({ error: 'Unable to initialize PayFast checkout.' });
+    }
+  });
+
+  app.post('/api/payments/payfast/status', async (req, res) => {
+    try {
+      const admin = getSupabaseAdmin();
+      const orderCode = typeof req.body?.orderCode === 'string' ? req.body.orderCode.trim() : '';
+      if (!orderCode) {
+        return res.status(400).json({ error: 'Order code is required.' });
+      }
+
+      const { data: order, error } = await admin
+        .from('orders')
+        .select('order_code, user_id, guest_access_token, payment_status, current_status, total, customer_snapshot')
+        .eq('order_code', orderCode)
+        .maybeSingle();
+      if (error) {
+        return res.status(500).json({ error: 'Unable to load order status.' });
+      }
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found.' });
+      }
+
+      const authorization = req.header('authorization') || '';
+      const bearerMatch = authorization.match(/^Bearer\s+([^\s]+)$/i);
+      const authorized = await authorizePayFastOrder(
+        order,
+        {
+          bearerToken: bearerMatch?.[1],
+          guestAccessToken: typeof req.body?.guestAccessToken === 'string'
+            ? req.body.guestAccessToken
+            : undefined,
+        },
+        async accessToken => {
+          const { data, error: authError } = await admin.auth.getUser(accessToken);
+          return authError ? null : data.user?.id || null;
+        }
+      );
+      if (!authorized) {
+        return res.status(403).json({ error: 'Not authorized to view this order.' });
+      }
+
+      res.json({
+        orderCode: order.order_code,
+        paymentStatus: order.payment_status,
+        currentStatus: order.current_status,
+        total: order.total,
+      });
+    } catch (err: unknown) {
+      logger.error('[PayFast Order Status] Failed to load status', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      });
+      res.status(500).json({ error: 'Unable to load order status.' });
+    }
+  });
+
   /**
    * POST /api/webhooks/payfast
    * PayFast ITN Verification & Reconciliation
    */
-  app.post('/api/webhooks/payfast', express.urlencoded({ extended: true, limit: '10mb' }), async (req, res) => {
+  app.post('/api/webhooks/payfast', async (req, res) => {
     const { payfastPassphrase } = getServerConfig();
+    const { payfastSandbox } = getEnvConfig();
     const payload = req.body;
+    const rawBody = (req as express.Request & { rawBody?: string }).rawBody;
 
     try {
-      logger.info('[PayFast Webhook] Received ITN');
+      logger.info('[PayFast Webhook] Received ITN fields', {
+        fieldNames: Object.keys(payload || {}),
+      });
+      if (!payfastPassphrase) {
+        logger.error('[PayFast Webhook] PAYFAST_PASSPHRASE is not configured');
+        return res.status(503).send('Webhook verification is unavailable');
+      }
+      if (!rawBody) {
+        logger.warn('[PayFast Webhook] Missing raw ITN body');
+        return res.status(400).send('Verification failed');
+      }
+
+      const validationUrl = payfastSandbox
+        ? 'https://sandbox.payfast.co.za/eng/query/validate'
+        : 'https://www.payfast.co.za/eng/query/validate';
+      const validationResponse = await fetch(validationUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: rawBody,
+        signal: AbortSignal.timeout(10000),
+      });
+      const validationResult = (await validationResponse.text()).trim();
+      if (!validationResponse.ok || validationResult !== 'VALID') {
+        logger.warn('[PayFast Webhook] PayFast postback validation rejected ITN', {
+          responseStatus: validationResponse.status,
+        });
+        return res.status(400).send('Verification failed');
+      }
+
       const result = await webhookService.verifyAndProcessPayFastWebhook(
         payload,
         payload.signature,

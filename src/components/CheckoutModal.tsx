@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useStore, formatPrice } from '../context/StoreContext';
 import { paymentService } from '../services/paymentService';
+import { getEnvConfig } from '../config/env';
+import { supabase } from '../lib/supabase';
 import { 
   X, 
   CheckCircle2, 
@@ -60,6 +62,87 @@ export const CheckoutModal: React.FC = () => {
     setPaymentError(null);
 
     try {
+      if (getEnvConfig().paymentProviderMode === 'payfast') {
+        const cartFingerprint = JSON.stringify(
+          cart.map(item => [item.sneaker.id, item.selectedSize, item.quantity])
+        );
+        const pendingKey = 'kixora_payfast_pending_order';
+        let pendingOrder: { orderCode: string; guestAccessToken?: string; cartFingerprint: string } | null = null;
+        const pendingValue = sessionStorage.getItem(pendingKey);
+        if (pendingValue) {
+          try {
+            const parsed = JSON.parse(pendingValue);
+            if (parsed.cartFingerprint === cartFingerprint && typeof parsed.orderCode === 'string') {
+              pendingOrder = parsed;
+            } else {
+              sessionStorage.removeItem(pendingKey);
+            }
+          } catch {
+            sessionStorage.removeItem(pendingKey);
+          }
+        }
+
+        let orderCode = pendingOrder?.orderCode;
+        let guestAccessToken = pendingOrder?.guestAccessToken;
+        if (!orderCode) {
+          const newOrder = await placeOrder(formData, paymentMethod, shippingMethod, undefined, true);
+          orderCode = newOrder.id;
+          guestAccessToken = newOrder.guestAccessToken;
+          sessionStorage.setItem(pendingKey, JSON.stringify({
+            orderCode,
+            guestAccessToken,
+            cartFingerprint,
+          }));
+        }
+        if (guestAccessToken) {
+          sessionStorage.setItem(`kixora_payfast_guest_${orderCode}`, guestAccessToken);
+        }
+
+        const csrfResponse = await fetch('/api/csrf', { credentials: 'same-origin' });
+        const csrfPayload = await csrfResponse.json();
+        if (!csrfResponse.ok || typeof csrfPayload.csrfToken !== 'string') {
+          throw new Error('Unable to secure the PayFast checkout request.');
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'csrf-token': csrfPayload.csrfToken,
+        };
+        if (session?.access_token) {
+          headers.Authorization = `Bearer ${session.access_token}`;
+        }
+
+        const initiateResponse = await fetch('/api/payments/payfast/initiate', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers,
+          body: JSON.stringify({ orderCode, guestAccessToken }),
+        });
+        const initiatePayload = await initiateResponse.json();
+        if (!initiateResponse.ok) {
+          throw new Error(initiatePayload.error || 'Unable to initialize PayFast checkout.');
+        }
+        if (typeof initiatePayload.processUrl !== 'string' || !initiatePayload.fields) {
+          throw new Error('PayFast returned an invalid checkout response.');
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = initiatePayload.processUrl;
+        form.style.display = 'none';
+        Object.entries(initiatePayload.fields as Record<string, string>).forEach(([name, value]) => {
+          const field = document.createElement('input');
+          field.type = 'hidden';
+          field.name = name;
+          field.value = value;
+          form.appendChild(field);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        return;
+      }
+
       // 1. Initialize or prepare payment intent via payment service
       const tempOrderCode = `KXO-${Math.floor(1000 + Math.random() * 9000)}`;
       const paymentIntentRes = await paymentService.initializePayment({
