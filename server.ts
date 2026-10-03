@@ -15,6 +15,7 @@ import { logger } from './logger';
 import { healthCheck } from './src/lib/healthCheck';
 import { getSupabaseAdmin } from './src/lib/supabaseAdmin';
 import { authorizePayFastOrder, initiatePayFastCheckout } from './src/services/payments/payfastCheckout';
+import { buildCspImageSources } from './src/config/cspImageSources';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -87,7 +88,7 @@ async function startServer() {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://www.google-analytics.com", "https://accounts.google.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
-        imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://res.cloudinary.com", "https://v5.airtableusercontent.com", "https://*.googleusercontent.com"],
+        imgSrc: buildCspImageSources(),
         connectSrc: [
           "'self'",
           "https://*.supabase.co", "wss://*.supabase.co",
