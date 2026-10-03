@@ -23,3 +23,9 @@
 ## Gate 4 — Live deployment proof
 
 The final sign-off is never based only on local checks. A real staging environment must validate domain routing, auth flows, and payment configuration before a production launch is considered safe.
+
+## Gate 5 — Production evidence pack
+
+- Complete `docs/qa/04-PRODUCTION_EVIDENCE_CHECKLIST.md`
+- Attach staging proof for config, Supabase, payments, inventory, and rollback
+- Keep unresolved items explicitly marked as blockers instead of assumptions

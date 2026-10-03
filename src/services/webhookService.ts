@@ -7,6 +7,8 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { getPaymentDriver, PaymentProviderType, PaymentStatus } from './payments';
 import { webhookIdempotency } from './payments/webhookIdempotency';
+import { logger } from '../../logger';
+import { monitoringService } from './monitoringService';
 
 export interface ProcessWebhookInput {
   provider: PaymentProviderType;
@@ -146,7 +148,15 @@ export const webhookService = {
         error: reconciliation.error
       };
     } catch (err: any) {
-      console.error('[webhookService.processWebhook] Exception:', err);
+      logger.error('[webhookService.processWebhook] Exception', {
+        provider,
+        error: err?.message || String(err),
+      });
+      monitoringService.reportError(err instanceof Error ? err : String(err), {
+        component: 'webhookService',
+        action: 'processWebhook',
+        metadata: { provider },
+      });
       return {
         success: false,
         provider,
@@ -213,12 +223,27 @@ export const webhookService = {
       const { data: order, error: findError } = await query.maybeSingle();
 
       if (findError) {
-        console.warn('[webhookService.reconcileOrderState] Database error finding order:', findError);
+        logger.warn('[webhookService.reconcileOrderState] Database error finding order', {
+          provider,
+          orderCode,
+          paymentIntentId,
+          error: findError.message,
+        });
+        monitoringService.reportWarning('Webhook reconciliation order lookup failed.', {
+          component: 'webhookService',
+          action: 'reconcileOrderState',
+          orderCode,
+          metadata: { provider, paymentIntentId, error: findError.message },
+        });
         return { success: false, error: 'Persistent order reconciliation failed.' };
       }
 
       if (!order) {
-        console.warn(`[webhookService.reconcileOrderState] Order not found for orderCode: ${orderCode}`);
+        logger.warn('[webhookService.reconcileOrderState] Order not found for payment event', {
+          provider,
+          orderCode,
+          paymentIntentId,
+        });
         return { success: false, error: 'Order not found for payment event.' };
       }
 
@@ -251,7 +276,18 @@ export const webhookService = {
         });
 
         if (rpcError) {
-          console.warn('[webhookService] confirm_inventory_sale RPC error:', rpcError);
+          logger.warn('[webhookService] confirm_inventory_sale RPC error', {
+            provider,
+            orderCode,
+            paymentIntentId,
+            error: rpcError.message,
+          });
+          monitoringService.reportWarning('Inventory confirmation RPC failed during webhook reconciliation.', {
+            component: 'webhookService',
+            action: 'confirm_inventory_sale',
+            orderCode: order.order_code,
+            metadata: { provider, paymentIntentId, error: rpcError.message },
+          });
           return { success: false, error: rpcError.message };
         }
 
@@ -268,7 +304,18 @@ export const webhookService = {
         });
 
         if (rpcError) {
-          console.warn('[webhookService] release_order_reservations RPC error:', rpcError);
+          logger.warn('[webhookService] release_order_reservations RPC error', {
+            provider,
+            orderCode,
+            paymentIntentId,
+            error: rpcError.message,
+          });
+          monitoringService.reportWarning('Reservation release RPC failed during webhook reconciliation.', {
+            component: 'webhookService',
+            action: 'release_order_reservations',
+            orderCode: order.order_code,
+            metadata: { provider, paymentIntentId, error: rpcError.message },
+          });
           return { success: false, error: rpcError.message };
         }
 
@@ -301,7 +348,18 @@ export const webhookService = {
         inventoryUpdated
       };
     } catch (err: any) {
-      console.error('[webhookService.reconcileOrderState] Exception:', err);
+      logger.error('[webhookService.reconcileOrderState] Exception', {
+        provider,
+        orderCode,
+        paymentIntentId,
+        error: err?.message || String(err),
+      });
+      monitoringService.reportError(err instanceof Error ? err : String(err), {
+        component: 'webhookService',
+        action: 'reconcileOrderState',
+        orderCode,
+        metadata: { provider, paymentIntentId },
+      });
       return { success: false, error: 'Order reconciliation failed.' };
     }
   }

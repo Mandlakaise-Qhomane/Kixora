@@ -13,6 +13,14 @@ import { emailService } from './src/services/email/emailService';
 import { getEnvConfig, getServerConfig, validateProductionEnv } from './src/config/env';
 import { logger } from './logger';
 import { supabase, isSupabaseConfigured } from './src/lib/supabase';
+import {
+  applyHeaders,
+  getApiNoStoreHeaders,
+  getCrawlerCacheHeaders,
+  getImmutableAssetCacheHeaders,
+  getSpaEntryCacheHeaders,
+  isImmutableAsset,
+} from './src/config/httpCache';
 
 /**
  * Kixora Production Server (Express + Vite)
@@ -197,6 +205,11 @@ async function startServer() {
   app.use(express.json({ limit: '10kb' }));
   app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
+  app.use('/api', (_req, res, next) => {
+    applyHeaders(res, getApiNoStoreHeaders());
+    next();
+  });
+
   app.get(['/api/csrf', '/api/csrf-token'], csrfProtection, (_req, res) => {
     res.json({ csrfToken: _req.csrfToken() });
   });
@@ -243,6 +256,7 @@ async function startServer() {
     
     if (isCrawler && process.env.NODE_ENV === 'production') {
       const productId = req.params.id;
+      applyHeaders(res, getCrawlerCacheHeaders());
       // In a real production app, we would fetch product data from DB here.
       // For this implementation, we serve a minimal template with standard Kixora branding
       // and instructions for the crawler.
@@ -496,7 +510,18 @@ async function startServer() {
   } else {
     // Static file serving for production
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) {
+          applyHeaders(res, getSpaEntryCacheHeaders());
+          return;
+        }
+
+        if (isImmutableAsset(filePath)) {
+          applyHeaders(res, getImmutableAssetCacheHeaders());
+        }
+      },
+    }));
     
     // SPA Fallback
     app.get('/{*splat}', (req, res) => {
@@ -504,6 +529,7 @@ async function startServer() {
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API route not found' });
       }
+      applyHeaders(res, getSpaEntryCacheHeaders());
       res.sendFile(path.join(distPath, 'index.html'));
     });
     console.log('Production static assets and SPA fallback enabled.');
